@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import ActiveTablesPage from './ActiveTablesPage';
@@ -11,6 +11,7 @@ import ReservationsPage from './ReservationsPage';
 import FinancialReportPage from './FinancialReportPage';
 import DiscountsPage from './DiscountsPage';
 import SalesStatisticsPage from './SalesStatisticsPage';
+import MenuManagementPage from './MenuManagementPage';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -132,6 +133,19 @@ export default function AdminDashboard() {
                 <ShoppingCart className="w-5 h-5" />
                 <span className="accent-font">Satış Statistikası</span>
               </Link>
+              
+              <Link
+                to="/admin/menu-management"
+                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+                  isActive('/admin/menu-management')
+                    ? 'bg-[#1A4D2E] text-white'
+                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
+                }`}
+                data-testid="nav-menu-management"
+              >
+                <UtensilsCrossed className="w-5 h-5" />
+                <span className="accent-font">Menyu İdarəetməsi</span>
+              </Link>
             </nav>
             
             <div className="absolute bottom-6 left-6 right-6">
@@ -153,6 +167,7 @@ export default function AdminDashboard() {
             <Route path="/financial-report" element={<FinancialReportPage />} />
             <Route path="/discounts" element={<DiscountsPage />} />
             <Route path="/sales-statistics" element={<SalesStatisticsPage />} />
+            <Route path="/menu-management" element={<MenuManagementPage />} />
           </Routes>
         </main>
       </div>

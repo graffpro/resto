@@ -665,6 +665,49 @@ async def update_order_status(order_id: str, status: OrderStatus, current_user: 
     
     return {"message": "Order status updated"}
 
+
+# Delete order
+@api_router.delete("/orders/{order_id}")
+async def delete_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    result = await db.orders.delete_one({"id": order_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {"message": "Order deleted"}
+
+
+# Update order items
+class OrderUpdate(BaseModel):
+    items: List[dict]
+    total_amount: float
+
+@api_router.put("/orders/{order_id}")
+async def update_order(order_id: str, order_update: OrderUpdate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "items": order_update.items,
+            "total_amount": order_update.total_amount
+        }}
+    )
+    
+    return {"message": "Order updated"}
+
+
 @api_router.get("/orders/waiter")
 async def get_waiter_orders(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.WAITER, UserRole.ADMIN, UserRole.OWNER]:

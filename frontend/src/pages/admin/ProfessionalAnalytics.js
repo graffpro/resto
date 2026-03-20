@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, TrendingUp, DollarSign, ShoppingBag, Clock, Users } from 'lucide-react';
+import { RefreshCw, TrendingUp, DollarSign, ShoppingBag, Clock, Users, Eye, Edit, Trash2, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 
@@ -13,6 +17,9 @@ export default function ProfessionalAnalytics() {
   const [analytics, setAnalytics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editItems, setEditItems] = useState([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -99,6 +106,79 @@ export default function ProfessionalAnalytics() {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     return `${hours}s ${mins}d`;
+  };
+
+  const handleViewOrder = (item) => {
+    setSelectedOrder(item);
+  };
+
+  const handleEditOrder = (item) => {
+    setEditingOrder(item);
+    setEditItems(item.order?.items?.map(i => ({ ...i })) || []);
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Sifarişi silmək istədiyinizə əminsiniz?')) return;
+    try {
+      await axios.delete(`${API}/orders/${orderId}`);
+      toast.success('Sifariş silindi');
+      fetchAnalytics();
+    } catch (error) {
+      toast.error('Xəta baş verdi');
+    }
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!editingOrder) return;
+    try {
+      const total = editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      await axios.put(`${API}/orders/${editingOrder.order.id}`, {
+        items: editItems,
+        total_amount: total
+      });
+      toast.success('Sifariş yeniləndi');
+      setEditingOrder(null);
+      fetchAnalytics();
+    } catch (error) {
+      toast.error('Xəta baş verdi');
+    }
+  };
+
+  const updateItemQuantity = (idx, newQty) => {
+    if (newQty < 1) return;
+    const updated = [...editItems];
+    updated[idx].quantity = newQty;
+    setEditItems(updated);
+  };
+
+  const removeItem = (idx) => {
+    if (editItems.length <= 1) {
+      toast.error('Ən azı bir məhsul olmalıdır');
+      return;
+    }
+    setEditItems(editItems.filter((_, i) => i !== idx));
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending': return 'Gözləyir';
+      case 'preparing': return 'Hazırlanır';
+      case 'ready': return 'Hazırdır';
+      case 'delivered': return 'Çatdırıldı';
+      case 'completed': return 'Tamamlandı';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'preparing': return 'bg-orange-100 text-orange-800';
+      case 'ready': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (loading) {
@@ -215,11 +295,12 @@ export default function ProfessionalAnalytics() {
                     <th className="text-right p-3 text-[#1A4D2E] font-semibold">Hazırlıq</th>
                     <th className="text-right p-3 text-[#1A4D2E] font-semibold">Çatdırılma</th>
                     <th className="text-left p-3 text-[#1A4D2E] font-semibold">Ofisiant</th>
+                    <th className="text-center p-3 text-[#1A4D2E] font-semibold">Əməliyyatlar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.slice(0, 50).map((item, idx) => (
-                    <tr key={idx} className="border-t border-[#E2E8E2]">
+                    <tr key={idx} className="border-t border-[#E2E8E2] hover:bg-[#F5F9E9]/50">
                       <td className="p-3">Stol {item.table?.table_number}</td>
                       <td className="p-3 text-sm text-[#5C6B61]">#{item.order?.order_number}</td>
                       <td className="p-3 text-right font-semibold text-[#1A4D2E]">{item.order?.total_amount?.toFixed(2)} AZN</td>
@@ -234,6 +315,37 @@ export default function ProfessionalAnalytics() {
                         </span>
                       </td>
                       <td className="p-3 text-sm">{item.waiter?.full_name || '-'}</td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewOrder(item)}
+                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            data-testid={`view-order-${item.order?.id}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditOrder(item)}
+                            className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800 hover:bg-orange-50"
+                            data-testid={`edit-order-${item.order?.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteOrder(item.order?.id)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                            data-testid={`delete-order-${item.order?.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -242,6 +354,150 @@ export default function ProfessionalAnalytics() {
           )}
         </CardContent>
       </Card>
+
+      {/* Order Details Modal */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#1A4D2E] heading-font">
+              Sifariş Detalları - #{selectedOrder?.order?.order_number}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#F5F9E9] rounded-lg p-3">
+                  <p className="text-xs text-[#5C6B61]">Stol</p>
+                  <p className="font-bold text-[#1A4D2E]">Stol {selectedOrder.table?.table_number}</p>
+                </div>
+                <div className="bg-[#F5F9E9] rounded-lg p-3">
+                  <p className="text-xs text-[#5C6B61]">Status</p>
+                  <Badge className={getStatusColor(selectedOrder.order?.status)}>
+                    {getStatusLabel(selectedOrder.order?.status)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-[#1A4D2E] mb-2">Sifariş Edilənlər:</p>
+                <div className="space-y-2">
+                  {selectedOrder.order?.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b border-[#E2E8E2]">
+                      <div>
+                        <p className="font-medium text-[#1A4D2E]">{item.name}</p>
+                        <p className="text-sm text-[#5C6B61]">{item.quantity} ədəd × {item.price?.toFixed(2)} AZN</p>
+                      </div>
+                      <p className="font-bold text-[#1A4D2E]">{(item.quantity * item.price).toFixed(2)} AZN</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#1A4D2E] text-white rounded-lg p-4 flex justify-between items-center">
+                <span className="font-medium">Ümumi Məbləğ</span>
+                <span className="text-2xl font-bold">{selectedOrder.order?.total_amount?.toFixed(2)} AZN</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-[#5C6B61]">Hazırlıq Vaxtı</p>
+                  <p className="font-semibold text-[#1A4D2E]">{formatTime(selectedOrder.preparation_time_minutes)}</p>
+                </div>
+                <div>
+                  <p className="text-[#5C6B61]">Çatdırılma Vaxtı</p>
+                  <p className="font-semibold text-[#1A4D2E]">{formatTime(selectedOrder.delivery_time_minutes)}</p>
+                </div>
+                <div>
+                  <p className="text-[#5C6B61]">Ofisiant</p>
+                  <p className="font-semibold text-[#1A4D2E]">{selectedOrder.waiter?.full_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[#5C6B61]">Sifariş Tarixi</p>
+                  <p className="font-semibold text-[#1A4D2E]">
+                    {new Date(selectedOrder.order?.ordered_at).toLocaleString('az-AZ')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Modal */}
+      <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[#1A4D2E] heading-font">
+              Sifarişi Redaktə Et - #{editingOrder?.order?.order_number}
+            </DialogTitle>
+          </DialogHeader>
+          {editingOrder && (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                {editItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-[#F5F9E9] rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-[#1A4D2E]">{item.name}</p>
+                      <p className="text-sm text-[#5C6B61]">{item.price?.toFixed(2)} AZN / ədəd</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateItemQuantity(idx, item.quantity - 1)}
+                        className="h-8 w-8 p-0"
+                      >
+                        -
+                      </Button>
+                      <span className="w-8 text-center font-bold">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateItemQuantity(idx, item.quantity + 1)}
+                        className="h-8 w-8 p-0"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeItem(idx)}
+                      className="h-8 w-8 p-0 text-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-[#1A4D2E] text-white rounded-lg p-4 flex justify-between items-center">
+                <span className="font-medium">Yeni Ümumi Məbləğ</span>
+                <span className="text-2xl font-bold">
+                  {editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} AZN
+                </span>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingOrder(null)}
+                  className="flex-1"
+                >
+                  Ləğv Et
+                </Button>
+                <Button
+                  onClick={handleUpdateOrder}
+                  className="flex-1 bg-[#4F9D69] hover:bg-[#1A4D2E] text-white"
+                >
+                  <Check className="w-4 h-4 mr-2" />
+                  Yadda Saxla
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
