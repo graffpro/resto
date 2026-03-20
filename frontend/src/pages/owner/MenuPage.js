@@ -23,7 +23,7 @@ export default function MenuPage() {
   const [editingCat, setEditingCat] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [catForm, setCatForm] = useState({ name: '', description: '', display_order: 0 });
-  const [itemForm, setItemForm] = useState({ name: '', description: '', price: '', category_id: '', image_url: '', preparation_time: 15 });
+  const [itemForm, setItemForm] = useState({ name: '', description: '', price: '', category_id: '', image_url: '', preparation_time: 15, discount_percentage: 0 });
 
   useEffect(() => {
     fetchData();
@@ -169,6 +169,11 @@ export default function MenuPage() {
                   <div>
                     <Label>{az.preparationTime}</Label>
                     <Input type="number" value={itemForm.preparation_time} onChange={(e) => setItemForm(p => ({ ...p, preparation_time: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Endirim %</Label>
+                    <Input type="number" step="0.01" min="0" max="100" value={itemForm.discount_percentage} onChange={(e) => setItemForm(p => ({ ...p, discount_percentage: parseFloat(e.target.value) || 0 }))} />
+                    <p className="text-xs text-[#5C6B61] mt-1">0 daxil etsəniz endirim olmayacaq</p>
                   </div>
                   <Button type="submit" className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white">{az.save}</Button>
                 </form>

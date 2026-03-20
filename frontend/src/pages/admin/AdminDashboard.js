@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import ActiveTablesPage from './ActiveTablesPage';
 import AdminUsersPage from './AdminUsersPage';
-import AnalyticsPage from './AnalyticsPage';
+import ProfessionalAnalytics from './ProfessionalAnalytics';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           <Routes>
             <Route path="/" element={<ActiveTablesPage />} />
             <Route path="/users" element={<AdminUsersPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/analytics" element={<ProfessionalAnalytics />} />
           </Routes>
         </main>
       </div>

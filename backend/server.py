@@ -836,3 +836,89 @@ async def get_sessions_history(current_user: dict = Depends(get_current_user)):
     
     return result
 
+
+class TableReservation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    table_id: str
+    customer_name: str
+    customer_phone: str
+    customer_email: Optional[str] = None
+    reservation_date: str
+    reservation_time: str
+    guest_count: int
+    special_requests: Optional[str] = None
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ReservationCreate(BaseModel):
+    table_id: str
+    customer_name: str
+    customer_phone: str
+    customer_email: Optional[str] = None
+    reservation_date: str
+    reservation_time: str
+    guest_count: int
+    special_requests: Optional[str] = None
+
+@api_router.post("/reservations")
+async def create_reservation(reservation: ReservationCreate):
+    reservation_obj = TableReservation(**reservation.model_dump())
+    doc = reservation_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.reservations.insert_one(doc)
+    return reservation_obj
+
+@api_router.get("/reservations")
+async def get_reservations(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    reservations = await db.reservations.find({}, {"_id": 0}).sort("reservation_date", 1).to_list(1000)
+    result = []
+    for res in reservations:
+        if isinstance(res['created_at'], str):
+            res['created_at'] = datetime.fromisoformat(res['created_at'])
+        table = await db.tables.find_one({"id": res['table_id']}, {"_id": 0})
+        venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
+        result.append({
+            "reservation": res,
+            "table": table,
+            "venue": venue
+        })
+    return result
+
+@api_router.put("/reservations/{reservation_id}/status")
+async def update_reservation_status(reservation_id: str, status: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.reservations.update_one({"id": reservation_id}, {"$set": {"status": status}})
+    return {"message": "Reservation status updated"}
+
+@api_router.delete("/reservations/{reservation_id}")
+async def delete_reservation(reservation_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.reservations.delete_one({"id": reservation_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return {"message": "Reservation deleted"}
+
+@api_router.get("/tables/available")
+async def get_available_tables(date: str, time: str):
+    all_tables = await db.tables.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    
+    reserved_table_ids = []
+    reservations = await db.reservations.find({
+        "reservation_date": date,
+        "status": {"$ne": "cancelled"}
+    }, {"_id": 0}).to_list(1000)
+    
+    for res in reservations:
+        reserved_table_ids.append(res['table_id'])
+    
+    available_tables = [t for t in all_tables if t['id'] not in reserved_table_ids]
+    return available_tables
+

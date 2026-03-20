@@ -1,12 +1,13 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Building2, Table2, UtensilsCrossed, Users, LogOut, FolderTree } from 'lucide-react';
+import { Building2, Table2, UtensilsCrossed, Users, LogOut, FolderTree, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import VenuesPage from './VenuesPage';
 import TablesPage from './TablesPage';
 import MenuPage from './MenuPage';
 import UsersPage from './UsersPage';
+import SettingsPage from './SettingsPage';
 
 export default function OwnerDashboard() {
   const { user, logout } = useAuth();
@@ -76,6 +77,19 @@ export default function OwnerDashboard() {
                 <Users className="w-5 h-5" />
                 <span className="accent-font">{az.users}</span>
               </Link>
+              
+              <Link
+                to="/owner/settings"
+                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+                  isActive('/owner/settings')
+                    ? 'bg-[#1A4D2E] text-white'
+                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
+                }`}
+                data-testid="nav-settings"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="accent-font">{az.settings}</span>
+              </Link>
             </nav>
             
             <div className="absolute bottom-6 left-6 right-6">
@@ -99,6 +113,7 @@ export default function OwnerDashboard() {
             <Route path="/tables" element={<TablesPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
       </div>
