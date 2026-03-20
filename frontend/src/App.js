@@ -1,45 +1,108 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/sonner";
-import "@/App.css";
-import CustomerLayout from "@/components/layouts/CustomerLayout";
-import AdminLayout from "@/components/layouts/AdminLayout";
-import HomePage from "@/pages/customer/HomePage";
-import CartPage from "@/pages/customer/CartPage";
-import CheckoutPage from "@/pages/customer/CheckoutPage";
-import ReservationsPage from "@/pages/customer/ReservationsPage";
-import MyOrdersPage from "@/pages/customer/MyOrdersPage";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import OrdersManagement from "@/pages/admin/OrdersManagement";
-import ReservationsManagement from "@/pages/admin/ReservationsManagement";
-import MenuManagement from "@/pages/admin/MenuManagement";
-import CategoriesManagement from "@/pages/admin/CategoriesManagement";
-import { CartProvider } from "@/context/CartContext";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import '@/App.css';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import LoginPage from '@/pages/LoginPage';
+import OwnerDashboard from '@/pages/owner/OwnerDashboard';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import KitchenDashboard from '@/pages/kitchen/KitchenDashboard';
+import WaiterDashboard from '@/pages/waiter/WaiterDashboard';
+import CustomerPage from '@/pages/customer/CustomerPage';
+
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F9E9]">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/table/:tableId" element={<CustomerPage />} />
+      
+      <Route
+        path="/owner/*"
+        element={
+          <ProtectedRoute allowedRoles={['owner']}>
+            <OwnerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'owner']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/kitchen"
+        element={
+          <ProtectedRoute allowedRoles={['kitchen']}>
+            <KitchenDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/waiter"
+        element={
+          <ProtectedRoute allowedRoles={['waiter']}>
+            <WaiterDashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/"
+        element={
+          user ? (
+            user.role === 'owner' ? <Navigate to="/owner" replace /> :
+            user.role === 'admin' ? <Navigate to="/admin" replace /> :
+            user.role === 'kitchen' ? <Navigate to="/kitchen" replace /> :
+            user.role === 'waiter' ? <Navigate to="/waiter" replace /> :
+            <Navigate to="/login" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+    </Routes>
+  );
+}
 
 function App() {
   return (
-    <CartProvider>
+    <AuthProvider>
       <div className="App">
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<CustomerLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="cart" element={<CartPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-              <Route path="reservations" element={<ReservationsPage />} />
-              <Route path="my-orders" element={<MyOrdersPage />} />
-            </Route>
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="orders" element={<OrdersManagement />} />
-              <Route path="reservations" element={<ReservationsManagement />} />
-              <Route path="menu" element={<MenuManagement />} />
-              <Route path="categories" element={<CategoriesManagement />} />
-            </Route>
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
         <Toaster position="top-right" />
       </div>
-    </CartProvider>
+    </AuthProvider>
   );
 }
 

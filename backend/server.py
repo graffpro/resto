@@ -377,24 +377,41 @@ async def start_session(table_id: str):
 async def get_active_sessions():
     sessions = await db.table_sessions.find({"is_active": True}, {"_id": 0}).to_list(1000)
     
+    if not sessions:
+        return []
+    
+    table_ids = [s['table_id'] for s in sessions]
+    tables = await db.tables.find({"id": {"$in": table_ids}}, {"_id": 0}).to_list(1000)
+    tables_map = {t['id']: t for t in tables}
+    
+    venue_ids = [t['venue_id'] for t in tables if t.get('venue_id')]
+    venues = await db.venues.find({"id": {"$in": venue_ids}}, {"_id": 0}).to_list(1000)
+    venues_map = {v['id']: v for v in venues}
+    
+    session_ids = [s['id'] for s in sessions]
+    orders = await db.orders.find({
+        "session_id": {"$in": session_ids},
+        "status": {"$ne": OrderStatus.COMPLETED}
+    }, {"_id": 0}).to_list(10000)
+    
+    orders_count = {}
+    for order in orders:
+        session_id = order['session_id']
+        orders_count[session_id] = orders_count.get(session_id, 0) + 1
+    
     result = []
     for session in sessions:
         if isinstance(session['started_at'], str):
             session['started_at'] = datetime.fromisoformat(session['started_at'])
         
-        table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
-        venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
-        
-        orders = await db.orders.find({
-            "session_id": session['id'],
-            "status": {"$ne": OrderStatus.COMPLETED}
-        }, {"_id": 0}).to_list(1000)
+        table = tables_map.get(session['table_id'])
+        venue = venues_map.get(table['venue_id']) if table and table.get('venue_id') else None
         
         result.append({
             "session": session,
             "table": table,
             "venue": venue,
-            "active_orders": len(orders)
+            "active_orders": orders_count.get(session['id'], 0)
         })
     
     return result
@@ -655,6 +672,31 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
     
     all_sessions = await db.table_sessions.find({}, {"_id": 0}).to_list(10000)
     
+    if not all_sessions:
+        return []
+    
+    table_ids = list(set(s['table_id'] for s in all_sessions))
+    tables = await db.tables.find({"id": {"$in": table_ids}}, {"_id": 0}).to_list(10000)
+    tables_map = {t['id']: t for t in tables}
+    
+    venue_ids = list(set(t['venue_id'] for t in tables if t.get('venue_id')))
+    venues = await db.venues.find({"id": {"$in": venue_ids}}, {"_id": 0}).to_list(10000)
+    venues_map = {v['id']: v for v in venues}
+    
+    session_ids = [s['id'] for s in all_sessions]
+    all_orders = await db.orders.find({"session_id": {"$in": session_ids}}, {"_id": 0}).to_list(100000)
+    
+    waiter_ids = list(set(o['waiter_id'] for o in all_orders if o.get('waiter_id')))
+    waiters = await db.users.find({"id": {"$in": waiter_ids}}, {"_id": 0, "password": 0}).to_list(1000)
+    waiters_map = {w['id']: w for w in waiters}
+    
+    orders_by_session = {}
+    for order in all_orders:
+        session_id = order['session_id']
+        if session_id not in orders_by_session:
+            orders_by_session[session_id] = []
+        orders_by_session[session_id].append(order)
+    
     detailed_data = []
     for session in all_sessions:
         if isinstance(session.get('started_at'), str):
@@ -662,10 +704,10 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
         if session.get('ended_at') and isinstance(session['ended_at'], str):
             session['ended_at'] = datetime.fromisoformat(session['ended_at'])
         
-        table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
-        venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
+        table = tables_map.get(session['table_id'])
+        venue = venues_map.get(table['venue_id']) if table and table.get('venue_id') else None
         
-        orders = await db.orders.find({"session_id": session['id']}, {"_id": 0}).to_list(1000)
+        orders = orders_by_session.get(session['id'], [])
         
         for order in orders:
             for field in ['ordered_at', 'preparing_started_at', 'ready_at', 'delivered_at']:
@@ -681,9 +723,7 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
             if order.get('ready_at') and order.get('delivered_at'):
                 delivery_time = (order['delivered_at'] - order['ready_at']).total_seconds() / 60
             
-            waiter = None
-            if order.get('waiter_id'):
-                waiter = await db.users.find_one({"id": order['waiter_id']}, {"_id": 0, "password": 0})
+            waiter = waiters_map.get(order.get('waiter_id')) if order.get('waiter_id') else None
             
             detailed_data.append({
                 "session": session,
