@@ -1,0 +1,142 @@
+{
+  "identity": {
+    "persona": "E1",
+    "theme": "Organic & Earthy",
+    "tone": "Fresh, Inviting, Reliable, Efficient",
+    "core_principle": "Fusion over Imitation: Mix botanical aesthetics with high-efficiency SaaS precision."
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Playfair Display, serif",
+      "weight": "700",
+      "usage": "Use for all major section headers, hero titles, and food category names. Must use tight tracking.",
+      "fallback": "serif"
+    },
+    "body": {
+      "font_family": "Inter, sans-serif",
+      "weight": "400",
+      "usage": "Use for menu descriptions, prices, admin dashboard data, and UI elements.",
+      "fallback": "sans-serif"
+    },
+    "accent": {
+      "font_family": "Manrope, sans-serif",
+      "weight": "600",
+      "usage": "Use for buttons, navigation links, and tags.",
+      "fallback": "sans-serif"
+    }
+  },
+  "colors": {
+    "primary": {
+      "default": "#1A4D2E",
+      "foreground": "#FFFFFF",
+      "description": "Deep Forest Green. Use for primary buttons, active states, and heavy branding elements."
+    },
+    "secondary": {
+      "default": "#F5F9E9",
+      "foreground": "#1A4D2E",
+      "description": "Pale Sage. Use for page backgrounds, card backgrounds in light mode, and subtle sections."
+    },
+    "accent": {
+      "default": "#4F9D69",
+      "foreground": "#FFFFFF",
+      "description": "Vibrant Matcha. Use for call-to-actions, success states, and highlights."
+    },
+    "neutral": {
+      "background": "#FFFFFF",
+      "surface": "#F8FAF8",
+      "border": "#E2E8E2",
+      "text_primary": "#0F1F15",
+      "text_secondary": "#5C6B61"
+    },
+    "status": {
+      "success": "#4F9D69",
+      "warning": "#E9C46A",
+      "error": "#E76F51",
+      "info": "#2A9D8F"
+    },
+    "dark_mode": {
+      "background": "#0A1F12",
+      "surface": "#11291B",
+      "border": "#1F422D",
+      "text_primary": "#F5F9E9",
+      "text_secondary": "#A3BFA8"
+    }
+  },
+  "layout_strategy": {
+    "marketing_menu": {
+      "grid_type": "Bento Grid",
+      "spacing": "Generous (gap-8 to gap-12)",
+      "container_style": "Asymmetric layouts. Use 'The Tetris Grid' for showcasing food categories.",
+      "rules": "Avoid equal squares. Use col-span-2 for hero dishes and col-span-1 for sides."
+    },
+    "admin_dashboard": {
+      "grid_type": "High Density",
+      "spacing": "Tight (gap-4)",
+      "container_style": "Modular Cards. Every pixel utilized.",
+      "rules": "Use full height (h-full) on children to ensure alignment. No jagged bottoms."
+    },
+    "mobile": {
+      "rules": "Stack all grids to col-span-1. Images max-height 80vh. Touch targets min 44px."
+    }
+  },
+  "component_guidelines": {
+    "buttons": {
+      "style": "Pill-shaped for customer facing, rounded-md for admin.",
+      "interaction": "Scale down slightly on click (active:scale-95). Shadow-lg on hover.",
+      "classes": "rounded-full px-8 py-3 font-semibold transition-all duration-200"
+    },
+    "cards": {
+      "style": "Flat with subtle border in admin. Shadow-xl and floating effect for food items.",
+      "interaction": "Lift on hover (-translate-y-1).",
+      "classes": "bg-white border border-border/40 rounded-xl overflow-hidden"
+    },
+    "navigation": {
+      "style": "Sticky glassmorphism header.",
+      "classes": "backdrop-blur-xl bg-white/70 border-b border-white/20 z-50 sticky top-0"
+    },
+    "inputs": {
+      "style": "Shadcn based. Minimalist borders. Focus ring in Accent color.",
+      "classes": "h-10 rounded-md border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    }
+  },
+  "visual_assets": {
+    "images": {
+      "hero_main": "https://images.unsplash.com/photo-1752028935881-0674807b046c",
+      "restaurant_interior": "https://images.pexels.com/photos/6418655/pexels-photo-6418655.jpeg",
+      "chef_plating": "https://images.unsplash.com/photo-1750943082012-efe6d2fd9e45",
+      "delivery_scooter": "https://images.pexels.com/photos/4393240/pexels-photo-4393240.jpeg",
+      "food_burger": "https://images.unsplash.com/photo-1761315414039-3955a6252f58",
+      "food_pizza": "https://images.unsplash.com/photo-1767065604207-8876c6bfb5be",
+      "food_sushi": "https://images.unsplash.com/photo-1752095809329-5addd009f71d",
+      "happy_customers": "https://images.pexels.com/photos/6816375/pexels-photo-6816375.jpeg"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px. Rounded line caps."
+    }
+  },
+  "tech_stack": {
+    "framework": "React",
+    "styling": "Tailwind CSS",
+    "components": "Shadcn/UI (Radix Primitives)",
+    "file_extension": "Use .js or .jsx extensions (NO .tsx)",
+    "state_management": "React Context or Zustand (if needed)",
+    "router": "React Router Dom"
+  },
+  "accessibility_rules": {
+    "contrast": "Text must meet APCA standards. Use dark green (#0F1F15) for text on light backgrounds.",
+    "interaction": "Focus states must be highly visible (ring-2 ring-offset-2).",
+    "attributes": "All interactive elements must have data-testid."
+  },
+  "universal_guidelines": [
+    "Do not use generic gradients. Use solid colors or subtle noise textures.",
+    "Do not center everything. Use asymmetry to create tension.",
+    "Use 2-3x more spacing than typical. p-8 or p-12.",
+    "Every interaction needs a micro-animation (hover, active, focus).",
+    "Do not use 'transition: all'. Be specific.",
+    "Use sonner for toasts.",
+    "Export components as named exports.",
+    "Pages as default exports."
+  ],
+  "instructions_to_main_agent": "You are building a WP Cafe clone. Focus on the duality of the app: The Customer view should feel like a high-end lifestyle magazine (lush, appetizing, large images), while the Admin view should feel like a tactical command center (dense, data-rich, efficient). Use the provided image URLs strictly. Do not hallucinate new assets. Ensure the Green theme is applied elegantly, avoiding 'default green' looks."
+}
