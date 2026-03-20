@@ -1082,15 +1082,28 @@ async def get_financial_analytics(current_user: dict = Depends(get_current_user)
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    order_query = {}
-    expense_query = {}
+    # Get all orders and filter by date in Python (since ordered_at is ISO string)
+    all_orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
     
+    # Filter orders by date range
     if start_date and end_date:
-        order_query["ordered_at"] = {"$gte": start_date, "$lte": end_date}
-        expense_query["date"] = {"$gte": start_date, "$lte": end_date}
+        filtered_orders = []
+        for order in all_orders:
+            order_date_str = order.get('ordered_at', '')
+            if order_date_str:
+                # Extract date part from ISO string (e.g., "2026-03-20T22:15:00+00:00" -> "2026-03-20")
+                order_date = order_date_str[:10] if isinstance(order_date_str, str) else str(order_date_str)[:10]
+                if start_date <= order_date <= end_date:
+                    filtered_orders.append(order)
+        orders = filtered_orders
+    else:
+        orders = all_orders
     
-    orders = await db.orders.find(order_query, {"_id": 0}).to_list(100000)
     total_revenue = sum(o.get('total_amount', 0) for o in orders)
+    
+    expense_query = {}
+    if start_date and end_date:
+        expense_query["date"] = {"$gte": start_date, "$lte": end_date}
     
     expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(100000)
     total_expenses = sum(e.get('amount', 0) for e in expenses)
@@ -1113,6 +1126,106 @@ async def get_financial_analytics(current_user: dict = Depends(get_current_user)
         "orders_count": len(orders),
         "expenses_count": len(expenses),
         "expense_by_category": expense_by_category
+    }
+
+
+# Get table session details with all orders
+@api_router.get("/sessions/{session_id}/details")
+async def get_session_details(session_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    session = await db.table_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
+    venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
+    
+    orders = await db.orders.find({"session_id": session_id}, {"_id": 0}).sort("ordered_at", 1).to_list(1000)
+    
+    for order in orders:
+        for field in ['ordered_at', 'preparing_started_at', 'ready_at', 'delivered_at']:
+            if order.get(field) and isinstance(order[field], str):
+                order[field] = datetime.fromisoformat(order[field])
+    
+    total_amount = sum(o.get('total_amount', 0) for o in orders)
+    
+    return {
+        "session": session,
+        "table": table,
+        "venue": venue,
+        "orders": orders,
+        "total_amount": total_amount
+    }
+
+
+# Sales statistics by item (daily, monthly, yearly, all time)
+@api_router.get("/analytics/sales-by-item")
+async def get_sales_by_item(current_user: dict = Depends(get_current_user), period: str = "all"):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    all_orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
+    
+    # Filter by period
+    today = datetime.now(timezone.utc)
+    today_str = today.strftime('%Y-%m-%d')
+    
+    filtered_orders = []
+    for order in all_orders:
+        order_date_str = order.get('ordered_at', '')
+        if order_date_str:
+            order_date = order_date_str[:10] if isinstance(order_date_str, str) else str(order_date_str)[:10]
+            
+            if period == "today":
+                if order_date == today_str:
+                    filtered_orders.append(order)
+            elif period == "month":
+                month_start = today.replace(day=1).strftime('%Y-%m-%d')
+                if order_date >= month_start:
+                    filtered_orders.append(order)
+            elif period == "year":
+                year_start = today.replace(month=1, day=1).strftime('%Y-%m-%d')
+                if order_date >= year_start:
+                    filtered_orders.append(order)
+            else:  # all
+                filtered_orders.append(order)
+    
+    # Aggregate sales by item
+    item_sales = {}
+    for order in filtered_orders:
+        for item in order.get('items', []):
+            item_id = item.get('menu_item_id', 'unknown')
+            item_name = item.get('name', 'Unknown')
+            quantity = item.get('quantity', 0)
+            price = item.get('price', 0)
+            
+            if item_id not in item_sales:
+                item_sales[item_id] = {
+                    'id': item_id,
+                    'name': item_name,
+                    'total_quantity': 0,
+                    'total_revenue': 0,
+                    'orders_count': 0
+                }
+            
+            item_sales[item_id]['total_quantity'] += quantity
+            item_sales[item_id]['total_revenue'] += price * quantity
+            item_sales[item_id]['orders_count'] += 1
+    
+    # Sort by total revenue
+    sorted_sales = sorted(item_sales.values(), key=lambda x: x['total_revenue'], reverse=True)
+    
+    total_revenue = sum(item['total_revenue'] for item in sorted_sales)
+    total_items_sold = sum(item['total_quantity'] for item in sorted_sales)
+    
+    return {
+        "period": period,
+        "items": sorted_sales,
+        "total_revenue": total_revenue,
+        "total_items_sold": total_items_sold,
+        "unique_items_count": len(sorted_sales)
     }
 
 
