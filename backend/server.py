@@ -353,6 +353,8 @@ async def start_session(table_id: str):
     }, {"_id": 0})
     
     if active_session:
+        if isinstance(active_session['started_at'], str):
+            active_session['started_at'] = datetime.fromisoformat(active_session['started_at'])
         return {
             "session": active_session,
             "table": table
@@ -756,3 +758,81 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+@api_router.get("/settings")
+async def get_settings():
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    if not settings:
+        default_settings = {
+            "id": "settings",
+            "name": "Green Plate Restaurant",
+            "address": "Bakı, Azərbaycan",
+            "phone": "+994 XX XXX XX XX",
+            "email": "info@greenplate.az",
+            "tax_percentage": 18,
+            "service_charge_percentage": 10,
+            "currency": "AZN"
+        }
+        await db.settings.insert_one(default_settings)
+        return default_settings
+    return settings
+
+@api_router.put("/settings")
+async def update_settings(settings: dict, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    settings["id"] = "settings"
+    await db.settings.update_one({"id": "settings"}, {"$set": settings}, upsert=True)
+    return settings
+
+@api_router.get("/analytics/popular-items")
+async def get_popular_items_stats():
+    orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
+    
+    item_stats = {}
+    for order in orders:
+        for item in order.get('items', []):
+            menu_item_id = item.get('menu_item_id')
+            if menu_item_id not in item_stats:
+                item_stats[menu_item_id] = {
+                    'id': menu_item_id,
+                    'name': item.get('name'),
+                    'count': 0,
+                    'revenue': 0
+                }
+            item_stats[menu_item_id]['count'] += item.get('quantity', 0)
+            item_stats[menu_item_id]['revenue'] += item.get('price', 0) * item.get('quantity', 0)
+    
+    popular = sorted(item_stats.values(), key=lambda x: x['count'], reverse=True)
+    return popular
+
+@api_router.get("/sessions/history")
+async def get_sessions_history(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    sessions = await db.table_sessions.find({"is_active": False}, {"_id": 0}).sort("ended_at", -1).limit(100).to_list(100)
+    
+    result = []
+    for session in sessions:
+        if isinstance(session.get('started_at'), str):
+            session['started_at'] = datetime.fromisoformat(session['started_at'])
+        if session.get('ended_at') and isinstance(session['ended_at'], str):
+            session['ended_at'] = datetime.fromisoformat(session['ended_at'])
+        
+        table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
+        venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
+        
+        orders = await db.orders.find({"session_id": session['id']}, {"_id": 0}).to_list(1000)
+        total_revenue = sum(o.get('total_amount', 0) for o in orders)
+        
+        result.append({
+            "session": session,
+            "table": table,
+            "venue": venue,
+            "orders_count": len(orders),
+            "total_revenue": total_revenue
+        })
+    
+    return result
+

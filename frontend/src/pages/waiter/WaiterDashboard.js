@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import { RefreshCw, CheckCircle, LogOut, Clock } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
+import { playNotificationSound, initAudio } from '@/utils/notifications';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -15,8 +16,10 @@ export default function WaiterDashboard() {
   const { user, logout } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const prevOrdersCount = useRef(0);
 
   useEffect(() => {
+    initAudio();
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
@@ -25,7 +28,15 @@ export default function WaiterDashboard() {
   const fetchOrders = async () => {
     try {
       const response = await axios.get(`${API}/orders/waiter`);
-      setOrders(response.data);
+      const newOrders = response.data;
+      
+      if (prevOrdersCount.current > 0 && newOrders.length > prevOrdersCount.current) {
+        playNotificationSound();
+        toast.success('Hazır sifariş var!', { duration: 5000 });
+      }
+      
+      prevOrdersCount.current = newOrders.length;
+      setOrders(newOrders);
       if (loading) setLoading(false);
     } catch (error) {
       console.error(error);

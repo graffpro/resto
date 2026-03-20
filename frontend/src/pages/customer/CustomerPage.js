@@ -23,10 +23,13 @@ export default function CustomerPage() {
   const [totalBill, setTotalBill] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [popularItems, setPopularItems] = useState([]);
 
   useEffect(() => {
     initSession();
     fetchMenu();
+    fetchPopularItems();
   }, [tableId]);
 
   useEffect(() => {
@@ -57,6 +60,16 @@ export default function CustomerPage() {
       ]);
       setCategories(catsRes.data);
       setMenuItems(itemsRes.data.filter(item => item.is_available));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchPopularItems = async () => {
+    try {
+      const response = await axios.get(`${API}/analytics/popular-items`);
+      const popularIds = response.data.slice(0, 5).map(item => item.id);
+      setPopularItems(popularIds);
     } catch (error) {
       console.error(error);
     }
@@ -125,7 +138,11 @@ export default function CustomerPage() {
   };
 
   const filteredItems = menuItems.filter(item => {
-    return selectedCategory === 'all' || item.category_id === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory;
+    const matchesSearch = searchQuery === '' || 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   const getStatusBadge = (status) => {
