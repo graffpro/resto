@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Building2, Table2, UtensilsCrossed, Users, LogOut, FolderTree, Settings } from 'lucide-react';
+import { Building2, Table2, UtensilsCrossed, Users, LogOut, FolderTree, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import VenuesPage from './VenuesPage';
@@ -8,6 +8,7 @@ import TablesPage from './TablesPage';
 import MenuPage from './MenuPage';
 import UsersPage from './UsersPage';
 import SettingsPage from './SettingsPage';
+import MenusPage from './MenusPage';
 
 export default function OwnerDashboard() {
   const { user, logout } = useAuth();
@@ -62,7 +63,20 @@ export default function OwnerDashboard() {
                 data-testid="nav-menu"
               >
                 <UtensilsCrossed className="w-5 h-5" />
-                <span className="accent-font">{az.menu}</span>
+                <span className="accent-font">Kateqoriya/Yeməklər</span>
+              </Link>
+              
+              <Link
+                to="/owner/menus"
+                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+                  isActive('/owner/menus')
+                    ? 'bg-[#1A4D2E] text-white'
+                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
+                }`}
+                data-testid="nav-menus"
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="accent-font">Menyular</span>
               </Link>
               
               <Link
@@ -112,6 +126,7 @@ export default function OwnerDashboard() {
             <Route path="/venues" element={<VenuesPage />} />
             <Route path="/tables" element={<TablesPage />} />
             <Route path="/menu" element={<MenuPage />} />
+            <Route path="/menus" element={<MenusPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

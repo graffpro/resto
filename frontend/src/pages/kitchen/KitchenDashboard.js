@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
-import { RefreshCw, Clock, CheckCircle, LogOut } from 'lucide-react';
+import { RefreshCw, Clock, CheckCircle, LogOut, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,9 @@ import { playNotificationSound, initAudio } from '@/utils/notifications';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-export default function KitchenDashboard() {
+function KitchenContent() {
   const { user, logout } = useAuth();
+  const { isConnected, lastMessage } = useWebSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const prevOrdersCount = useRef(0);
@@ -21,16 +23,29 @@ export default function KitchenDashboard() {
   useEffect(() => {
     initAudio();
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    // Reduced polling interval since we have WebSocket
+    const interval = setInterval(fetchOrders, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (lastMessage?.type === 'new_order') {
+      fetchOrders();
+      playNotificationSound();
+      toast.success('Yeni sifariş daxil oldu!', { duration: 5000 });
+    } else if (lastMessage?.type === 'order_update') {
+      fetchOrders();
+    }
+  }, [lastMessage]);
 
   const fetchOrders = async () => {
     try {
       const response = await axios.get(`${API}/orders/kitchen`);
       const newOrders = response.data;
       
-      if (prevOrdersCount.current > 0 && newOrders.length > prevOrdersCount.current) {
+      // Only play sound if not from WebSocket
+      if (!isConnected && prevOrdersCount.current > 0 && newOrders.length > prevOrdersCount.current) {
         playNotificationSound();
         toast.success('Yeni sifariş!', { duration: 5000 });
       }
@@ -85,7 +100,20 @@ export default function KitchenDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font mb-2">{az.kitchenOrders}</h1>
-            <p className="text-[#5C6B61]">{user?.full_name}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[#5C6B61]">{user?.full_name}</p>
+              {isConnected ? (
+                <span className="flex items-center gap-1 text-xs text-green-600">
+                  <Wifi className="w-3 h-3" />
+                  Canlı
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-orange-600">
+                  <WifiOff className="w-3 h-3" />
+                  Offline
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={fetchOrders} className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md">
@@ -167,5 +195,13 @@ export default function KitchenDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function KitchenDashboard() {
+  return (
+    <WebSocketProvider role="kitchen">
+      <KitchenContent />
+    </WebSocketProvider>
   );
 }

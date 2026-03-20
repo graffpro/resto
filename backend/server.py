@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -7,7 +7,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timezone, timedelta
 from enum import Enum
@@ -16,6 +16,8 @@ import bcrypt
 import qrcode
 from io import BytesIO
 import base64
+import asyncio
+import json
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -103,12 +105,14 @@ class Category(BaseModel):
     name: str
     description: Optional[str] = None
     display_order: int = 0
+    menu_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CategoryCreate(BaseModel):
     name: str
     description: Optional[str] = None
     display_order: int = 0
+    menu_id: Optional[str] = None
 
 class MenuItem(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -574,6 +578,15 @@ async def create_order(order: OrderCreate):
     doc['ordered_at'] = doc['ordered_at'].isoformat()
     await db.orders.insert_one(doc)
     
+    # Get table info for notification
+    table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
+    
+    # Send WebSocket notification to kitchen
+    await notify_order_update({
+        "order": doc,
+        "table": table
+    }, "new_order")
+    
     return order_obj
 
 @api_router.get("/orders/session/{session_token}")
@@ -638,6 +651,17 @@ async def update_order_status(order_id: str, status: OrderStatus, current_user: 
         update_data['waiter_id'] = current_user['id']
     
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Get table info for notification
+    table = await db.tables.find_one({"id": order['table_id']}, {"_id": 0})
+    updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    
+    # Send WebSocket notification
+    event_type = "order_ready" if status == OrderStatus.READY else "order_update"
+    await notify_order_update({
+        "order": updated_order,
+        "table": table
+    }, event_type)
     
     return {"message": "Order status updated"}
 
@@ -739,8 +763,6 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
     
     return detailed_data
 
-app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -772,7 +794,7 @@ async def get_settings():
             "service_charge_percentage": 10,
             "currency": "AZN"
         }
-        await db.settings.insert_one(default_settings)
+        await db.settings.insert_one({**default_settings})
         return default_settings
     return settings
 
@@ -922,3 +944,336 @@ async def get_available_tables(date: str, time: str):
     available_tables = [t for t in all_tables if t['id'] not in reserved_table_ids]
     return available_tables
 
+
+class Menu(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    is_active: bool = True
+    display_order: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MenuCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    display_order: int = 0
+
+@api_router.post("/menus", response_model=Menu)
+async def create_menu(menu: MenuCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    menu_obj = Menu(**menu.model_dump())
+    doc = menu_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.menus.insert_one(doc)
+    return menu_obj
+
+@api_router.get("/menus", response_model=List[Menu])
+async def get_menus():
+    menus = await db.menus.find({}, {"_id": 0}).sort("display_order", 1).to_list(1000)
+    for menu in menus:
+        if isinstance(menu['created_at'], str):
+            menu['created_at'] = datetime.fromisoformat(menu['created_at'])
+    return menus
+
+@api_router.put("/menus/{menu_id}", response_model=Menu)
+async def update_menu(menu_id: str, menu: MenuCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.menus.find_one({"id": menu_id}, {"_id": 0})
+    if not result:
+        raise HTTPException(status_code=404, detail="Menu not found")
+    
+    await db.menus.update_one({"id": menu_id}, {"$set": menu.model_dump()})
+    updated = await db.menus.find_one({"id": menu_id}, {"_id": 0})
+    if isinstance(updated['created_at'], str):
+        updated['created_at'] = datetime.fromisoformat(updated['created_at'])
+    return Menu(**updated)
+
+@api_router.delete("/menus/{menu_id}")
+async def delete_menu(menu_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.menus.delete_one({"id": menu_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Menu not found")
+    return {"message": "Menu deleted"}
+
+
+class Expense(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    amount: float
+    category: str
+    expense_type: str
+    date: str
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ExpenseCreate(BaseModel):
+    name: str
+    amount: float
+    category: str
+    expense_type: str
+    date: str
+    notes: Optional[str] = None
+
+@api_router.post("/expenses", response_model=Expense)
+async def create_expense(expense: ExpenseCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    expense_obj = Expense(**expense.model_dump(), created_by=current_user['id'])
+    doc = expense_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.expenses.insert_one(doc)
+    return expense_obj
+
+@api_router.get("/expenses", response_model=List[Expense])
+async def get_expenses(current_user: dict = Depends(get_current_user), start_date: Optional[str] = None, end_date: Optional[str] = None):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    query = {}
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    
+    expenses = await db.expenses.find(query, {"_id": 0}).sort("date", -1).to_list(10000)
+    for expense in expenses:
+        if isinstance(expense['created_at'], str):
+            expense['created_at'] = datetime.fromisoformat(expense['created_at'])
+    return expenses
+
+@api_router.put("/expenses/{expense_id}", response_model=Expense)
+async def update_expense(expense_id: str, expense: ExpenseCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if not result:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    update_data = expense.model_dump()
+    await db.expenses.update_one({"id": expense_id}, {"$set": update_data})
+    
+    updated = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    if isinstance(updated['created_at'], str):
+        updated['created_at'] = datetime.fromisoformat(updated['created_at'])
+    return Expense(**updated)
+
+@api_router.delete("/expenses/{expense_id}")
+async def delete_expense(expense_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.expenses.delete_one({"id": expense_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return {"message": "Expense deleted"}
+
+@api_router.get("/analytics/financial")
+async def get_financial_analytics(current_user: dict = Depends(get_current_user), start_date: Optional[str] = None, end_date: Optional[str] = None):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    order_query = {}
+    expense_query = {}
+    
+    if start_date and end_date:
+        order_query["ordered_at"] = {"$gte": start_date, "$lte": end_date}
+        expense_query["date"] = {"$gte": start_date, "$lte": end_date}
+    
+    orders = await db.orders.find(order_query, {"_id": 0}).to_list(100000)
+    total_revenue = sum(o.get('total_amount', 0) for o in orders)
+    
+    expenses = await db.expenses.find(expense_query, {"_id": 0}).to_list(100000)
+    total_expenses = sum(e.get('amount', 0) for e in expenses)
+    
+    net_profit = total_revenue - total_expenses
+    profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    expense_by_category = {}
+    for expense in expenses:
+        cat = expense.get('category', 'Digər')
+        if cat not in expense_by_category:
+            expense_by_category[cat] = 0
+        expense_by_category[cat] += expense.get('amount', 0)
+    
+    return {
+        "total_revenue": total_revenue,
+        "total_expenses": total_expenses,
+        "net_profit": net_profit,
+        "profit_margin": profit_margin,
+        "orders_count": len(orders),
+        "expenses_count": len(expenses),
+        "expense_by_category": expense_by_category
+    }
+
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {
+            "kitchen": [],
+            "waiter": [],
+            "admin": [],
+            "customer": []
+        }
+    
+    async def connect(self, websocket: WebSocket, role: str):
+        await websocket.accept()
+        if role not in self.active_connections:
+            self.active_connections[role] = []
+        self.active_connections[role].append(websocket)
+    
+    def disconnect(self, websocket: WebSocket, role: str):
+        if role in self.active_connections and websocket in self.active_connections[role]:
+            self.active_connections[role].remove(websocket)
+    
+    async def broadcast_to_role(self, message: dict, role: str):
+        if role in self.active_connections:
+            for connection in self.active_connections[role]:
+                try:
+                    await connection.send_json(message)
+                except:
+                    pass
+    
+    async def broadcast_to_all(self, message: dict):
+        for role in self.active_connections:
+            await self.broadcast_to_role(message, role)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/{role}")
+async def websocket_endpoint(websocket: WebSocket, role: str):
+    await manager.connect(websocket, role)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Keep connection alive with ping-pong
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, role)
+
+# Helper function to notify relevant roles
+async def notify_order_update(order_data: dict, event_type: str):
+    message = {
+        "type": event_type,
+        "data": order_data,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    # Notify kitchen for new orders
+    if event_type in ["new_order", "order_update"]:
+        await manager.broadcast_to_role(message, "kitchen")
+    # Notify waiters for ready orders
+    if event_type in ["order_ready", "order_update"]:
+        await manager.broadcast_to_role(message, "waiter")
+    # Notify admin about all order events
+    await manager.broadcast_to_role(message, "admin")
+
+
+# Discount Model and Endpoints
+class Discount(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    discount_type: str  # "percentage" or "fixed"
+    value: float
+    min_order_amount: float = 0
+    is_active: bool = True
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class DiscountCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    discount_type: str
+    value: float
+    min_order_amount: float = 0
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+
+@api_router.post("/discounts", response_model=Discount)
+async def create_discount(discount: DiscountCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    discount_obj = Discount(**discount.model_dump())
+    doc = discount_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.discounts.insert_one(doc)
+    return discount_obj
+
+@api_router.get("/discounts", response_model=List[Discount])
+async def get_discounts():
+    discounts = await db.discounts.find({}, {"_id": 0}).to_list(1000)
+    for disc in discounts:
+        if isinstance(disc['created_at'], str):
+            disc['created_at'] = datetime.fromisoformat(disc['created_at'])
+    return discounts
+
+@api_router.get("/discounts/active", response_model=List[Discount])
+async def get_active_discounts():
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    discounts = await db.discounts.find({
+        "is_active": True,
+        "$or": [
+            {"valid_until": None},
+            {"valid_until": {"$gte": today}}
+        ]
+    }, {"_id": 0}).to_list(1000)
+    for disc in discounts:
+        if isinstance(disc['created_at'], str):
+            disc['created_at'] = datetime.fromisoformat(disc['created_at'])
+    return discounts
+
+@api_router.put("/discounts/{discount_id}", response_model=Discount)
+async def update_discount(discount_id: str, discount: DiscountCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    if not result:
+        raise HTTPException(status_code=404, detail="Discount not found")
+    
+    await db.discounts.update_one({"id": discount_id}, {"$set": discount.model_dump()})
+    updated = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    if isinstance(updated['created_at'], str):
+        updated['created_at'] = datetime.fromisoformat(updated['created_at'])
+    return Discount(**updated)
+
+@api_router.put("/discounts/{discount_id}/toggle")
+async def toggle_discount(discount_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    discount = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    if not discount:
+        raise HTTPException(status_code=404, detail="Discount not found")
+    
+    new_status = not discount.get('is_active', True)
+    await db.discounts.update_one({"id": discount_id}, {"$set": {"is_active": new_status}})
+    return {"message": "Discount toggled", "is_active": new_status}
+
+@api_router.delete("/discounts/{discount_id}")
+async def delete_discount(discount_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    result = await db.discounts.delete_one({"id": discount_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Discount not found")
+    return {"message": "Discount deleted"}
+
+
+# Include router at the end after all routes are defined
+app.include_router(api_router)

@@ -48,6 +48,9 @@ export const playNotificationSound = () => {
   }
 };
 
+// Alias for WebSocket context usage
+export const playOrderSound = playNotificationSound;
+
 export const requestNotificationPermission = async () => {
   if ('Notification' in window && Notification.permission === 'default') {
     await Notification.requestPermission();
