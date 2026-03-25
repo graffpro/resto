@@ -46,20 +46,59 @@ class OrderStatus(str, Enum):
     DELIVERED = "delivered"
     COMPLETED = "completed"
 
+# Restaurant Model - Each Admin manages one restaurant
+class Restaurant(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    logo_url: Optional[str] = None
+    description: Optional[str] = None
+    tax_percentage: float = 18
+    service_charge_percentage: float = 0
+    currency: str = "AZN"
+    is_active: bool = True
+    created_by: str  # Owner ID
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RestaurantCreate(BaseModel):
+    name: str
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    email: Optional[str] = None
+    logo_url: Optional[str] = None
+    description: Optional[str] = None
+    tax_percentage: float = 18
+    service_charge_percentage: float = 0
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: str
     role: UserRole
     full_name: str
+    restaurant_id: Optional[str] = None  # Which restaurant this user belongs to
+    admin_pin: Optional[str] = None  # PIN for admin access
+    is_active: bool = True
+    expires_at: Optional[str] = None  # When user access expires (for admins)
     created_by: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Waiter specific fields
+    rest_days: List[str] = []  # List of rest day dates
+    points: int = 0  # Performance points
 
 class UserCreate(BaseModel):
     username: str
     password: str
     role: UserRole
     full_name: str
+    restaurant_id: Optional[str] = None
+    admin_pin: Optional[str] = None
+    expires_at: Optional[str] = None  # Format: YYYY-MM-DD
 
 class LoginRequest(BaseModel):
     username: str
@@ -218,6 +257,25 @@ async def login(request: LoginRequest):
     if not bcrypt.checkpw(request.password.encode('utf-8'), stored_password.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    # Check if user is active
+    if not user.get('is_active', True):
+        raise HTTPException(status_code=403, detail="Hesabınız deaktiv edilib")
+    
+    # Check expiration for admins
+    if user.get('expires_at'):
+        today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        if today > user['expires_at']:
+            # Auto-deactivate expired admin and their staff
+            await db.users.update_one({"id": user['id']}, {"$set": {"is_active": False}})
+            await db.users.update_many({"created_by": user['id']}, {"$set": {"is_active": False}})
+            raise HTTPException(status_code=403, detail="Hesabınızın müddəti bitib")
+    
+    # Check if restaurant is active (for non-owners)
+    if user.get('restaurant_id'):
+        restaurant = await db.restaurants.find_one({"id": user['restaurant_id']}, {"_id": 0})
+        if restaurant and not restaurant.get('is_active', True):
+            raise HTTPException(status_code=403, detail="Restoran deaktiv edilib")
+    
     token = create_token(user['id'], user['role'])
     return {
         "token": token,
@@ -225,18 +283,105 @@ async def login(request: LoginRequest):
             "id": user['id'],
             "username": user['username'],
             "role": user['role'],
-            "full_name": user['full_name']
+            "full_name": user['full_name'],
+            "restaurant_id": user.get('restaurant_id')
         }
     }
+
+# ==================== RESTAURANTS ====================
+
+@api_router.post("/restaurants", response_model=Restaurant)
+async def create_restaurant(restaurant: RestaurantCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owner can create restaurants")
+    
+    restaurant_obj = Restaurant(
+        **restaurant.model_dump(),
+        created_by=current_user['id']
+    )
+    doc = restaurant_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.restaurants.insert_one(doc)
+    return restaurant_obj
+
+@api_router.get("/restaurants")
+async def get_restaurants(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owner can view all restaurants")
+    
+    restaurants = await db.restaurants.find({"created_by": current_user['id']}, {"_id": 0}).to_list(1000)
+    
+    # Add admin count and status for each restaurant
+    for rest in restaurants:
+        admin_count = await db.users.count_documents({"restaurant_id": rest['id'], "role": "admin"})
+        staff_count = await db.users.count_documents({"restaurant_id": rest['id'], "role": {"$in": ["kitchen", "waiter"]}})
+        rest['admin_count'] = admin_count
+        rest['staff_count'] = staff_count
+        if isinstance(rest['created_at'], str):
+            rest['created_at'] = datetime.fromisoformat(rest['created_at'])
+    
+    return restaurants
+
+@api_router.get("/restaurants/{restaurant_id}")
+async def get_restaurant(restaurant_id: str, current_user: dict = Depends(get_current_user)):
+    restaurant = await db.restaurants.find_one({"id": restaurant_id}, {"_id": 0})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    # Check access
+    if current_user['role'] == UserRole.OWNER:
+        if restaurant['created_by'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    elif current_user['role'] == UserRole.ADMIN:
+        if current_user.get('restaurant_id') != restaurant_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return restaurant
+
+@api_router.put("/restaurants/{restaurant_id}")
+async def update_restaurant(restaurant_id: str, restaurant: RestaurantCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owner can update restaurants")
+    
+    existing = await db.restaurants.find_one({"id": restaurant_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    await db.restaurants.update_one({"id": restaurant_id}, {"$set": restaurant.model_dump()})
+    updated = await db.restaurants.find_one({"id": restaurant_id}, {"_id": 0})
+    return updated
+
+@api_router.put("/restaurants/{restaurant_id}/toggle-status")
+async def toggle_restaurant_status(restaurant_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owner can toggle restaurant status")
+    
+    restaurant = await db.restaurants.find_one({"id": restaurant_id}, {"_id": 0})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    new_status = not restaurant.get('is_active', True)
+    await db.restaurants.update_one({"id": restaurant_id}, {"$set": {"is_active": new_status}})
+    
+    # If deactivating, also deactivate all users of this restaurant
+    if not new_status:
+        await db.users.update_many({"restaurant_id": restaurant_id}, {"$set": {"is_active": False}})
+    
+    return {"message": "Restaurant status updated", "is_active": new_status}
+
+# ==================== USERS ====================
 
 @api_router.post("/users", response_model=User)
 async def create_user(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user['role'] == UserRole.OWNER:
-        if user.role not in [UserRole.ADMIN]:
+        if user.role != UserRole.ADMIN:
             raise HTTPException(status_code=403, detail="Owner can only create admins")
+        if not user.restaurant_id:
+            raise HTTPException(status_code=400, detail="Restaurant ID required for admin")
     elif current_user['role'] == UserRole.ADMIN:
         if user.role not in [UserRole.KITCHEN, UserRole.WAITER]:
             raise HTTPException(status_code=403, detail="Admin can only create kitchen/waiter users")
+        user.restaurant_id = current_user.get('restaurant_id')
     else:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -250,6 +395,9 @@ async def create_user(user: UserCreate, current_user: dict = Depends(get_current
         username=user.username,
         role=user.role,
         full_name=user.full_name,
+        restaurant_id=user.restaurant_id,
+        admin_pin=user.admin_pin,
+        expires_at=user.expires_at,
         created_by=current_user['id']
     )
     
@@ -262,14 +410,158 @@ async def create_user(user: UserCreate, current_user: dict = Depends(get_current
 
 @api_router.get("/users", response_model=List[User])
 async def get_users(current_user: dict = Depends(get_current_user)):
-    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+    if current_user['role'] == UserRole.OWNER:
+        # Owner sees admins they created (not other owners or themselves)
+        users = await db.users.find({
+            "created_by": current_user['id'],
+            "role": "admin"
+        }, {"_id": 0, "password": 0}).to_list(1000)
+    elif current_user['role'] == UserRole.ADMIN:
+        # Admin sees staff of their restaurant
+        users = await db.users.find({
+            "restaurant_id": current_user.get('restaurant_id'),
+            "role": {"$in": ["kitchen", "waiter"]}
+        }, {"_id": 0, "password": 0}).to_list(1000)
+    else:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    users = await db.users.find({}, {"_id": 0, "password": 0}).to_list(1000)
     for user in users:
         if isinstance(user['created_at'], str):
             user['created_at'] = datetime.fromisoformat(user['created_at'])
     return users
+
+@api_router.get("/users/{user_id}")
+async def get_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@api_router.put("/users/{user_id}")
+async def update_user(user_id: str, update_data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Remove protected fields
+    update_data.pop('id', None)
+    update_data.pop('password', None)
+    update_data.pop('created_at', None)
+    
+    # If password update requested
+    if 'new_password' in update_data:
+        update_data['password'] = bcrypt.hashpw(
+            update_data.pop('new_password').encode('utf-8'), 
+            bcrypt.gensalt()
+        ).decode('utf-8')
+    
+    await db.users.update_one({"id": user_id}, {"$set": update_data})
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    return updated
+
+@api_router.put("/users/{user_id}/toggle-status")
+async def toggle_user_status(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    new_status = not user.get('is_active', True)
+    await db.users.update_one({"id": user_id}, {"$set": {"is_active": new_status}})
+    
+    # If deactivating an admin, also deactivate all their staff
+    if not new_status and user.get('role') == 'admin':
+        await db.users.update_many({"created_by": user_id}, {"$set": {"is_active": False}})
+    
+    return {"message": "User status updated", "is_active": new_status}
+
+# Waiter points and rest days
+@api_router.put("/users/{user_id}/add-points")
+async def add_user_points(user_id: str, points: int, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user or user.get('role') != 'waiter':
+        raise HTTPException(status_code=404, detail="Waiter not found")
+    
+    current_points = user.get('points', 0)
+    await db.users.update_one({"id": user_id}, {"$set": {"points": current_points + points}})
+    return {"message": "Points added", "new_total": current_points + points}
+
+@api_router.put("/users/{user_id}/rest-days")
+async def set_rest_days(user_id: str, rest_days: List[str], current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one({"id": user_id}, {"$set": {"rest_days": rest_days}})
+    return {"message": "Rest days updated"}
+
+# Staff Analytics
+@api_router.get("/analytics/staff-performance")
+async def get_staff_performance(current_user: dict = Depends(get_current_user), period: str = "month"):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Get waiters
+    query = {"role": "waiter"}
+    if current_user['role'] == UserRole.ADMIN:
+        query['restaurant_id'] = current_user.get('restaurant_id')
+    
+    waiters = await db.users.find(query, {"_id": 0, "password": 0}).to_list(1000)
+    
+    # Calculate period
+    today = datetime.now(timezone.utc)
+    if period == "today":
+        start_date = today.strftime('%Y-%m-%d')
+    elif period == "week":
+        start_date = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+    elif period == "month":
+        start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
+    else:
+        start_date = (today - timedelta(days=365)).strftime('%Y-%m-%d')
+    
+    performance = []
+    for waiter in waiters:
+        # Count delivered orders
+        orders = await db.orders.find({"waiter_id": waiter['id']}, {"_id": 0}).to_list(10000)
+        
+        # Filter by date
+        delivered_count = 0
+        total_delivery_time = 0
+        for order in orders:
+            order_date = order.get('delivered_at', order.get('ordered_at', ''))[:10]
+            if order_date >= start_date:
+                delivered_count += 1
+                if order.get('ready_at') and order.get('delivered_at'):
+                    ready = datetime.fromisoformat(order['ready_at'].replace('Z', '+00:00'))
+                    delivered = datetime.fromisoformat(order['delivered_at'].replace('Z', '+00:00'))
+                    total_delivery_time += (delivered - ready).total_seconds() / 60
+        
+        avg_delivery_time = total_delivery_time / delivered_count if delivered_count > 0 else 0
+        
+        performance.append({
+            "id": waiter['id'],
+            "name": waiter['full_name'],
+            "points": waiter.get('points', 0),
+            "delivered_orders": delivered_count,
+            "avg_delivery_time": round(avg_delivery_time, 1),
+            "rest_days": waiter.get('rest_days', []),
+            "is_active": waiter.get('is_active', True)
+        })
+    
+    # Sort by points
+    performance.sort(key=lambda x: x['points'], reverse=True)
+    return performance
 
 @api_router.post("/venues", response_model=Venue)
 async def create_venue(venue: VenueCreate, current_user: dict = Depends(get_current_user)):

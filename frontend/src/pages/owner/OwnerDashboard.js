@@ -1,133 +1,97 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Building2, Table2, UtensilsCrossed, Users, LogOut, FolderTree, Settings, BookOpen } from 'lucide-react';
+import { Store, LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import az from '@/translations/az';
-import VenuesPage from './VenuesPage';
-import TablesPage from './TablesPage';
-import MenuPage from './MenuPage';
-import UsersPage from './UsersPage';
+import RestaurantsPage from './RestaurantsPage';
 import SettingsPage from './SettingsPage';
-import MenusPage from './MenusPage';
 
 export default function OwnerDashboard() {
   const { user, logout } = useAuth();
   const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="flex">
-        <aside className="w-64 min-h-screen bg-white border-r border-[#E2E8E2] fixed left-0 top-0">
+        {/* Modern Sidebar */}
+        <aside className="w-72 min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 fixed left-0 top-0 shadow-2xl">
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-[#1A4D2E] heading-font mb-2">
-              {az.owner}
-            </h1>
-            <p className="text-sm text-[#5C6B61] mb-8">{user?.full_name}</p>
+            {/* Logo Area */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <LayoutDashboard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-white">QR Restoran</h1>
+                  <p className="text-xs text-slate-400">İdarəetmə Paneli</p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="bg-slate-800/50 rounded-xl p-4 mb-6 border border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {user?.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{user?.full_name}</p>
+                  <p className="text-xs text-emerald-400">Sistem Sahibi</p>
+                </div>
+              </div>
+            </div>
             
-            <nav className="space-y-2">
+            {/* Navigation */}
+            <nav className="space-y-1">
               <Link
                 to="/owner"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/owner') || location.pathname === '/owner/venues'
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive('/owner') && !location.pathname.includes('/settings')
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
-                data-testid="nav-venues"
+                data-testid="nav-restaurants"
               >
-                <Building2 className="w-5 h-5" />
-                <span className="accent-font">{az.venues}</span>
-              </Link>
-              
-              <Link
-                to="/owner/tables"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/owner/tables')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-tables"
-              >
-                <Table2 className="w-5 h-5" />
-                <span className="accent-font">{az.tables}</span>
-              </Link>
-              
-              <Link
-                to="/owner/menu"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/owner/menu')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-menu"
-              >
-                <UtensilsCrossed className="w-5 h-5" />
-                <span className="accent-font">Kateqoriya/Yeməklər</span>
-              </Link>
-              
-              <Link
-                to="/owner/menus"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/owner/menus')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-menus"
-              >
-                <BookOpen className="w-5 h-5" />
-                <span className="accent-font">Menyular</span>
-              </Link>
-              
-              <Link
-                to="/owner/users"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/owner/users')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-users"
-              >
-                <Users className="w-5 h-5" />
-                <span className="accent-font">{az.users}</span>
+                <Store className="w-5 h-5" />
+                <span className="text-sm font-medium">Restoranlar</span>
               </Link>
               
               <Link
                 to="/owner/settings"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive('/owner/settings')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
                 data-testid="nav-settings"
               >
                 <Settings className="w-5 h-5" />
-                <span className="accent-font">{az.settings}</span>
+                <span className="text-sm font-medium">Parametrlər</span>
               </Link>
             </nav>
             
+            {/* Logout */}
             <div className="absolute bottom-6 left-6 right-6">
               <Button
                 onClick={logout}
-                variant="outline"
-                className="w-full justify-start"
+                variant="ghost"
+                className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl"
                 data-testid="logout-button"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                {az.logout}
+                Çıxış
               </Button>
             </div>
           </div>
         </aside>
 
-        <main className="ml-64 flex-1 p-8">
+        {/* Main Content */}
+        <main className="ml-72 flex-1 p-8">
           <Routes>
-            <Route path="/" element={<VenuesPage />} />
-            <Route path="/venues" element={<VenuesPage />} />
-            <Route path="/tables" element={<TablesPage />} />
-            <Route path="/menu" element={<MenuPage />} />
-            <Route path="/menus" element={<MenusPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route path="/" element={<RestaurantsPage />} />
+            <Route path="/restaurants" element={<RestaurantsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
