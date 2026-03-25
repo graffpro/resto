@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 
@@ -33,6 +34,8 @@ export default function MenuManagementPage() {
     description: '',
     price: '',
     category_id: '',
+    image_url: '',
+    discount_percentage: 0,
     is_available: true
   });
 
@@ -108,7 +111,8 @@ export default function MenuManagementPage() {
     try {
       const data = {
         ...itemForm,
-        price: parseFloat(itemForm.price)
+        price: parseFloat(itemForm.price),
+        discount_percentage: parseFloat(itemForm.discount_percentage) || 0
       };
       if (editingItem) {
         await axios.put(`${API}/menu-items/${editingItem.id}`, data);
@@ -143,6 +147,8 @@ export default function MenuManagementPage() {
       description: item.description || '',
       price: item.price.toString(),
       category_id: item.category_id,
+      image_url: item.image_url || '',
+      discount_percentage: item.discount_percentage || 0,
       is_available: item.is_available !== false
     });
     setItemDialog(true);
@@ -155,6 +161,8 @@ export default function MenuManagementPage() {
       description: '',
       price: '',
       category_id: '',
+      image_url: '',
+      discount_percentage: 0,
       is_available: true
     });
   };
@@ -255,17 +263,57 @@ export default function MenuManagementPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Qiymət (AZN) *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={itemForm.price}
+                      onChange={(e) => setItemForm(p => ({ ...p, price: e.target.value }))}
+                      required
+                      placeholder="15.00"
+                      data-testid="item-price-input"
+                    />
+                  </div>
+                  <div>
+                    <Label className="flex items-center gap-1">
+                      <Percent className="w-3 h-3" />
+                      Endirim (%)
+                    </Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      value={itemForm.discount_percentage}
+                      onChange={(e) => setItemForm(p => ({ ...p, discount_percentage: e.target.value }))}
+                      placeholder="0"
+                      data-testid="item-discount-input"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <Label>Qiymət (AZN) *</Label>
+                  <Label className="flex items-center gap-1">
+                    <Image className="w-3 h-3" />
+                    Şəkil URL
+                  </Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    value={itemForm.price}
-                    onChange={(e) => setItemForm(p => ({ ...p, price: e.target.value }))}
-                    required
-                    placeholder="15.00"
-                    data-testid="item-price-input"
+                    value={itemForm.image_url}
+                    onChange={(e) => setItemForm(p => ({ ...p, image_url: e.target.value }))}
+                    placeholder="https://example.com/image.jpg"
+                    data-testid="item-image-input"
                   />
+                  {itemForm.image_url && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-[#E2E8E2]">
+                      <img 
+                        src={itemForm.image_url} 
+                        alt="Preview" 
+                        className="w-full h-32 object-cover"
+                        onError={(e) => e.target.style.display = 'none'}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>Təsvir</Label>
@@ -358,23 +406,58 @@ export default function MenuManagementPage() {
                         {items.map(item => (
                           <div 
                             key={item.id} 
-                            className={`border rounded-lg p-4 ${item.is_available === false ? 'opacity-50 bg-gray-50' : 'border-[#E2E8E2]'}`}
+                            className={`border rounded-lg overflow-hidden ${item.is_available === false ? 'opacity-50 bg-gray-50' : 'border-[#E2E8E2]'}`}
                           >
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-semibold text-[#1A4D2E]">{item.name}</h4>
-                              <span className="font-bold text-[#4F9D69]">{item.price.toFixed(2)} AZN</span>
-                            </div>
-                            {item.description && (
-                              <p className="text-sm text-[#5C6B61] mb-3">{item.description}</p>
+                            {item.image_url && (
+                              <div className="relative h-32 bg-gray-100">
+                                <img 
+                                  src={item.image_url} 
+                                  alt={item.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => e.target.parentElement.style.display = 'none'}
+                                />
+                                {item.discount_percentage > 0 && (
+                                  <Badge className="absolute top-2 right-2 bg-red-500 text-white">
+                                    -{item.discount_percentage}%
+                                  </Badge>
+                                )}
+                              </div>
                             )}
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => editItem(item)} className="flex-1">
-                                <Edit className="w-3 h-3 mr-1" />
-                                {az.edit}
-                              </Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleDeleteItem(item.id)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
+                            <div className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="font-semibold text-[#1A4D2E]">{item.name}</h4>
+                                  {!item.image_url && item.discount_percentage > 0 && (
+                                    <Badge className="bg-red-500 text-white text-xs mt-1">
+                                      -{item.discount_percentage}%
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  {item.discount_percentage > 0 ? (
+                                    <>
+                                      <span className="text-sm line-through text-gray-400">{item.price.toFixed(2)}</span>
+                                      <span className="font-bold text-red-600 ml-1">
+                                        {(item.price * (1 - item.discount_percentage / 100)).toFixed(2)} AZN
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="font-bold text-[#4F9D69]">{item.price.toFixed(2)} AZN</span>
+                                  )}
+                                </div>
+                              </div>
+                              {item.description && (
+                                <p className="text-sm text-[#5C6B61] mb-3">{item.description}</p>
+                              )}
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => editItem(item)} className="flex-1">
+                                  <Edit className="w-3 h-3 mr-1" />
+                                  {az.edit}
+                                </Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteItem(item.id)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))}

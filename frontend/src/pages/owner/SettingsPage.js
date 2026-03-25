@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save } from 'lucide-react';
+import { Save, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 
@@ -19,9 +19,11 @@ export default function SettingsPage() {
     email: '',
     tax_percentage: 0,
     service_charge_percentage: 0,
-    currency: 'AZN'
+    currency: 'AZN',
+    admin_pin: ''
   });
   const [loading, setLoading] = useState(true);
+  const [showPin, setShowPin] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -126,6 +128,44 @@ export default function SettingsPage() {
                   value={settings.currency}
                   onChange={(e) => setSettings(p => ({ ...p, currency: e.target.value }))}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Admin PIN Security Card */}
+          <Card className="lg:col-span-2 border-orange-200 bg-orange-50/50">
+            <CardHeader>
+              <CardTitle className="text-[#1A4D2E] flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Admin Təhlükəsizlik PIN
+              </CardTitle>
+              <CardDescription>
+                Administrator həssas bölmələrə (Xərclər, Analitika, Maliyyə, Endirimlər, Satış Statistikası, Menyu) giriş edəndə bu PIN tələb olunacaq. Aktiv Stollar və Rezervasiyalar PIN tələb etmir.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-w-sm">
+                <Label>Admin PIN (boş saxlasanız, PIN tələb olunmayacaq)</Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showPin ? 'text' : 'password'}
+                    value={settings.admin_pin || ''}
+                    onChange={(e) => setSettings(p => ({ ...p, admin_pin: e.target.value }))}
+                    placeholder="4-6 rəqəmli PIN"
+                    className="pr-10"
+                    data-testid="admin-pin-setting"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5C6B61]"
+                  >
+                    {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-xs text-orange-700 mt-2">
+                  ⚠️ Bu PIN təhlükəsizlik üçündür. Administrator müştəri ilə məşğul olarkən başqaları həssas məlumatlara baxa bilməz.
+                </p>
               </div>
             </CardContent>
           </Card>

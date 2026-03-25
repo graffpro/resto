@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, XCircle, Eye, Clock, ShoppingBag } from 'lucide-react';
+import { RefreshCw, XCircle, Eye, Clock, ShoppingBag, Printer, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +18,7 @@ export default function ActiveTablesPage() {
   const [sessionDetails, setSessionDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [billSummary, setBillSummary] = useState(null);  // For close session summary
 
   useEffect(() => {
     fetchSessions();
@@ -65,7 +66,9 @@ export default function ActiveTablesPage() {
   const closeSession = async (sessionId) => {
     if (!window.confirm('Hesabı bağlamaq istədiyinizə əminsiniz?')) return;
     try {
-      await axios.post(`${API}/sessions/close/${sessionId}`);
+      const response = await axios.post(`${API}/sessions/close/${sessionId}`);
+      // Show detailed bill summary
+      setBillSummary(response.data.bill_summary);
       toast.success('Hesab bağlandı');
       fetchSessions();
       fetchClosedSessions();
@@ -289,6 +292,163 @@ export default function ActiveTablesPage() {
               )}
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bill Summary Dialog - Shows when session is closed */}
+      <Dialog open={!!billSummary} onOpenChange={() => setBillSummary(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#1A4D2E] heading-font text-2xl flex items-center gap-2">
+              <ShoppingBag className="w-6 h-6" />
+              Hesab Bağlandı - Stol {billSummary?.table?.table_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {billSummary && (
+            <div className="space-y-6 print:text-black" id="bill-to-print">
+              {/* Header Info */}
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-[#F5F9E9] rounded-lg p-3">
+                  <p className="text-xs text-[#5C6B61]">Məkan</p>
+                  <p className="font-bold text-[#1A4D2E]">{billSummary.venue?.name}</p>
+                </div>
+                <div className="bg-[#F5F9E9] rounded-lg p-3">
+                  <p className="text-xs text-[#5C6B61]">Sifariş Sayı</p>
+                  <p className="font-bold text-[#1A4D2E]">{billSummary.orders_count}</p>
+                </div>
+                <div className="bg-[#F5F9E9] rounded-lg p-3">
+                  <p className="text-xs text-[#5C6B61]">Bağlanma Vaxtı</p>
+                  <p className="font-bold text-[#1A4D2E]">
+                    {new Date(billSummary.closed_at).toLocaleTimeString('az-AZ')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Orders Detail */}
+              <div>
+                <h3 className="font-bold text-[#1A4D2E] mb-3 flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5" />
+                  Sifariş Detalları
+                </h3>
+                <div className="space-y-3">
+                  {billSummary.orders?.map((order, idx) => (
+                    <div key={order.id || idx} className="border border-[#E2E8E2] rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2 pb-2 border-b border-[#E2E8E2]">
+                        <span className="font-semibold text-[#1A4D2E]">#{order.order_number}</span>
+                        <span className="text-sm text-[#5C6B61]">
+                          {new Date(order.ordered_at).toLocaleTimeString('az-AZ')}
+                        </span>
+                      </div>
+                      
+                      {/* Items */}
+                      <div className="space-y-2 mb-3">
+                        {order.items?.map((item, i) => (
+                          <div key={i} className="flex justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span>{item.name} x{item.quantity}</span>
+                              {item.discount_percentage > 0 && (
+                                <Badge className="bg-red-100 text-red-700 text-xs">
+                                  -{item.discount_percentage}%
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              {item.discount_percentage > 0 ? (
+                                <>
+                                  <span className="line-through text-gray-400 text-xs mr-1">
+                                    {(item.price * item.quantity).toFixed(2)}
+                                  </span>
+                                  <span className="font-semibold text-red-600">
+                                    {item.discounted_price?.toFixed(2)} AZN
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="font-semibold">
+                                  {(item.price * item.quantity).toFixed(2)} AZN
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Order discount */}
+                      {order.discount_amount > 0 && (
+                        <div className="flex justify-between text-sm py-2 border-t border-dashed border-[#E2E8E2] text-green-700">
+                          <span className="flex items-center gap-1">
+                            <Tag className="w-3 h-3" />
+                            {order.discount_name} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
+                          </span>
+                          <span>-{order.discount_amount?.toFixed(2)} AZN</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between font-bold pt-2 border-t border-[#E2E8E2]">
+                        <span>Sifariş Cəmi</span>
+                        <span className="text-[#1A4D2E]">{order.total_amount?.toFixed(2)} AZN</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discounts Summary */}
+              {billSummary.discounts_applied?.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    Tətbiq Edilən Endirimlər
+                  </h4>
+                  <div className="space-y-1">
+                    {billSummary.discounts_applied.map((disc, idx) => (
+                      <div key={idx} className="flex justify-between text-sm text-green-700">
+                        <span>
+                          {disc.item_name ? `${disc.item_name}` : disc.discount_name}
+                          {' '}({disc.discount_type === 'percentage' ? `${disc.discount_value}%` : `${disc.discount_value} AZN`})
+                        </span>
+                        <span>-{disc.discount_amount?.toFixed(2)} AZN</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Grand Total */}
+              <div className="bg-[#1A4D2E] text-white rounded-xl p-6">
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between">
+                    <span>Ara Cəm</span>
+                    <span>{billSummary.subtotal?.toFixed(2)} AZN</span>
+                  </div>
+                  {billSummary.total_discount > 0 && (
+                    <div className="flex justify-between text-green-300">
+                      <span>Ümumi Endirim</span>
+                      <span>-{billSummary.total_discount?.toFixed(2)} AZN</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-white/30">
+                  <span className="text-xl font-bold">YEKUN MƏBLƏĞ</span>
+                  <span className="text-4xl font-bold">{billSummary.total_amount?.toFixed(2)} AZN</span>
+                </div>
+              </div>
+
+              {/* Print Button */}
+              <div className="flex justify-end gap-2 print:hidden">
+                <Button variant="outline" onClick={() => setBillSummary(null)}>
+                  Bağla
+                </Button>
+                <Button 
+                  onClick={() => window.print()} 
+                  className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Çap Et
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

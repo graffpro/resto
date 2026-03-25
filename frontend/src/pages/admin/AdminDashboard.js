@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { LayoutDashboard, Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
+import AdminPinGuard from '@/components/AdminPinGuard';
 import ActiveTablesPage from './ActiveTablesPage';
 import AdminUsersPage from './AdminUsersPage';
 import ProfessionalAnalytics from './ProfessionalAnalytics';
@@ -12,6 +13,15 @@ import FinancialReportPage from './FinancialReportPage';
 import DiscountsPage from './DiscountsPage';
 import SalesStatisticsPage from './SalesStatisticsPage';
 import MenuManagementPage from './MenuManagementPage';
+
+// Wrapper component for PIN-protected pages
+function ProtectedPage({ children, sectionName }) {
+  return (
+    <AdminPinGuard sectionName={sectionName}>
+      {children}
+    </AdminPinGuard>
+  );
+}
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -159,15 +169,18 @@ export default function AdminDashboard() {
 
         <main className="ml-64 flex-1 p-8">
           <Routes>
+            {/* Unprotected pages - no PIN required */}
             <Route path="/" element={<ActiveTablesPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
-            <Route path="/users" element={<AdminUsersPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/analytics" element={<ProfessionalAnalytics />} />
-            <Route path="/financial-report" element={<FinancialReportPage />} />
-            <Route path="/discounts" element={<DiscountsPage />} />
-            <Route path="/sales-statistics" element={<SalesStatisticsPage />} />
-            <Route path="/menu-management" element={<MenuManagementPage />} />
+            
+            {/* Protected pages - PIN required */}
+            <Route path="/users" element={<ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage>} />
+            <Route path="/expenses" element={<ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage>} />
+            <Route path="/analytics" element={<ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage>} />
+            <Route path="/financial-report" element={<ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage>} />
+            <Route path="/discounts" element={<ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage>} />
+            <Route path="/sales-statistics" element={<ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage>} />
+            <Route path="/menu-management" element={<ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage>} />
           </Routes>
         </main>
       </div>

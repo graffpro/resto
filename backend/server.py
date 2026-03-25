@@ -122,6 +122,7 @@ class MenuItem(BaseModel):
     price: float
     category_id: str
     image_url: Optional[str] = None
+    discount_percentage: float = 0  # Per-item discount
     is_available: bool = True
     preparation_time: int = 15
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -132,6 +133,7 @@ class MenuItemCreate(BaseModel):
     price: float
     category_id: str
     image_url: Optional[str] = None
+    discount_percentage: float = 0
     is_available: bool = True
     preparation_time: int = 15
 
@@ -140,6 +142,8 @@ class OrderItem(BaseModel):
     name: str
     price: float
     quantity: int
+    discount_percentage: float = 0  # Per-item discount
+    discounted_price: Optional[float] = None  # Price after item discount
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -148,7 +152,13 @@ class Order(BaseModel):
     session_id: str
     table_id: str
     items: List[OrderItem]
-    total_amount: float
+    subtotal: float = 0  # Before discounts
+    discount_id: Optional[str] = None  # Applied order-level discount
+    discount_name: Optional[str] = None
+    discount_type: Optional[str] = None  # percentage or fixed
+    discount_value: float = 0  # The discount rate/amount
+    discount_amount: float = 0  # Calculated discount
+    total_amount: float  # Final amount after all discounts
     status: OrderStatus = OrderStatus.PENDING
     ordered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     preparing_started_at: Optional[datetime] = None
@@ -159,7 +169,9 @@ class Order(BaseModel):
 class OrderCreate(BaseModel):
     session_token: str
     items: List[OrderItem]
-    total_amount: float
+    subtotal: float = 0  # Will be calculated
+    total_amount: float = 0  # Will be calculated with discounts
+    discount_id: Optional[str] = None  # Optional order-level discount to apply
 
 def create_token(user_id: str, role: str) -> str:
     payload = {
@@ -431,6 +443,42 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
+    # Get all orders for this session
+    orders = await db.orders.find({"session_id": session_id}, {"_id": 0}).to_list(1000)
+    
+    # Calculate totals
+    subtotal = sum(o.get('subtotal', o.get('total_amount', 0)) for o in orders)
+    total_discount = sum(o.get('discount_amount', 0) for o in orders)
+    total_amount = sum(o.get('total_amount', 0) for o in orders)
+    
+    # Collect discount details
+    discounts_applied = []
+    for order in orders:
+        if order.get('discount_name'):
+            discounts_applied.append({
+                "order_number": order.get('order_number'),
+                "discount_name": order.get('discount_name'),
+                "discount_type": order.get('discount_type'),
+                "discount_value": order.get('discount_value'),
+                "discount_amount": order.get('discount_amount')
+            })
+        # Also check per-item discounts
+        for item in order.get('items', []):
+            if item.get('discount_percentage', 0) > 0:
+                original = item.get('price', 0) * item.get('quantity', 0)
+                discounted = item.get('discounted_price', original)
+                discounts_applied.append({
+                    "order_number": order.get('order_number'),
+                    "item_name": item.get('name'),
+                    "discount_type": "percentage",
+                    "discount_value": item.get('discount_percentage'),
+                    "discount_amount": original - discounted
+                })
+    
+    # Get table info
+    table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
+    venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
+    
     await db.table_sessions.update_one(
         {"id": session_id},
         {
@@ -446,7 +494,22 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
         {"$set": {"status": OrderStatus.COMPLETED}}
     )
     
-    return {"message": "Session closed"}
+    # Return detailed bill summary
+    return {
+        "message": "Session closed",
+        "bill_summary": {
+            "table": table,
+            "venue": venue,
+            "session": session,
+            "orders": orders,
+            "orders_count": len(orders),
+            "subtotal": round(subtotal, 2),
+            "total_discount": round(total_discount, 2),
+            "total_amount": round(total_amount, 2),
+            "discounts_applied": discounts_applied,
+            "closed_at": datetime.now(timezone.utc).isoformat()
+        }
+    }
 
 @api_router.post("/sessions/continue/{session_id}")
 async def continue_session(session_id: str, current_user: dict = Depends(get_current_user)):
@@ -566,12 +629,81 @@ async def create_order(order: OrderCreate):
     order_count = await db.orders.count_documents({}) + 1
     order_number = f"ORD{str(order_count).zfill(5)}"
     
+    # Calculate subtotal with per-item discounts
+    subtotal = 0
+    processed_items = []
+    for item in order.items:
+        item_dict = item.model_dump() if hasattr(item, 'model_dump') else dict(item)
+        original_price = item_dict['price'] * item_dict['quantity']
+        
+        # Get menu item to check for per-item discount
+        menu_item = await db.menu_items.find_one({"id": item_dict['menu_item_id']}, {"_id": 0})
+        item_discount = menu_item.get('discount_percentage', 0) if menu_item else 0
+        
+        if item_discount > 0:
+            discounted_price = original_price * (1 - item_discount / 100)
+            item_dict['discount_percentage'] = item_discount
+            item_dict['discounted_price'] = discounted_price
+            subtotal += discounted_price
+        else:
+            item_dict['discount_percentage'] = 0
+            item_dict['discounted_price'] = original_price
+            subtotal += original_price
+        
+        processed_items.append(item_dict)
+    
+    # Check for order-level discounts
+    discount_id = None
+    discount_name = None
+    discount_type = None
+    discount_value = 0
+    discount_amount = 0
+    total_amount = subtotal
+    
+    # Find applicable active discount
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    active_discounts = await db.discounts.find({
+        "is_active": True,
+        "$or": [
+            {"valid_until": None},
+            {"valid_until": {"$gte": today}},
+            {"valid_until": ""}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    # Find the best applicable discount
+    best_discount = None
+    for discount in active_discounts:
+        min_order = discount.get('min_order_amount', 0)
+        if subtotal >= min_order:
+            if not best_discount or discount.get('value', 0) > best_discount.get('value', 0):
+                best_discount = discount
+    
+    if best_discount:
+        discount_id = best_discount['id']
+        discount_name = best_discount['name']
+        discount_type = best_discount['discount_type']
+        discount_value = best_discount['value']
+        
+        if discount_type == 'percentage':
+            discount_amount = subtotal * (discount_value / 100)
+        else:  # fixed
+            discount_amount = min(discount_value, subtotal)
+        
+        total_amount = subtotal - discount_amount
+    
     order_obj = Order(
         order_number=order_number,
         session_id=session['id'],
         table_id=session['table_id'],
-        items=order.items,
-        total_amount=order.total_amount
+        items=[OrderItem(**item) for item in processed_items],
+        subtotal=round(subtotal, 2),
+        discount_id=discount_id,
+        discount_name=discount_name,
+        discount_type=discount_type,
+        discount_value=discount_value,
+        discount_amount=round(discount_amount, 2),
+        total_amount=round(total_amount, 2)
     )
     
     doc = order_obj.model_dump()
@@ -835,7 +967,8 @@ async def get_settings():
             "email": "info@greenplate.az",
             "tax_percentage": 18,
             "service_charge_percentage": 10,
-            "currency": "AZN"
+            "currency": "AZN",
+            "admin_pin": ""  # PIN for admin protected sections
         }
         await db.settings.insert_one({**default_settings})
         return default_settings
@@ -849,6 +982,21 @@ async def update_settings(settings: dict, current_user: dict = Depends(get_curre
     settings["id"] = "settings"
     await db.settings.update_one({"id": "settings"}, {"$set": settings}, upsert=True)
     return settings
+
+# Verify Admin PIN
+@api_router.post("/verify-admin-pin")
+async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    if not settings or not settings.get('admin_pin'):
+        return {"valid": True, "message": "No PIN set"}
+    
+    if data.get('pin') == settings.get('admin_pin'):
+        return {"valid": True}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid PIN")
 
 @api_router.get("/analytics/popular-items")
 async def get_popular_items_stats():

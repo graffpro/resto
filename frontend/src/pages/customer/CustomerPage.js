@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Minus, ShoppingCart, Receipt, RefreshCw } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Receipt, RefreshCw, Tag, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,11 +25,13 @@ export default function CustomerPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [popularItems, setPopularItems] = useState([]);
+  const [activeDiscounts, setActiveDiscounts] = useState([]);
 
   useEffect(() => {
     initSession();
     fetchMenu();
     fetchPopularItems();
+    fetchActiveDiscounts();
   }, [tableId]);
 
   useEffect(() => {
@@ -60,6 +62,15 @@ export default function CustomerPage() {
       ]);
       setCategories(catsRes.data);
       setMenuItems(itemsRes.data.filter(item => item.is_available));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchActiveDiscounts = async () => {
+    try {
+      const response = await axios.get(`${API}/discounts/active`);
+      setActiveDiscounts(response.data);
     } catch (error) {
       console.error(error);
     }
@@ -107,7 +118,46 @@ export default function CustomerPage() {
   };
 
   const getCartTotal = () => {
+    return cart.reduce((sum, item) => {
+      // Check for per-item discount
+      const menuItem = menuItems.find(m => m.id === item.id);
+      const discount = menuItem?.discount_percentage || 0;
+      const price = discount > 0 ? item.price * (1 - discount / 100) : item.price;
+      return sum + (price * item.quantity);
+    }, 0);
+  };
+
+  const getCartSubtotal = () => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const getApplicableDiscount = () => {
+    const subtotal = getCartTotal();
+    // Find best applicable discount
+    const applicable = activeDiscounts
+      .filter(d => subtotal >= (d.min_order_amount || 0))
+      .sort((a, b) => b.value - a.value)[0];
+    return applicable;
+  };
+
+  const calculateFinalTotal = () => {
+    const subtotal = getCartTotal();
+    const discount = getApplicableDiscount();
+    if (!discount) return { subtotal, discountAmount: 0, total: subtotal, discount: null };
+    
+    let discountAmount = 0;
+    if (discount.discount_type === 'percentage') {
+      discountAmount = subtotal * (discount.value / 100);
+    } else {
+      discountAmount = Math.min(discount.value, subtotal);
+    }
+    
+    return {
+      subtotal,
+      discountAmount,
+      total: subtotal - discountAmount,
+      discount
+    };
   };
 
   const placeOrder = async () => {
@@ -119,12 +169,16 @@ export default function CustomerPage() {
     try {
       const orderData = {
         session_token: session.session_token,
-        items: cart.map(item => ({
-          menu_item_id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity
-        })),
+        items: cart.map(item => {
+          const menuItem = menuItems.find(m => m.id === item.id);
+          return {
+            menu_item_id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            discount_percentage: menuItem?.discount_percentage || 0
+          };
+        }),
         total_amount: getCartTotal()
       };
 
@@ -216,31 +270,50 @@ export default function CustomerPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredItems.map(item => (
-                <Card key={item.id} className="bg-white overflow-hidden">
-                  <div className="flex gap-4 p-4">
-                    {item.image_url && (
-                      <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F9E9]">
-                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
+              {filteredItems.map(item => {
+                const hasDiscount = item.discount_percentage > 0;
+                const discountedPrice = hasDiscount ? item.price * (1 - item.discount_percentage / 100) : item.price;
+                
+                return (
+                  <Card key={item.id} className="bg-white overflow-hidden relative">
+                    {hasDiscount && (
+                      <Badge className="absolute top-2 right-2 bg-red-500 text-white z-10">
+                        -{item.discount_percentage}%
+                      </Badge>
                     )}
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-[#1A4D2E] mb-1">{item.name}</h3>
-                      <p className="text-xs text-[#5C6B61] mb-2 line-clamp-2">{item.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-bold text-[#1A4D2E]">{item.price} AZN</span>
-                        <Button 
-                          onClick={() => addToCart(item)}
-                          className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-full px-4 py-2"
-                          size="sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
+                    <div className="flex gap-4 p-4">
+                      {item.image_url && (
+                        <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F9E9]">
+                          <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-[#1A4D2E] mb-1">{item.name}</h3>
+                        <p className="text-xs text-[#5C6B61] mb-2 line-clamp-2">{item.description}</p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {hasDiscount ? (
+                              <>
+                                <span className="text-sm line-through text-gray-400 mr-2">{item.price.toFixed(2)}</span>
+                                <span className="text-xl font-bold text-red-600">{discountedPrice.toFixed(2)} AZN</span>
+                              </>
+                            ) : (
+                              <span className="text-xl font-bold text-[#1A4D2E]">{item.price.toFixed(2)} AZN</span>
+                            )}
+                          </div>
+                          <Button 
+                            onClick={() => addToCart(item)}
+                            className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-full px-4 py-2"
+                            size="sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -266,16 +339,59 @@ export default function CustomerPage() {
                       <CardContent>
                         <div className="space-y-2">
                           {order.items.map((item, idx) => (
-                            <div key={idx} className="flex justify-between">
-                              <span>{item.name} x{item.quantity}</span>
-                              <span className="font-semibold">{(item.price * item.quantity).toFixed(2)} AZN</span>
+                            <div key={idx} className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span>{item.name} x{item.quantity}</span>
+                                {item.discount_percentage > 0 && (
+                                  <Badge className="bg-red-100 text-red-700 text-xs">
+                                    -{item.discount_percentage}%
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                {item.discount_percentage > 0 ? (
+                                  <>
+                                    <span className="text-xs line-through text-gray-400 mr-1">
+                                      {(item.price * item.quantity).toFixed(2)}
+                                    </span>
+                                    <span className="font-semibold text-red-600">
+                                      {(item.discounted_price || (item.price * item.quantity * (1 - item.discount_percentage / 100))).toFixed(2)} AZN
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="font-semibold">{(item.price * item.quantity).toFixed(2)} AZN</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
+                        
+                        {/* Order discount */}
+                        {order.discount_amount > 0 && (
+                          <div className="mt-3 pt-3 border-t border-dashed border-[#E2E8E2]">
+                            <div className="flex justify-between items-center text-green-700">
+                              <div className="flex items-center gap-1">
+                                <Tag className="w-4 h-4" />
+                                <span>{order.discount_name}</span>
+                                <Badge className="bg-green-100 text-green-700 text-xs">
+                                  {order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`}
+                                </Badge>
+                              </div>
+                              <span>-{order.discount_amount?.toFixed(2)} AZN</span>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="border-t border-[#E2E8E2] mt-4 pt-4">
+                          {order.subtotal && order.subtotal !== order.total_amount && (
+                            <div className="flex justify-between text-sm text-[#5C6B61] mb-2">
+                              <span>Ara cəm:</span>
+                              <span>{order.subtotal?.toFixed(2)} AZN</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-lg font-bold text-[#1A4D2E]">
                             <span>Cəmi:</span>
-                            <span>{order.total_amount.toFixed(2)} AZN</span>
+                            <span>{order.total_amount?.toFixed(2)} AZN</span>
                           </div>
                         </div>
                       </CardContent>
@@ -301,43 +417,111 @@ export default function CustomerPage() {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E2E8E2] shadow-lg p-4">
           <div className="container mx-auto">
             <div className="space-y-3">
-              {cart.map(item => (
-                <div key={item.id} className="flex items-center justify-between">
-                  <span className="font-semibold text-[#1A4D2E]">{item.name}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => updateCartQuantity(item.id, -1)}
-                        className="w-8 h-8 p-0 rounded-full"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="w-8 text-center font-bold">{item.quantity}</span>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => updateCartQuantity(item.id, 1)}
-                        className="w-8 h-8 p-0 rounded-full"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+              {cart.map(item => {
+                const menuItem = menuItems.find(m => m.id === item.id);
+                const hasDiscount = menuItem?.discount_percentage > 0;
+                const discountedPrice = hasDiscount ? item.price * (1 - menuItem.discount_percentage / 100) : item.price;
+                
+                return (
+                  <div key={item.id} className="flex items-center justify-between">
+                    <div>
+                      <span className="font-semibold text-[#1A4D2E]">{item.name}</span>
+                      {hasDiscount && (
+                        <Badge className="ml-2 bg-red-100 text-red-700 text-xs">
+                          -{menuItem.discount_percentage}%
+                        </Badge>
+                      )}
                     </div>
-                    <span className="font-bold text-[#1A4D2E] w-20 text-right">
-                      {(item.price * item.quantity).toFixed(2)} AZN
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => updateCartQuantity(item.id, -1)}
+                          className="w-8 h-8 p-0 rounded-full"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="w-8 text-center font-bold">{item.quantity}</span>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => updateCartQuantity(item.id, 1)}
+                          className="w-8 h-8 p-0 rounded-full"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="w-24 text-right">
+                        {hasDiscount ? (
+                          <>
+                            <span className="text-xs line-through text-gray-400 block">
+                              {(item.price * item.quantity).toFixed(2)}
+                            </span>
+                            <span className="font-bold text-red-600">
+                              {(discountedPrice * item.quantity).toFixed(2)} AZN
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-bold text-[#1A4D2E]">
+                            {(item.price * item.quantity).toFixed(2)} AZN
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div className="border-t border-[#E2E8E2] pt-3">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-lg font-bold text-[#1A4D2E]">Cəmi:</span>
-                  <span className="text-2xl font-bold text-[#1A4D2E]">{getCartTotal().toFixed(2)} AZN</span>
-                </div>
+                );
+              })}
+              
+              {/* Cart Summary with Discounts */}
+              <div className="border-t border-[#E2E8E2] pt-3 space-y-2">
+                {/* Show applicable order discount */}
+                {(() => {
+                  const calculation = calculateFinalTotal();
+                  const discount = calculation.discount;
+                  
+                  return (
+                    <>
+                      {discount && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Tag className="w-4 h-4" />
+                            <span className="font-semibold">{discount.name}</span>
+                            <Badge className="bg-green-200 text-green-800">
+                              {discount.discount_type === 'percentage' ? `${discount.value}%` : `${discount.value} AZN`}
+                            </Badge>
+                          </div>
+                          {discount.min_order_amount > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Min. sifariş: {discount.min_order_amount} AZN ✓
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-[#5C6B61]">
+                        <span>Ara cəm:</span>
+                        <span>{calculation.subtotal.toFixed(2)} AZN</span>
+                      </div>
+                      
+                      {calculation.discountAmount > 0 && (
+                        <div className="flex items-center justify-between text-green-700">
+                          <span>Endirim:</span>
+                          <span>-{calculation.discountAmount.toFixed(2)} AZN</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E2E8E2]">
+                        <span className="text-lg font-bold text-[#1A4D2E]">Cəmi:</span>
+                        <span className="text-2xl font-bold text-[#1A4D2E]">{calculation.total.toFixed(2)} AZN</span>
+                      </div>
+                    </>
+                  );
+                })()}
+                
                 <Button 
                   onClick={placeOrder}
-                  className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white py-6 text-lg rounded-full"
+                  className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white py-6 text-lg rounded-full mt-3"
                   data-testid="place-order-button"
                 >
                   <Receipt className="w-5 h-5 mr-2" />
