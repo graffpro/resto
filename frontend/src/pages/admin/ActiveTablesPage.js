@@ -66,14 +66,19 @@ export default function ActiveTablesPage() {
   const closeSession = async (sessionId) => {
     if (!window.confirm('Hesabı bağlamaq istədiyinizə əminsiniz?')) return;
     try {
+      console.log('Closing session:', sessionId);
       const response = await axios.post(`${API}/sessions/close/${sessionId}`);
+      console.log('Close response:', response.data);
       // Show detailed bill summary
-      setBillSummary(response.data.bill_summary);
+      if (response.data.bill_summary) {
+        setBillSummary(response.data.bill_summary);
+      }
       toast.success('Hesab bağlandı');
       fetchSessions();
       fetchClosedSessions();
     } catch (error) {
-      toast.error('Xəta baş verdi');
+      console.error('Close session error:', error);
+      toast.error(error.response?.data?.detail || 'Xəta baş verdi');
     }
   };
 
@@ -157,10 +162,10 @@ export default function ActiveTablesPage() {
             return (
               <div 
                 key={session.id} 
-                className={`bg-white border rounded-xl p-6 cursor-pointer hover:shadow-lg transition-shadow ${
-                  isActive ? 'border-green-300' : 'border-[#E2E8E2]'
+                className={`bg-white border rounded-xl p-6 hover:shadow-lg transition-shadow ${
+                  isActive ? 'border-green-300' : 'border-[#E2E8E2] cursor-pointer'
                 }`}
-                onClick={() => openDetails(session)}
+                onClick={() => !isActive && openDetails(session)}
                 data-testid={`session-card-${session.id}`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -193,7 +198,11 @@ export default function ActiveTablesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => openDetails(session)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openDetails(session);
+                    }}
                     className="flex-1"
                   >
                     <Eye className="w-4 h-4 mr-1" />
@@ -203,7 +212,11 @@ export default function ActiveTablesPage() {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => closeSession(session.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeSession(session.id);
+                      }}
                       className="bg-red-600 hover:bg-red-700 text-white"
                       data-testid={`close-session-${session.id}`}
                     >
