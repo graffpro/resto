@@ -204,8 +204,11 @@ export default function ActiveTablesPage() {
                       variant="destructive"
                       size="sm"
                       onClick={() => closeSession(session.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      data-testid={`close-session-${session.id}`}
                     >
-                      <XCircle className="w-4 h-4" />
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Bağla
                     </Button>
                   )}
                 </div>
