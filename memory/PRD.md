@@ -1,118 +1,71 @@
 # Real-Time QR-Code Restaurant Management System - PRD
 
 ## Original Problem Statement
-Online WP Cafe-like application pivoted to a **Real-Time In-House QR-Code Restaurant Management System** for a single restaurant with green theme, cash-only payments, and Azerbaijani language interface.
+Real-Time In-House QR-Code Restaurant Management System pivoted to a **Multi-Restaurant (Multi-Tenant) Architecture**.
+
+- **Owner Role:** Manages multiple restaurants. Creates "Administrators" for specific restaurants, assigning them a login, password, PIN, and an **expiration date**.
+- **Admin Role:** Manages a specific restaurant. Edits orders, uses modern sleek UI, communicates with Kitchen via Voice/Audio.
+- **Deep Analytics & Inventory:** Detailed inventory tracking and staff management (Waiters' days off, shift tracking, performance/points system).
+- **UI/UX:** Modern, sleek, informative design with smaller fonts. All text in Azerbaijani.
 
 ## User Personas & Roles
-1. **Owner** - Full system control (venues, tables, menus, staff management)
-2. **Admin** - Staff management, analytics, expenses, reservations
+1. **Owner** - Full system control (manages multiple restaurants, creates Admins)
+2. **Admin** - Restaurant-level management (staff, analytics, expenses, orders)
 3. **Kitchen** - Receives orders, tracks preparation time
 4. **Waiter** - Delivers orders, tracks delivery time
 5. **Customer** - Scans QR code, orders without registration
-
-## Core Requirements
-- Dynamic Table Management with auto-generated QR codes
-- Real-time order flow with WebSocket notifications
-- Operational analytics (prep/delivery times)
-- Multi-menu support (Breakfast, Lunch, Dinner)
-- Expense tracking (daily/weekly/monthly)
-- Table reservations
-- Discount campaigns
-- Financial reporting (revenue - expenses = profit)
-- Receipt printing
-- Azerbaijani language (AZ)
 
 ## Technical Stack
 - **Frontend**: React 18, Shadcn/UI, TailwindCSS
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB
 - **Real-time**: WebSocket
-- **Authentication**: JWT with role-based access
+- **Authentication**: JWT with role-based access + Admin PIN security
 
-## What's Been Implemented (December 2025)
+## What's Been Implemented
 
-### Phase 1: Core System ✅
+### Phase 1: Core System
 - [x] JWT Authentication with RBAC
 - [x] Venue and Table management
 - [x] QR code generation for tables
 - [x] Category and Menu Items CRUD
-- [x] Order flow (Customer → Kitchen → Waiter)
+- [x] Order flow (Customer > Kitchen > Waiter)
 - [x] Table sessions management
 
-### Phase 2: Analytics & Management ✅
+### Phase 2: Analytics & Management
 - [x] Professional Analytics (prep/delivery times)
 - [x] Financial Reports (revenue, expenses, profit)
-- [x] Expense management (categories: Kommunal, Ərzaq, Əməkhaqqı, İcarə, Təmir, Digər)
+- [x] Expense management
 - [x] Multi-menu support
 
-### Phase 3: Advanced Features ✅
-- [x] Table Reservations with status management
-- [x] Discount campaigns (percentage/fixed)
-- [x] WebSocket real-time notifications for Kitchen/Waiter
+### Phase 3: Advanced Features
+- [x] Table Reservations
+- [x] Discount campaigns (percentage/fixed, item-level and cart-level)
+- [x] WebSocket real-time notifications
 - [x] Receipt printing component
+- [x] Admin PIN protection for sensitive routes
+- [x] Detailed Bill Summary on table close
 
-### Phase 4: Testing ✅
-- [x] Backend API tests (25/25 passed)
-- [x] Frontend UI testing (all pages functional)
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - User login
-
-### Users
-- `GET /api/users` - List users
-- `POST /api/users` - Create user (role-based)
-
-### Venues & Tables
-- `GET/POST /api/venues` - CRUD venues
-- `GET/POST /api/tables` - CRUD tables with QR codes
-- `GET /api/tables/available` - Get available tables for date
-
-### Menu Management
-- `GET/POST /api/menus` - Multi-menu CRUD
-- `GET/POST /api/categories` - Category CRUD
-- `GET/POST /api/menu-items` - Menu items CRUD
-
-### Orders & Sessions
-- `POST /api/sessions/start/{table_id}` - Start customer session
-- `GET /api/sessions/active` - Get active sessions
-- `POST /api/orders` - Create order (triggers WebSocket)
-- `GET /api/orders/kitchen` - Kitchen orders
-- `GET /api/orders/waiter` - Waiter orders
-- `PUT /api/orders/{id}/status` - Update order status
-
-### Reservations
-- `GET/POST /api/reservations` - CRUD reservations
-- `PUT /api/reservations/{id}/status` - Update status
-
-### Expenses
-- `GET/POST /api/expenses` - CRUD expenses
-
-### Discounts
-- `GET/POST /api/discounts` - CRUD discounts
-- `GET /api/discounts/active` - Active discounts
-- `PUT /api/discounts/{id}/toggle` - Toggle active status
-
-### Analytics
-- `GET /api/analytics/detailed` - Detailed order analytics
-- `GET /api/analytics/financial` - Financial report
-- `GET /api/analytics/popular-items` - Popular items
-
-### Settings
-- `GET/PUT /api/settings` - Restaurant settings
+### Phase 4: Multi-Restaurant Architecture (March 2026)
+- [x] Restaurant CRUD (Owner creates/manages multiple restaurants)
+- [x] Admin creation with expiration dates and PIN codes
+- [x] Cascading deactivation (Restaurant > Admin > Staff)
+- [x] Admin expiration check on login
+- [x] Modern Owner Dashboard with RestaurantsPage
+- [x] "Close Table" button moved inside detail modal only
 
 ## Database Schema
 
 ### Collections
-- `users` - Staff accounts with roles
+- `restaurants` - {id, name, address, phone, whatsapp, email, tax_percentage, service_charge_percentage, is_active, created_by}
+- `users` - {id, username, password, role, full_name, restaurant_id, admin_pin, is_active, expires_at, created_by, rest_days, points}
 - `venues` - Restaurant venues/halls
 - `tables` - Tables with QR codes
 - `table_sessions` - Active customer sessions
 - `categories` - Menu categories
-- `menu_items` - Food/drink items
+- `menu_items` - Food/drink items with per-item discounts
 - `menus` - Multiple menus (breakfast, lunch, dinner)
-- `orders` - Customer orders with timestamps
+- `orders` - Customer orders with timestamps and discounts
 - `reservations` - Table reservations
 - `expenses` - Expense records
 - `discounts` - Discount campaigns
@@ -120,21 +73,23 @@ Online WP Cafe-like application pivoted to a **Real-Time In-House QR-Code Restau
 
 ## Credentials
 - **Owner**: username: `owner`, password: `owner123`
+- **Admin**: username: `admin1`, password: `admin123` (test account)
 
 ## Remaining/Future Tasks
 
 ### P0 (High Priority)
-- [ ] WhatsApp integration for customer notifications (needs Twilio API key)
+- [ ] UI/UX Modernization across all Admin pages (smaller fonts, sleek design)
 
 ### P1 (Medium Priority)
-- [ ] Performance testing under load
-- [ ] Enhanced receipt templates
-- [ ] Bulk import/export for menu items
+- [ ] Staff Shift & Points System (Waiter rest days/shifts, performance points with daily/monthly/yearly analytics)
+- [ ] Inventory/Stock Tracking (raw materials, eggs bought vs. sold mapping)
+- [ ] Order Editing for Admins (add/remove items from active table sessions)
 
 ### P2 (Low Priority)
-- [ ] Dark mode support
-- [ ] Mobile app version
-- [ ] Integration with POS systems
+- [ ] Admin-Kitchen Voice Communication (audio/voice messaging)
+- [ ] WhatsApp Integration for customer notifications (needs Twilio API key)
+- [ ] Performance optimization (N+1 queries in analytics)
+- [ ] Enhanced receipt templates
 
 ## Known Issues
 - Minor: Dialog accessibility warnings (missing aria-describedby)
