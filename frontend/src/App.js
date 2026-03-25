@@ -38,6 +38,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/table/:tableId" element={<CustomerPage />} />
+      <Route path="/customer/:tableId" element={<CustomerPage />} />
       
       <Route
         path="/owner/*"
