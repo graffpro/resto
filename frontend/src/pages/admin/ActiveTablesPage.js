@@ -58,8 +58,8 @@ export default function ActiveTablesPage() {
     }
   };
 
-  const openDetails = (session) => {
-    setSelectedSession(session);
+  const openDetails = (session, isActive = false) => {
+    setSelectedSession({ ...session, is_active: isActive });
     fetchSessionDetails(session.id);
   };
 
@@ -165,7 +165,7 @@ export default function ActiveTablesPage() {
                 className={`bg-white border rounded-xl p-6 hover:shadow-lg transition-shadow ${
                   isActive ? 'border-green-300' : 'border-[#E2E8E2] cursor-pointer'
                 }`}
-                onClick={() => !isActive && openDetails(session)}
+                onClick={() => !isActive && openDetails(session, isActive)}
                 data-testid={`session-card-${session.id}`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -201,29 +201,14 @@ export default function ActiveTablesPage() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      openDetails(session);
+                      openDetails(session, isActive);
                     }}
                     className="flex-1"
+                    data-testid={`view-details-${session.id}`}
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     Detallara Bax
                   </Button>
-                  {isActive && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        closeSession(session.id);
-                      }}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      data-testid={`close-session-${session.id}`}
-                    >
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Bağla
-                    </Button>
-                  )}
                 </div>
               </div>
             );
@@ -305,6 +290,25 @@ export default function ActiveTablesPage() {
                 </div>
               ) : (
                 <p className="text-center text-[#5C6B61] py-4">Bu stolda hələ sifariş yoxdur</p>
+              )}
+
+              {/* Close Session Button - ONLY inside detail modal */}
+              {selectedSession?.is_active && (
+                <div className="flex justify-end pt-4 border-t border-[#E2E8E2]">
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      closeSession(selectedSession.id);
+                      setSelectedSession(null);
+                      setSessionDetails(null);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    data-testid="close-session-in-modal"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Hesabı Bağla
+                  </Button>
+                </div>
               )}
             </div>
           ) : null}
