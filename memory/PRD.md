@@ -1,95 +1,65 @@
 # Real-Time QR-Code Restaurant Management System - PRD
 
 ## Original Problem Statement
-Real-Time In-House QR-Code Restaurant Management System pivoted to a **Multi-Restaurant (Multi-Tenant) Architecture**.
+Real-Time In-House QR-Code Restaurant Management System with **Multi-Restaurant (Multi-Tenant) Architecture**.
 
-- **Owner (Sahib):** Manages multiple restaurants. Creates "Administrators" with login, password, PIN, and time-limited access (5 days, 2 weeks, 1 month, etc.). Not visible to other users.
-- **Admin (Administrator):** Manages a specific restaurant. Can edit orders, manage venues/tables/users, uses modern sleek UI.
-- **Deep Analytics & Inventory:** Detailed inventory tracking and staff management needed.
+- **Owner (Sahib):** Manages multiple restaurants. Creates time-limited Administrators.
+- **Admin (Administrator):** Manages restaurant. Edits orders, manages venues/tables/users/staff/inventory.
+- **Deep Analytics & Inventory:** Detailed inventory tracking and staff management with points system.
 - **UI/UX:** Modern, sleek, informative design with smaller fonts. All text in Azerbaijani.
 
 ## Technical Stack
-- **Frontend**: React 18, Shadcn/UI, TailwindCSS, Outfit + Manrope fonts
-- **Backend**: FastAPI (Python)
-- **Database**: MongoDB
-- **Real-time**: WebSocket
-- **Authentication**: JWT with RBAC + Admin PIN security
-- **Design System**: Terracotta (#C05C3D) + Forest Green (#2A3A2C) + Warm Gray (#F9F9F7)
+- Frontend: React 18, Shadcn/UI, TailwindCSS, Outfit + Manrope fonts
+- Backend: FastAPI (Python), MongoDB, WebSocket, JWT/RBAC
+- Design: Terracotta (#C05C3D) + Forest Green (#2A3A2C) + Warm Gray (#F9F9F7)
 
 ## What's Been Implemented
 
-### Phase 1: Core System (Complete)
-- [x] JWT Authentication with RBAC (Owner, Admin, Kitchen, Waiter, Customer)
-- [x] Venue and Table management (full CRUD by Admin)
-- [x] QR code generation for tables
-- [x] Category and Menu Items CRUD
-- [x] Order flow (Customer > Kitchen > Waiter)
-- [x] Table sessions management
+### Phase 1-3: Core System (Complete)
+- JWT Auth with RBAC, Venue/Table/Menu CRUD, QR codes, Order flow
+- Analytics, Financial Reports, Expense management, Multi-menu
+- Reservations, Discount campaigns, WebSocket, Receipt printing, PIN protection
 
-### Phase 2: Analytics & Management (Complete)
-- [x] Professional Analytics (prep/delivery times)
-- [x] Financial Reports (revenue, expenses, profit)
-- [x] Expense management
-- [x] Multi-menu support
+### Phase 4: Multi-Restaurant Architecture (Complete)
+- Restaurant CRUD with cascading deactivation/deletion
+- Admin creation with time-period selection (5 gün - 1 il)
+- Admin edit/delete with password change and expiration extension
 
-### Phase 3: Advanced Features (Complete)
-- [x] Table Reservations
-- [x] Discount campaigns (percentage/fixed, item-level and cart-level)
-- [x] WebSocket real-time notifications
-- [x] Receipt printing component
-- [x] Admin PIN protection for sensitive routes
-- [x] Detailed Bill Summary on table close
+### Phase 5: UI/UX Modernization (Complete)
+- Modern Login page (split layout), dark sidebars, rounded cards
+- All pages use new design system with smaller fonts
 
-### Phase 4: Multi-Restaurant Architecture (March 2026 - Complete)
-- [x] Restaurant CRUD (Owner creates/manages multiple restaurants)
-- [x] Admin creation with time-period selection (5 gün, 2 həftə, 1 ay, 3 ay, 6 ay, 1 il)
-- [x] Admin edit/delete with password change and expiration extension
-- [x] Cascading deactivation & deletion (Restaurant > Admin > Staff)
-- [x] Admin expiration check on login
-- [x] Owner hidden from other user listings
+### Phase 6: Admin Features (Complete)
+- Order editing (add/remove items, change quantities from menu)
+- Venues & Tables full CRUD by Admin
+- Users full CRUD with edit/delete/toggle
 
-### Phase 5: UI/UX Modernization (March 2026 - Complete)
-- [x] Modern Login page with split layout and restaurant image
-- [x] Owner Dashboard with dark sidebar and modern cards
-- [x] Admin Dashboard with compact dark sidebar and all nav items
-- [x] All pages updated with new design system (terracotta/forest-green)
-- [x] Smaller fonts (text-xs, text-sm) across all pages
-- [x] Rounded cards (rounded-2xl) and smooth hover effects
+### Phase 7: Staff Management & Inventory (March 2026 - Complete)
+- **Staff Management Page**: Performance leaderboard, period filters (day/week/month/year)
+- **Points System**: Add/deduct points with reason, full history tracking per staff
+- **Shift Tracking**: Work/Rest/Absent/Late shift types with date and time
+- **Inventory Page**: Ingredient CRUD with unit types (ədəd, kq, litr, qram, etc.)
+- **Stock Transactions**: Purchase (stock increase) and Usage (stock decrease) tracking
+- **Inventory Summary**: Total purchased vs used, cost tracking, low stock alerts
+- **PIN Verification**: Uses user's personal admin_pin first
 
-### Phase 6: Admin Order Editing & Venue Management (March 2026 - Complete)
-- [x] Admin can edit orders (add/remove items, change quantities)
-- [x] Admin can manage Venues (create, edit, delete)
-- [x] Admin can manage Tables (create, edit, delete, QR codes)
-- [x] Admin Users page with full edit/delete/toggle status
-- [x] "Close Table" button ONLY inside detail modal
-- [x] Restaurant/Admin delete functionality
-
-## Database Schema
-- `restaurants` - {id, name, address, phone, whatsapp, email, tax_percentage, service_charge_percentage, is_active, created_by}
-- `users` - {id, username, password, role, full_name, restaurant_id, admin_pin, is_active, expires_at, created_by, rest_days, points}
-- `venues` - {id, name, description}
-- `tables` - {id, table_number, venue_id, qr_code}
-- `table_sessions` - {id, table_id, session_id, is_active, orders, started_at, closed_at}
-- `categories` - {id, name}
-- `menu_items` - {id, name, category_id, price, image_url, discount_percentage}
-- `orders` - {id, session_id, table_id, items, total_amount, status, ordered_at}
-- `reservations` - {id, table_id, customer_name, customer_phone, reservation_date}
-- `expenses` - {id, name, amount, category, expense_type, date}
-- `discounts` - {id, name, type, value, min_order_amount, is_active}
-- `settings` - {admin_pin, restaurant_name, etc.}
+## Database Collections
+- `restaurants`, `users`, `venues`, `tables`, `table_sessions`
+- `categories`, `menu_items`, `menus`, `orders`, `reservations`
+- `expenses`, `discounts`, `settings`
+- `shift_logs` (NEW) - {user_id, date, shift_type, start_time, end_time, notes}
+- `points_history` (NEW) - {user_id, points, reason, new_total}
+- `ingredients` (NEW) - {name, unit, current_stock, min_stock, cost_per_unit}
+- `stock_transactions` (NEW) - {ingredient_id, transaction_type, quantity, unit_cost, total_cost, stock_after}
 
 ## Credentials
-- **Owner**: username: `owner`, password: `owner123`
-- **Admin**: username: `admin1`, password: `admin123`, PIN: `1234`
+- Owner: `owner` / `owner123`
+- Admin: `admin1` / `admin123` (PIN: 1234)
 
-## Remaining/Future Tasks
-
-### P1 (High Priority)
-- [ ] Staff Shift & Points System (Waiter rest days/shifts, performance points with daily/monthly/yearly analytics)
-- [ ] Inventory/Stock Tracking (raw materials - eggs bought vs. sold mapping)
+## Remaining Tasks
 
 ### P2 (Medium Priority)
 - [ ] Admin-Kitchen Voice Communication (audio/voice messaging)
-- [ ] WhatsApp Integration for customer notifications (needs Twilio API key)
-- [ ] Performance optimization (N+1 queries in analytics endpoints)
-- [ ] Enhanced receipt templates
+- [ ] WhatsApp Integration (Twilio API key required)
+- [ ] Performance optimization (N+1 queries in analytics)
+- [ ] Menu item → ingredient mapping (auto-deduct stock on order)
