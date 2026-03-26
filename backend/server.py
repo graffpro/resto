@@ -1146,6 +1146,9 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
         {"$set": {"status": OrderStatus.COMPLETED}}
     )
     
+    # Deactivate any timed services for this session
+    await deactivate_session_timed_services(session_id)
+    
     # Return detailed bill summary
     return {
         "message": "Session closed",
@@ -2161,6 +2164,65 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# ==================== VOICE CALL SIGNALING ====================
+class VoiceCallManager:
+    def __init__(self):
+        self.voice_connections: Dict[str, WebSocket] = {}  # role -> websocket
+    
+    async def connect(self, websocket: WebSocket, role: str):
+        await websocket.accept()
+        self.voice_connections[role] = websocket
+    
+    def disconnect(self, role: str):
+        self.voice_connections.pop(role, None)
+    
+    async def send_to_role(self, role: str, message: dict):
+        ws = self.voice_connections.get(role)
+        if ws:
+            try:
+                await ws.send_json(message)
+            except:
+                self.voice_connections.pop(role, None)
+    
+    def is_online(self, role: str) -> bool:
+        return role in self.voice_connections
+
+voice_manager = VoiceCallManager()
+
+@app.websocket("/api/ws/voice/{role}")
+async def voice_websocket(websocket: WebSocket, role: str):
+    await voice_manager.connect(websocket, role)
+    # Notify all connected voice clients about online status
+    for r, ws in voice_manager.voice_connections.items():
+        if r != role:
+            try:
+                await ws.send_json({"type": "peer_online", "role": role})
+            except:
+                pass
+    # Send current online peers to the newly connected client
+    online_peers = [r for r in voice_manager.voice_connections if r != role]
+    await websocket.send_json({"type": "online_peers", "peers": online_peers})
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+                continue
+            msg = json.loads(data)
+            target_role = msg.get("target")
+            if target_role and target_role in voice_manager.voice_connections:
+                msg["from"] = role
+                await voice_manager.send_to_role(target_role, msg)
+    except WebSocketDisconnect:
+        voice_manager.disconnect(role)
+        # Notify others that this role went offline
+        for r, ws in voice_manager.voice_connections.items():
+            try:
+                await ws.send_json({"type": "peer_offline", "role": role})
+            except:
+                pass
+
 @app.websocket("/api/ws/{role}")
 async def websocket_endpoint(websocket: WebSocket, role: str):
     await manager.connect(websocket, role)
@@ -2284,6 +2346,123 @@ async def delete_discount(discount_id: str, current_user: dict = Depends(get_cur
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Discount not found")
     return {"message": "Discount deleted"}
+
+
+# ==================== TIMED TABLE SERVICE ====================
+class TimedServiceCreate(BaseModel):
+    table_id: str
+    session_id: str
+    menu_item_id: str
+    interval_minutes: int = 45
+    notes: Optional[str] = None
+
+@api_router.post("/timed-services")
+async def create_timed_service(svc: TimedServiceCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Verify table session is active
+    session = await db.table_sessions.find_one({"id": svc.session_id, "is_active": True}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=400, detail="Aktiv sessiya tapılmadı")
+    
+    menu_item = await db.menu_items.find_one({"id": svc.menu_item_id}, {"_id": 0})
+    if not menu_item:
+        raise HTTPException(status_code=404, detail="Menyu elementi tapılmadı")
+    
+    table = await db.tables.find_one({"id": svc.table_id}, {"_id": 0})
+    
+    doc = {
+        "id": str(uuid.uuid4()),
+        "table_id": svc.table_id,
+        "table_number": table.get('table_number', '') if table else '',
+        "session_id": svc.session_id,
+        "menu_item_id": svc.menu_item_id,
+        "menu_item_name": menu_item['name'],
+        "menu_item_price": menu_item['price'],
+        "interval_minutes": svc.interval_minutes,
+        "notes": svc.notes,
+        "is_active": True,
+        "last_served_at": None,
+        "next_serve_at": (datetime.now(timezone.utc) + timedelta(minutes=svc.interval_minutes)).isoformat(),
+        "serve_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": current_user['id']
+    }
+    await db.timed_services.insert_one(doc)
+    doc.pop('_id', None)
+    
+    # Notify via WebSocket
+    await manager.broadcast_to_role({
+        "type": "timed_service_created",
+        "data": doc,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }, "kitchen")
+    await manager.broadcast_to_role({
+        "type": "timed_service_created",
+        "data": doc,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }, "waiter")
+    
+    return doc
+
+@api_router.get("/timed-services")
+async def get_timed_services(table_id: Optional[str] = None, session_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {}
+    if table_id:
+        query["table_id"] = table_id
+    if session_id:
+        query["session_id"] = session_id
+    services = await db.timed_services.find(query, {"_id": 0}).to_list(1000)
+    return services
+
+@api_router.get("/timed-services/active")
+async def get_active_timed_services(current_user: dict = Depends(get_current_user)):
+    services = await db.timed_services.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    return services
+
+@api_router.put("/timed-services/{service_id}/serve")
+async def mark_timed_service_served(service_id: str, current_user: dict = Depends(get_current_user)):
+    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
+    
+    now = datetime.now(timezone.utc)
+    next_serve = now + timedelta(minutes=svc['interval_minutes'])
+    
+    await db.timed_services.update_one({"id": service_id}, {"$set": {
+        "last_served_at": now.isoformat(),
+        "next_serve_at": next_serve.isoformat(),
+        "serve_count": svc.get('serve_count', 0) + 1
+    }})
+    
+    updated = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/timed-services/{service_id}")
+async def delete_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    result = await db.timed_services.delete_one({"id": service_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
+    return {"message": "Vaxtlı xidmət silindi"}
+
+@api_router.put("/timed-services/{service_id}/toggle")
+async def toggle_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
+    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
+    new_status = not svc.get('is_active', True)
+    await db.timed_services.update_one({"id": service_id}, {"$set": {"is_active": new_status}})
+    return {"message": "Status dəyişdirildi", "is_active": new_status}
+
+# Deactivate timed services when session closes
+async def deactivate_session_timed_services(session_id: str):
+    await db.timed_services.update_many(
+        {"session_id": session_id, "is_active": True},
+        {"$set": {"is_active": False}}
+    )
 
 
 # Include router at the end after all routes are defined

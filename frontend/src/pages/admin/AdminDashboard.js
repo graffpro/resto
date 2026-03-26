@@ -1,9 +1,11 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package } from 'lucide-react';
+import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
+import { VoiceCallProvider } from '@/context/VoiceCallContext';
+import { VoiceCallButton, VoiceCallOverlay } from '@/components/VoiceCallUI';
 import ActiveTablesPage from './ActiveTablesPage';
 import AdminUsersPage from './AdminUsersPage';
 import ProfessionalAnalytics from './ProfessionalAnalytics';
@@ -16,6 +18,7 @@ import MenuManagementPage from './MenuManagementPage';
 import VenuesTablesPage from './VenuesTablesPage';
 import StaffManagementPage from './StaffManagementPage';
 import InventoryPage from './InventoryPage';
+import SettingsPage from './SettingsPage';
 
 function ProtectedPage({ children, sectionName }) {
   return <AdminPinGuard sectionName={sectionName}>{children}</AdminPinGuard>;
@@ -39,10 +42,13 @@ export default function AdminDashboard() {
     { to: '/admin/analytics', icon: LayoutDashboard, label: az.analytics, protected: true },
     { to: '/admin/financial-report', icon: BarChart3, label: 'Maliyyə', protected: true },
     { to: '/admin/sales-statistics', icon: ShoppingCart, label: 'Satış', protected: true },
+    { to: '/admin/settings', icon: Settings, label: 'Ayarlar', protected: true },
   ];
 
   return (
+    <VoiceCallProvider myRole="admin">
     <div className="min-h-screen bg-[#F9F9F7]">
+      <VoiceCallOverlay />
       <div className="flex">
         <aside className="w-56 min-h-screen bg-[#1A251E] fixed left-0 top-0 z-30">
           <div className="flex flex-col h-full p-4">
@@ -69,6 +75,14 @@ export default function AdminDashboard() {
                   <p className="text-[10px] text-[#C05C3D]">Administrator</p>
                 </div>
               </div>
+            </div>
+
+            {/* Voice Call */}
+            <div className="bg-white/5 rounded-xl p-2.5 mb-4 border border-white/10">
+              <p className="text-[10px] text-[#8A948D] mb-2 flex items-center gap-1">
+                <Phone className="w-3 h-3" /> Səsli Zəng
+              </p>
+              <VoiceCallButton targetRole="kitchen" />
             </div>
 
             {/* Nav */}
@@ -111,9 +125,11 @@ export default function AdminDashboard() {
             <Route path="/discounts" element={<ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage>} />
             <Route path="/sales-statistics" element={<ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage>} />
             <Route path="/menu-management" element={<ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage>} />
+            <Route path="/settings" element={<ProtectedPage sectionName="Ayarlar"><SettingsPage /></ProtectedPage>} />
           </Routes>
         </main>
       </div>
     </div>
+    </VoiceCallProvider>
   );
 }

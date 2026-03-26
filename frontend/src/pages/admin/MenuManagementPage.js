@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent, Package, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,8 @@ const API = `${BACKEND_URL}/api`;
 export default function MenuManagementPage() {
   const [categories, setCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState({});
   
@@ -26,6 +28,9 @@ export default function MenuManagementPage() {
   const [itemDialog, setItemDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+  
+  // Recipe items for the current menu item being added/edited
+  const [recipeItems, setRecipeItems] = useState([]);
   
   // Form states
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
@@ -46,12 +51,16 @@ export default function MenuManagementPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [catRes, itemRes] = await Promise.all([
+      const [catRes, itemRes, ingRes, recRes] = await Promise.all([
         axios.get(`${API}/categories`),
-        axios.get(`${API}/menu-items`)
+        axios.get(`${API}/menu-items`),
+        axios.get(`${API}/ingredients`),
+        axios.get(`${API}/recipes`)
       ]);
       setCategories(catRes.data);
       setMenuItems(itemRes.data);
+      setIngredients(ingRes.data);
+      setRecipes(recRes.data);
       
       // Expand all categories by default
       const expanded = {};
@@ -114,12 +123,26 @@ export default function MenuManagementPage() {
         price: parseFloat(itemForm.price),
         discount_percentage: parseFloat(itemForm.discount_percentage) || 0
       };
+      let savedItemId;
       if (editingItem) {
         await axios.put(`${API}/menu-items/${editingItem.id}`, data);
+        savedItemId = editingItem.id;
         toast.success('Yemək yeniləndi');
       } else {
-        await axios.post(`${API}/menu-items`, data);
+        const res = await axios.post(`${API}/menu-items`, data);
+        savedItemId = res.data.id;
         toast.success('Yemək əlavə edildi');
+      }
+      // Save recipe if ingredients are specified
+      const validRecipeItems = recipeItems.filter(r => r.ingredient_id && r.quantity > 0);
+      if (validRecipeItems.length > 0) {
+        await axios.post(`${API}/recipes`, {
+          menu_item_id: savedItemId,
+          ingredients: validRecipeItems.map(r => ({ ingredient_id: r.ingredient_id, quantity: parseFloat(r.quantity) }))
+        });
+      } else if (savedItemId) {
+        // Clear recipe if no ingredients
+        try { await axios.delete(`${API}/recipes/${savedItemId}`); } catch {}
       }
       setItemDialog(false);
       resetItemForm();
@@ -151,11 +174,22 @@ export default function MenuManagementPage() {
       discount_percentage: item.discount_percentage || 0,
       is_available: item.is_available !== false
     });
+    // Load existing recipe for this item
+    const existingRecipe = recipes.find(r => r.menu_item_id === item.id);
+    if (existingRecipe && existingRecipe.ingredients?.length > 0) {
+      setRecipeItems(existingRecipe.ingredients.map(ri => ({
+        ingredient_id: ri.ingredient_id,
+        quantity: ri.quantity
+      })));
+    } else {
+      setRecipeItems([]);
+    }
     setItemDialog(true);
   };
 
   const resetItemForm = () => {
     setEditingItem(null);
+    setRecipeItems([]);
     setItemForm({
       name: '',
       description: '',
@@ -166,6 +200,13 @@ export default function MenuManagementPage() {
       is_available: true
     });
   };
+
+  const addRecipeRow = () => setRecipeItems(prev => [...prev, { ingredient_id: '', quantity: '' }]);
+  const removeRecipeRow = (idx) => setRecipeItems(prev => prev.filter((_, i) => i !== idx));
+  const updateRecipeRow = (idx, field, val) => setRecipeItems(prev => prev.map((r, i) => i === idx ? { ...r, [field]: val } : r));
+  const getIngredientName = (id) => ingredients.find(i => i.id === id)?.name || '';
+  const getIngredientUnit = (id) => ingredients.find(i => i.id === id)?.unit || '';
+  const getItemRecipe = (itemId) => recipes.find(r => r.menu_item_id === itemId);
 
   const toggleCategory = (id) => {
     setExpandedCategories(prev => ({ ...prev, [id]: !prev[id] }));
@@ -324,6 +365,54 @@ export default function MenuManagementPage() {
                     placeholder="Yeməyin təsviri..."
                   />
                 </div>
+                {/* Recipe / Ingredient Mapping */}
+                {ingredients.length > 0 && (
+                  <div className="border border-[#E6E5DF] rounded-lg p-3 bg-[#F9F9F7]">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs font-semibold text-[#181C1A] flex items-center gap-1">
+                        <Package className="w-3 h-3" />
+                        Resept (Xammal tərkibi)
+                      </Label>
+                      <Button type="button" variant="outline" size="sm" onClick={addRecipeRow} className="h-6 text-[10px] px-2" data-testid="add-recipe-row-btn">
+                        <Plus className="w-3 h-3 mr-1" /> Xammal
+                      </Button>
+                    </div>
+                    {recipeItems.length === 0 ? (
+                      <p className="text-[10px] text-[#5C665F]">Stokdan avtomatik çıxılması üçün xammal əlavə edin</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recipeItems.map((ri, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Select value={ri.ingredient_id} onValueChange={(v) => updateRecipeRow(idx, 'ingredient_id', v)}>
+                              <SelectTrigger className="h-8 text-xs flex-1" data-testid={`recipe-ingredient-${idx}`}>
+                                <SelectValue placeholder="Xammal seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ingredients.map(ing => (
+                                  <SelectItem key={ing.id} value={ing.id}>{ing.name} ({ing.unit})</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={ri.quantity}
+                              onChange={(e) => updateRecipeRow(idx, 'quantity', e.target.value)}
+                              placeholder="Miqdar"
+                              className="w-20 h-8 text-xs"
+                              data-testid={`recipe-quantity-${idx}`}
+                            />
+                            <span className="text-[10px] text-[#5C665F] w-10">{getIngredientUnit(ri.ingredient_id)}</span>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeRecipeRow(idx)} className="h-6 w-6 p-0">
+                              <X className="w-3 h-3 text-red-500" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Button type="submit" className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white" data-testid="save-item-btn">
                   {az.save}
                 </Button>
@@ -448,6 +537,14 @@ export default function MenuManagementPage() {
                               </div>
                               {item.description && (
                                 <p className="text-sm text-[#5C665F] mb-3">{item.description}</p>
+                              )}
+                              {getItemRecipe(item.id) && (
+                                <div className="mb-2">
+                                  <Badge variant="outline" className="text-[10px] border-[#4F9D69] text-[#4F9D69]">
+                                    <Package className="w-2.5 h-2.5 mr-1" />
+                                    {getItemRecipe(item.id).ingredients?.length} xammal
+                                  </Badge>
+                                </div>
                               )}
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={() => editItem(item)} className="flex-1">

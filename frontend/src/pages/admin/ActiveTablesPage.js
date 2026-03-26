@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { RefreshCw, XCircle, Eye, Clock, ShoppingBag, Printer, Tag, Plus, Minus, Pencil, Trash2 } from 'lucide-react';
+import { RefreshCw, XCircle, Eye, Clock, ShoppingBag, Printer, Tag, Plus, Minus, Pencil, Trash2, Timer, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import az from '@/translations/az';
@@ -24,6 +26,9 @@ export default function ActiveTablesPage() {
   const [editItems, setEditItems] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [timedServices, setTimedServices] = useState([]);
+  const [showTimedDialog, setShowTimedDialog] = useState(false);
+  const [timedForm, setTimedForm] = useState({ menu_item_id: '', interval_minutes: 45, notes: '' });
 
   useEffect(() => {
     fetchSessions();
@@ -38,6 +43,13 @@ export default function ActiveTablesPage() {
       const res = await axios.get(`${API}/menu-items`);
       setMenuItems(res.data);
     } catch (e) { /* silent */ }
+  };
+
+  const fetchTimedServices = async (sessionId) => {
+    try {
+      const res = await axios.get(`${API}/timed-services?session_id=${sessionId}`);
+      setTimedServices(res.data);
+    } catch { /* silent */ }
   };
 
   const fetchSessions = async () => {
@@ -74,6 +86,7 @@ export default function ActiveTablesPage() {
   const openDetails = (session, isActive = false) => {
     setSelectedSession({ ...session, is_active: isActive });
     fetchSessionDetails(session.id);
+    fetchTimedServices(session.id);
   };
 
   const closeSession = async (sessionId) => {
@@ -152,6 +165,49 @@ export default function ActiveTablesPage() {
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Xəta baş verdi');
     }
+  };
+
+  const createTimedService = async () => {
+    if (!timedForm.menu_item_id) { toast.error('Menyu elementi seçin'); return; }
+    try {
+      await axios.post(`${API}/timed-services`, {
+        table_id: sessionDetails?.table?.id,
+        session_id: selectedSession?.id,
+        menu_item_id: timedForm.menu_item_id,
+        interval_minutes: parseInt(timedForm.interval_minutes) || 45,
+        notes: timedForm.notes
+      });
+      toast.success('Vaxtlı xidmət əlavə edildi');
+      setShowTimedDialog(false);
+      setTimedForm({ menu_item_id: '', interval_minutes: 45, notes: '' });
+      fetchTimedServices(selectedSession.id);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Xəta'); }
+  };
+
+  const deleteTimedService = async (svcId) => {
+    try {
+      await axios.delete(`${API}/timed-services/${svcId}`);
+      toast.success('Vaxtlı xidmət silindi');
+      fetchTimedServices(selectedSession.id);
+    } catch { toast.error('Xəta'); }
+  };
+
+  const markTimedServiceServed = async (svcId) => {
+    try {
+      await axios.put(`${API}/timed-services/${svcId}/serve`);
+      toast.success('Xidmət edildi kimi qeyd olundu');
+      fetchTimedServices(selectedSession.id);
+    } catch { toast.error('Xəta'); }
+  };
+
+  const getTimedServiceStatus = (svc) => {
+    if (!svc.is_active) return { label: 'Dayandırılıb', color: 'bg-gray-100 text-gray-600' };
+    if (!svc.next_serve_at) return { label: 'Gözləyir', color: 'bg-yellow-100 text-yellow-700' };
+    const next = new Date(svc.next_serve_at);
+    const now = new Date();
+    if (next <= now) return { label: 'Vaxtı çatıb!', color: 'bg-red-100 text-red-700 animate-pulse' };
+    const mins = Math.round((next - now) / 60000);
+    return { label: `${mins} dəq sonra`, color: 'bg-blue-100 text-blue-700' };
   };
 
   const getStatusColor = (status) => {
@@ -397,6 +453,50 @@ export default function ActiveTablesPage() {
                 <p className="text-center text-sm text-[#8A948D] py-4">Bu stolda hələ sifariş yoxdur</p>
               )}
 
+              {/* Timed Services */}
+              {selectedSession?.is_active && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-[#181C1A] flex items-center gap-2">
+                      <Timer className="w-4 h-4 text-[#D48B30]" />
+                      Vaxtlı Xidmətlər
+                    </h3>
+                    <Button variant="outline" size="sm" onClick={() => setShowTimedDialog(true)} className="h-7 text-[10px] rounded-lg border-[#D48B30] text-[#D48B30]" data-testid="add-timed-service-btn">
+                      <Plus className="w-3 h-3 mr-1" /> Vaxtlı Xidmət
+                    </Button>
+                  </div>
+                  {timedServices.filter(s => s.is_active).length > 0 ? (
+                    <div className="space-y-2">
+                      {timedServices.filter(s => s.is_active).map(svc => {
+                        const status = getTimedServiceStatus(svc);
+                        return (
+                          <div key={svc.id} className="flex items-center justify-between bg-[#F9F9F7] rounded-xl p-2.5 border border-[#E6E5DF]" data-testid={`timed-service-${svc.id}`}>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Coffee className="w-4 h-4 text-[#D48B30] shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-[#181C1A] truncate">{svc.menu_item_name}</p>
+                                <p className="text-[10px] text-[#8A948D]">Hər {svc.interval_minutes} dəq | {svc.serve_count || 0}x verildi</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Badge className={`text-[9px] rounded-full ${status.color}`}>{status.label}</Badge>
+                              <Button variant="outline" size="sm" onClick={() => markTimedServiceServed(svc.id)} className="h-6 px-2 text-[10px] rounded-lg border-[#4F9D69] text-[#4F9D69]" data-testid={`mark-served-${svc.id}`}>
+                                Verildi
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => deleteTimedService(svc.id)} className="h-6 w-6 p-0 text-red-500" data-testid={`delete-timed-${svc.id}`}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-[#8A948D] text-center py-2">Vaxtlı xidmət yoxdur. "Vaxtlı Xidmət" düyməsinə basın.</p>
+                  )}
+                </div>
+              )}
+
               {/* Close Session Button - ONLY inside detail modal */}
               {selectedSession?.is_active && (
                 <div className="flex justify-end pt-4 border-t border-[#E6E5DF]">
@@ -635,6 +735,57 @@ export default function ActiveTablesPage() {
                 <Button size="sm" onClick={saveOrderEdit} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl text-xs" data-testid="save-order-edit">Yadda saxla</Button>
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Timed Service Dialog */}
+      <Dialog open={showTimedDialog} onOpenChange={setShowTimedDialog}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="heading-font text-base font-medium flex items-center gap-2">
+              <Timer className="w-4 h-4 text-[#D48B30]" />
+              Vaxtlı Xidmət Əlavə Et
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-[#5C665F]">Menyu elementi *</Label>
+              <Select value={timedForm.menu_item_id} onValueChange={(v) => setTimedForm(f => ({ ...f, menu_item_id: v }))}>
+                <SelectTrigger className="h-9" data-testid="timed-menu-item-select">
+                  <SelectValue placeholder="Məsələn: Çay" />
+                </SelectTrigger>
+                <SelectContent>
+                  {menuItems.map(mi => (
+                    <SelectItem key={mi.id} value={mi.id}>{mi.name} - {mi.price?.toFixed(2)} AZN</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-[#5C665F]">İnterval (dəqiqə) *</Label>
+              <Input
+                type="number"
+                min="5"
+                max="480"
+                value={timedForm.interval_minutes}
+                onChange={(e) => setTimedForm(f => ({ ...f, interval_minutes: e.target.value }))}
+                data-testid="timed-interval-input"
+              />
+              <p className="text-[10px] text-[#8A948D] mt-1">Hər neçə dəqiqədən bir verilsin</p>
+            </div>
+            <div>
+              <Label className="text-xs text-[#5C665F]">Qeyd</Label>
+              <Input
+                value={timedForm.notes}
+                onChange={(e) => setTimedForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Məs: Şəkərsiz"
+                data-testid="timed-notes-input"
+              />
+            </div>
+            <Button onClick={createTimedService} className="w-full bg-[#D48B30] hover:bg-[#B87526] text-white rounded-xl text-xs" data-testid="save-timed-service-btn">
+              <Timer className="w-3.5 h-3.5 mr-1" /> Başlat
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

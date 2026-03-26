@@ -1,0 +1,108 @@
+{
+  "summary": "Completed comprehensive testing of Iteration 5 features: Settings Page with service_charge_percentage editing, Recipe mapping in Menu Item creation/editing, Timed Table Services CRUD, Auto-deduction of stock on order, and WebRTC Voice Communication between Admin and Kitchen. All 13 backend tests passed (100%). Frontend UI verified: Settings page with service charge input, Menu Management with recipe ingredient mapping, Active Tables with timed service UI, Admin sidebar with 'Səsli Zəng' voice call section, Kitchen Dashboard with Admin call button.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All Dialog modals", "issues": ["Missing aria-describedby attribute for accessibility (console warning) - minor, inherited from previous iterations"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration5_features.py",
+    "/app/test_reports/pytest/iteration5_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Settings page correctly displays and updates service_charge_percentage",
+    "Recipe mapping in Menu Item dialog allows adding ingredients with quantities",
+    "Timed Services CRUD endpoints all working (POST, GET, PUT /serve, DELETE)",
+    "Auto-deduction correctly decreases ingredient stock when order placed with recipe-linked menu item",
+    "Voice WebSocket endpoint /api/ws/voice/{role} accepts connections (101 Switching Protocols)",
+    "Admin sidebar shows 'Səsli Zəng' section with 'Mətbəx' call button",
+    "Kitchen Dashboard shows 'Admin' call button with online status indicator",
+    "Service charge is correctly applied to orders (service_charge_percentage and service_charge_amount fields)",
+    "Timed service UI in session details shows 'Vaxtlı Xidmətlər' section with add/mark served/delete buttons",
+    "All UI text is in Azerbaijani language as required"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration5_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all pages load and function correctly)"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin1", "password": "admin123", "PIN": "1234"},
+    "kitchen": {"username": "kitchen_test", "password": "kitchen123"}
+  },
+  "seed_data_creation": "Created kitchen_test user for testing Kitchen Dashboard voice call feature",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All Iteration 5 features tested and working. Settings page at /admin/settings with service charge editing. Menu Management at /admin/menu-management with recipe ingredient mapping in item dialog. Active Tables at /admin shows timed services in session details modal. Voice call buttons present in Admin sidebar (call Kitchen) and Kitchen Dashboard (call Admin). WebSocket endpoints for voice at /api/ws/voice/{role}.",
+  "features_tested": {
+    "settings_page": "PASS - GET/PUT /api/settings with service_charge_percentage",
+    "settings_ui": "PASS - Service charge input at /admin/settings with PIN protection",
+    "recipe_mapping_api": "PASS - POST /api/recipes creates recipe with ingredient quantities",
+    "recipe_mapping_ui": "PASS - Recipe section in Menu Item dialog with ingredient selection",
+    "timed_services_create": "PASS - POST /api/timed-services creates timed service",
+    "timed_services_get": "PASS - GET /api/timed-services returns services by session",
+    "timed_services_serve": "PASS - PUT /api/timed-services/{id}/serve marks as served",
+    "timed_services_delete": "PASS - DELETE /api/timed-services/{id} removes service",
+    "timed_services_ui": "PASS - 'Vaxtlı Xidmət' button in session details modal",
+    "auto_deduction": "PASS - Stock decreases when order placed with recipe-linked item",
+    "voice_websocket": "PASS - /api/ws/voice/{role} accepts WebSocket connections",
+    "admin_voice_button": "PASS - 'Səsli Zəng' section with 'Mətbəx' call button in sidebar",
+    "kitchen_voice_button": "PASS - 'Admin' call button in Kitchen Dashboard header",
+    "service_charge_in_orders": "PASS - Orders include service_charge_percentage and service_charge_amount"
+  },
+  "api_endpoints_tested": [
+    "GET /api/settings - PASS (returns settings with service_charge_percentage)",
+    "PUT /api/settings - PASS (updates service_charge_percentage)",
+    "POST /api/recipes - PASS (creates recipe with ingredients)",
+    "GET /api/recipes - PASS (returns all recipes)",
+    "GET /api/recipes/{menu_item_id} - PASS (returns recipe for item)",
+    "POST /api/timed-services - PASS (creates timed service)",
+    "GET /api/timed-services?session_id=X - PASS (returns services for session)",
+    "GET /api/timed-services/active - PASS (returns all active services)",
+    "PUT /api/timed-services/{id}/serve - PASS (marks as served, increments count)",
+    "DELETE /api/timed-services/{id} - PASS (deletes service)",
+    "POST /api/orders - PASS (creates order with service charge applied)",
+    "WebSocket /api/ws/voice/{role} - PASS (accepts connections)"
+  ],
+  "ui_verification": {
+    "settings_page": {
+      "url": "/admin/settings",
+      "elements": ["Restoran Məlumatları card", "Maliyyə Ayarları card with service charge input", "Təhlükəsizlik card with PIN", "Yadda Saxla button"],
+      "data_testids": ["settings-service-charge", "settings-tax", "settings-currency", "save-settings-btn"]
+    },
+    "menu_management_page": {
+      "url": "/admin/menu-management",
+      "elements": ["Yemək Əlavə Et button", "Recipe section in dialog", "Xammal button to add ingredients"],
+      "data_testids": ["add-item-btn", "add-recipe-row-btn", "recipe-ingredient-{idx}", "recipe-quantity-{idx}"]
+    },
+    "active_tables_page": {
+      "url": "/admin",
+      "elements": ["Session cards", "Session details modal", "Vaxtlı Xidmətlər section", "Vaxtlı Xidmət button"],
+      "data_testids": ["session-card-{id}", "view-details-{id}", "add-timed-service-btn", "timed-service-{id}", "mark-served-{id}"]
+    },
+    "admin_sidebar": {
+      "elements": ["Səsli Zəng section", "Mətbəx call button with online indicator"],
+      "data_testids": ["call-kitchen-btn"]
+    },
+    "kitchen_dashboard": {
+      "url": "/kitchen",
+      "elements": ["Mətbəx sifarişləri header", "Admin call button", "Canlı status indicator"],
+      "data_testids": ["call-admin-btn"]
+    }
+  },
+  "voice_call_verification": {
+    "websocket_endpoint": "/api/ws/voice/{role}",
+    "supported_roles": ["admin", "kitchen"],
+    "features": ["Peer online/offline detection", "WebRTC offer/answer signaling", "ICE candidate exchange", "Call accept/reject/end"],
+    "ui_components": ["VoiceCallButton", "VoiceCallOverlay with mute/end controls"]
+  }
+}

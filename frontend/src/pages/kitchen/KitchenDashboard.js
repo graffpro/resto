@@ -2,13 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
-import { RefreshCw, Clock, CheckCircle, LogOut, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Clock, CheckCircle, LogOut, Wifi, WifiOff, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 import { playNotificationSound, initAudio } from '@/utils/notifications';
+import { VoiceCallProvider } from '@/context/VoiceCallContext';
+import { VoiceCallButton, VoiceCallOverlay } from '@/components/VoiceCallUI';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -96,6 +98,7 @@ function KitchenContent() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F7] p-6">
+      <VoiceCallOverlay />
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -116,6 +119,7 @@ function KitchenContent() {
             </div>
           </div>
           <div className="flex gap-2">
+            <VoiceCallButton targetRole="admin" />
             <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md">
               <RefreshCw className="w-4 h-4 mr-2" />
               Yenilə
@@ -201,7 +205,9 @@ function KitchenContent() {
 export default function KitchenDashboard() {
   return (
     <WebSocketProvider role="kitchen">
-      <KitchenContent />
+      <VoiceCallProvider myRole="kitchen">
+        <KitchenContent />
+      </VoiceCallProvider>
     </WebSocketProvider>
   );
 }
