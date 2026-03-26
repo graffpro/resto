@@ -56,13 +56,13 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font mb-8">Restoran Parametrləri</h1>
+      <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight mb-8">Restoran Parametrləri</h1>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-[#1A4D2E]">Əsas Məlumatlar</CardTitle>
+              <CardTitle className="text-[#181C1A]">Əsas Məlumatlar</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-[#1A4D2E]">Maliyyə Parametrləri</CardTitle>
+              <CardTitle className="text-[#181C1A]">Maliyyə Parametrləri</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -111,7 +111,7 @@ export default function SettingsPage() {
                   value={settings.tax_percentage}
                   onChange={(e) => setSettings(p => ({ ...p, tax_percentage: parseFloat(e.target.value) || 0 }))}
                 />
-                <p className="text-xs text-[#5C6B61] mt-1">Azərbaycanda ƏDV: 18%</p>
+                <p className="text-xs text-[#5C665F] mt-1">Azərbaycanda ƏDV: 18%</p>
               </div>
               <div>
                 <Label>Xidmət Haqqı %</Label>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
           {/* Admin PIN Security Card */}
           <Card className="lg:col-span-2 border-orange-200 bg-orange-50/50">
             <CardHeader>
-              <CardTitle className="text-[#1A4D2E] flex items-center gap-2">
+              <CardTitle className="text-[#181C1A] flex items-center gap-2">
                 <Lock className="w-5 h-5" />
                 Admin Təhlükəsizlik PIN
               </CardTitle>
@@ -158,7 +158,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5C6B61]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5C665F]"
                   >
                     {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="mt-6">
-          <Button type="submit" className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white px-8 py-6 rounded-md text-lg">
+          <Button type="submit" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white px-8 py-6 rounded-md text-lg">
             <Save className="w-5 h-5 mr-2" />
             Yadda Saxla
           </Button>

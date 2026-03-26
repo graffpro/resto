@@ -91,17 +91,17 @@ function KitchenContent() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex justify-center items-center bg-[#F5F9E9]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="min-h-screen flex justify-center items-center bg-[#F9F9F7]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9E9] p-6">
+    <div className="min-h-screen bg-[#F9F9F7] p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font mb-2">{az.kitchenOrders}</h1>
+            <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight mb-2">{az.kitchenOrders}</h1>
             <div className="flex items-center gap-2">
-              <p className="text-[#5C6B61]">{user?.full_name}</p>
+              <p className="text-[#5C665F]">{user?.full_name}</p>
               {isConnected ? (
                 <span className="flex items-center gap-1 text-xs text-green-600">
                   <Wifi className="w-3 h-3" />
@@ -116,7 +116,7 @@ function KitchenContent() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={fetchOrders} className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md">
+            <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md">
               <RefreshCw className="w-4 h-4 mr-2" />
               Yenilə
             </Button>
@@ -128,26 +128,26 @@ function KitchenContent() {
         </div>
 
         {orders.length === 0 ? (
-          <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-            <p className="text-[#5C6B61] text-lg">Hazırda sifariş yoxdur</p>
+          <div className="bg-white border border-[#E6E5DF] rounded-xl p-12 text-center">
+            <p className="text-[#5C665F] text-lg">Hazırda sifariş yoxdur</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {orders.map(({ order, table, venue }) => (
               <Card key={order.id} className="bg-white">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-[#1A4D2E]">
+                  <CardTitle className="flex items-center justify-between text-[#181C1A]">
                     <span>Stol {table?.table_number}</span>
                     {getStatusBadge(order.status)}
                   </CardTitle>
-                  <p className="text-sm text-[#5C6B61]">{venue?.name}</p>
-                  <p className="text-xs text-[#5C6B61] mt-2">
+                  <p className="text-sm text-[#5C665F]">{venue?.name}</p>
+                  <p className="text-xs text-[#5C665F] mt-2">
                     Sifariş #{order.order_number}
                   </p>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
-                    <p className="text-xs text-[#5C6B61] mb-2">Yeməklər:</p>
+                    <p className="text-xs text-[#5C665F] mb-2">Yeməklər:</p>
                     <div className="space-y-1">
                       {order.items.map((item, idx) => (
                         <p key={idx} className="text-sm font-semibold">
@@ -157,8 +157,8 @@ function KitchenContent() {
                     </div>
                   </div>
 
-                  <div className="mb-4 p-3 bg-[#F5F9E9] rounded-lg">
-                    <div className="flex items-center gap-2 text-[#1A4D2E]">
+                  <div className="mb-4 p-3 bg-[#F9F9F7] rounded-lg">
+                    <div className="flex items-center gap-2 text-[#181C1A]">
                       <Clock className="w-4 h-4" />
                       <span className="text-sm font-semibold">
                         {order.status === 'pending' 
@@ -182,7 +182,7 @@ function KitchenContent() {
                   {order.status === 'preparing' && (
                     <Button
                       onClick={() => markReady(order.id)}
-                      className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white"
+                      className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       {az.markAsReady}

@@ -123,26 +123,26 @@ export default function ExpensesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent border-[#1A4D2E]"></div></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font">Xərclər İdarəetməsi</h1>
-          <p className="text-[#5C6B61] mt-2">Restoranın bütün xərclərini qeyd edin və izləyin</p>
+          <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Xərclər İdarəetməsi</h1>
+          <p className="text-[#5C665F] mt-0.5">Restoranın bütün xərclərini qeyd edin və izləyin</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md">
+            <Button className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs rounded-xl">
               <Plus className="w-4 h-4 mr-2" />
               Xərc Əlavə Et
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-[#1A4D2E] heading-font">
+              <DialogTitle className="text-[#181C1A] heading-font">
                 {editingExpense ? 'Xərci Redaktə Et' : 'Xərc Əlavə Et'}
               </DialogTitle>
             </DialogHeader>
@@ -214,7 +214,7 @@ export default function ExpensesPage() {
                   placeholder="Əlavə məlumat"
                 />
               </div>
-              <Button type="submit" className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white">
+              <Button type="submit" className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white">
                 {az.save}
               </Button>
             </form>
@@ -230,39 +230,39 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalExpenses.toFixed(2)} AZN</div>
-            <p className="text-xs text-white/80 mt-2">Bütün qeydə alınmış xərclər</p>
+            <p className="text-xs text-white/80 mt-0.5">Bütün qeydə alınmış xərclər</p>
           </CardContent>
         </Card>
       </div>
 
       {expenses.length === 0 ? (
-        <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-          <p className="text-[#5C6B61] text-lg">Hələ xərc qeydə alınmayıb</p>
+        <div className="bg-white border border-[#E6E5DF] rounded-2xl p-12 text-center">
+          <p className="text-[#5C665F] text-lg">Hələ xərc qeydə alınmayıb</p>
         </div>
       ) : (
-        <div className="bg-white border border-[#E2E8E2] rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#E6E5DF] rounded-2xl overflow-hidden">
           <table className="w-full">
-            <thead className="bg-[#F5F9E9]">
+            <thead className="bg-[#F9F9F7]">
               <tr>
-                <th className="text-left p-4 text-[#1A4D2E] font-semibold">Xərc</th>
-                <th className="text-left p-4 text-[#1A4D2E] font-semibold">Kateqoriya</th>
-                <th className="text-left p-4 text-[#1A4D2E] font-semibold">Növ</th>
-                <th className="text-right p-4 text-[#1A4D2E] font-semibold">Məbləğ</th>
-                <th className="text-left p-4 text-[#1A4D2E] font-semibold">Tarix</th>
-                <th className="text-center p-4 text-[#1A4D2E] font-semibold">Əməliyyat</th>
+                <th className="text-left p-4 text-[#181C1A] font-semibold">Xərc</th>
+                <th className="text-left p-4 text-[#181C1A] font-semibold">Kateqoriya</th>
+                <th className="text-left p-4 text-[#181C1A] font-semibold">Növ</th>
+                <th className="text-right p-4 text-[#181C1A] font-semibold">Məbləğ</th>
+                <th className="text-left p-4 text-[#181C1A] font-semibold">Tarix</th>
+                <th className="text-center p-4 text-[#181C1A] font-semibold">Əməliyyat</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map(expense => (
-                <tr key={expense.id} className="border-t border-[#E2E8E2]">
+                <tr key={expense.id} className="border-t border-[#E6E5DF]">
                   <td className="p-4">
-                    <div className="font-semibold text-[#1A4D2E]">{expense.name}</div>
-                    {expense.notes && <div className="text-xs text-[#5C6B61] mt-1">{expense.notes}</div>}
+                    <div className="font-semibold text-[#181C1A]">{expense.name}</div>
+                    {expense.notes && <div className="text-xs text-[#5C665F] mt-1">{expense.notes}</div>}
                   </td>
-                  <td className="p-4 text-[#5C6B61]">{expense.category}</td>
-                  <td className="p-4 text-[#5C6B61]">{getExpenseTypeLabel(expense.expense_type)}</td>
+                  <td className="p-4 text-[#5C665F]">{expense.category}</td>
+                  <td className="p-4 text-[#5C665F]">{getExpenseTypeLabel(expense.expense_type)}</td>
                   <td className="p-4 text-right font-bold text-[#E76F51]">{expense.amount.toFixed(2)} AZN</td>
-                  <td className="p-4 text-[#5C6B61]">{new Date(expense.date).toLocaleDateString('az-AZ')}</td>
+                  <td className="p-4 text-[#5C665F]">{new Date(expense.date).toLocaleDateString('az-AZ')}</td>
                   <td className="p-4">
                     <div className="flex items-center justify-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(expense)}>

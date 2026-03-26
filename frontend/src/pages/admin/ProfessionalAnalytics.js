@@ -182,25 +182,25 @@ export default function ProfessionalAnalytics() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent border-[#1A4D2E]"></div></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font">Professional Analitika</h1>
+        <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Professional Analitika</h1>
         <div className="flex gap-2">
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="px-4 py-2 border border-[#E2E8E2] rounded-md bg-white"
+            className="px-4 py-2 border border-[#E6E5DF] rounded-xl bg-white"
           >
             <option value="today">Bu gün</option>
             <option value="week">Bu həftə</option>
             <option value="month">Bu ay</option>
             <option value="all">Hamısı</option>
           </select>
-          <Button onClick={fetchAnalytics} className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md">
+          <Button onClick={fetchAnalytics} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs rounded-xl">
             <RefreshCw className="w-4 h-4 mr-2" />
             Yenilə
           </Button>
@@ -215,51 +215,51 @@ export default function ProfessionalAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.totalRevenue.toFixed(2)} AZN</div>
-            <p className="text-xs text-white/80 mt-2">{dateFilter === 'today' ? 'Bugünkü' : dateFilter === 'week' ? 'Həftəlik' : dateFilter === 'month' ? 'Aylıq' : 'Ümumi'} gəlir</p>
+            <p className="text-xs text-white/80 mt-0.5">{dateFilter === 'today' ? 'Bugünkü' : dateFilter === 'week' ? 'Həftəlik' : dateFilter === 'month' ? 'Aylıq' : 'Ümumi'} gəlir</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Sifarişlər</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Sifarişlər</CardTitle>
             <ShoppingBag className="h-5 w-5 text-[#4F9D69]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{stats.totalOrders}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Ümumi sifariş sayı</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{stats.totalOrders}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Ümumi sifariş sayı</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Müştərilər</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Müştərilər</CardTitle>
             <Users className="h-5 w-5 text-[#4F9D69]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{stats.totalCustomers}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Unikal müştəri sayı</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{stats.totalCustomers}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Unikal müştəri sayı</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Orta Hazırlıq</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Orta Hazırlıq</CardTitle>
             <Clock className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{formatTime(stats.avgPreparationTime)}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Mətbəx performansı</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{formatTime(stats.avgPreparationTime)}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Mətbəx performansı</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Orta Çatdırılma</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Orta Çatdırılma</CardTitle>
             <Clock className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{formatTime(stats.avgDeliveryTime)}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Ofisiant performansı</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{formatTime(stats.avgDeliveryTime)}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Ofisiant performansı</p>
           </CardContent>
         </Card>
 
@@ -270,7 +270,7 @@ export default function ProfessionalAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.topWaiter?.name || 'N/A'}</div>
-            <p className="text-xs text-white/80 mt-2">
+            <p className="text-xs text-white/80 mt-0.5">
               {stats.topWaiter ? `${stats.topWaiter.count} sifariş · ${stats.topWaiter.revenue.toFixed(2)} AZN` : 'Məlumat yoxdur'}
             </p>
           </CardContent>
@@ -279,31 +279,31 @@ export default function ProfessionalAnalytics() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#1A4D2E] heading-font">Detallar</CardTitle>
+          <CardTitle className="text-[#181C1A] heading-font">Detallar</CardTitle>
         </CardHeader>
         <CardContent>
           {analytics.length === 0 ? (
-            <p className="text-center text-[#5C6B61] py-8">Məlumat yoxdur</p>
+            <p className="text-center text-[#5C665F] py-8">Məlumat yoxdur</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-[#F5F9E9]">
+                <thead className="bg-[#F9F9F7]">
                   <tr>
-                    <th className="text-left p-3 text-[#1A4D2E] font-semibold">Stol</th>
-                    <th className="text-left p-3 text-[#1A4D2E] font-semibold">Sifariş</th>
-                    <th className="text-right p-3 text-[#1A4D2E] font-semibold">Məbləğ</th>
-                    <th className="text-right p-3 text-[#1A4D2E] font-semibold">Hazırlıq</th>
-                    <th className="text-right p-3 text-[#1A4D2E] font-semibold">Çatdırılma</th>
-                    <th className="text-left p-3 text-[#1A4D2E] font-semibold">Ofisiant</th>
-                    <th className="text-center p-3 text-[#1A4D2E] font-semibold">Əməliyyatlar</th>
+                    <th className="text-left p-3 text-[#181C1A] font-semibold">Stol</th>
+                    <th className="text-left p-3 text-[#181C1A] font-semibold">Sifariş</th>
+                    <th className="text-right p-3 text-[#181C1A] font-semibold">Məbləğ</th>
+                    <th className="text-right p-3 text-[#181C1A] font-semibold">Hazırlıq</th>
+                    <th className="text-right p-3 text-[#181C1A] font-semibold">Çatdırılma</th>
+                    <th className="text-left p-3 text-[#181C1A] font-semibold">Ofisiant</th>
+                    <th className="text-center p-3 text-[#181C1A] font-semibold">Əməliyyatlar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.slice(0, 50).map((item, idx) => (
-                    <tr key={idx} className="border-t border-[#E2E8E2] hover:bg-[#F5F9E9]/50">
+                    <tr key={idx} className="border-t border-[#E6E5DF] hover:bg-[#F9F9F7]/50">
                       <td className="p-3">Stol {item.table?.table_number}</td>
-                      <td className="p-3 text-sm text-[#5C6B61]">#{item.order?.order_number}</td>
-                      <td className="p-3 text-right font-semibold text-[#1A4D2E]">{item.order?.total_amount?.toFixed(2)} AZN</td>
+                      <td className="p-3 text-sm text-[#5C665F]">#{item.order?.order_number}</td>
+                      <td className="p-3 text-right font-semibold text-[#181C1A]">{item.order?.total_amount?.toFixed(2)} AZN</td>
                       <td className="p-3 text-right text-sm">
                         <span className={item.preparation_time_minutes > 20 ? 'text-red-600' : 'text-green-600'}>
                           {formatTime(item.preparation_time_minutes)}
@@ -359,19 +359,19 @@ export default function ProfessionalAnalytics() {
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-[#1A4D2E] heading-font">
+            <DialogTitle className="text-[#181C1A] heading-font">
               Sifariş Detalları - #{selectedOrder?.order?.order_number}
             </DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#F5F9E9] rounded-lg p-3">
-                  <p className="text-xs text-[#5C6B61]">Stol</p>
-                  <p className="font-bold text-[#1A4D2E]">Stol {selectedOrder.table?.table_number}</p>
+                <div className="bg-[#F9F9F7] rounded-lg p-3">
+                  <p className="text-xs text-[#5C665F]">Stol</p>
+                  <p className="font-bold text-[#181C1A]">Stol {selectedOrder.table?.table_number}</p>
                 </div>
-                <div className="bg-[#F5F9E9] rounded-lg p-3">
-                  <p className="text-xs text-[#5C6B61]">Status</p>
+                <div className="bg-[#F9F9F7] rounded-lg p-3">
+                  <p className="text-xs text-[#5C665F]">Status</p>
                   <Badge className={getStatusColor(selectedOrder.order?.status)}>
                     {getStatusLabel(selectedOrder.order?.status)}
                   </Badge>
@@ -379,15 +379,15 @@ export default function ProfessionalAnalytics() {
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-[#1A4D2E] mb-2">Sifariş Edilənlər:</p>
+                <p className="text-sm font-semibold text-[#181C1A] mb-2">Sifariş Edilənlər:</p>
                 <div className="space-y-2">
                   {selectedOrder.order?.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-[#E2E8E2]">
+                    <div key={idx} className="flex justify-between items-center py-2 border-b border-[#E6E5DF]">
                       <div>
-                        <p className="font-medium text-[#1A4D2E]">{item.name}</p>
-                        <p className="text-sm text-[#5C6B61]">{item.quantity} ədəd × {item.price?.toFixed(2)} AZN</p>
+                        <p className="font-medium text-[#181C1A]">{item.name}</p>
+                        <p className="text-sm text-[#5C665F]">{item.quantity} ədəd × {item.price?.toFixed(2)} AZN</p>
                       </div>
-                      <p className="font-bold text-[#1A4D2E]">{(item.quantity * item.price).toFixed(2)} AZN</p>
+                      <p className="font-bold text-[#181C1A]">{(item.quantity * item.price).toFixed(2)} AZN</p>
                     </div>
                   ))}
                 </div>
@@ -400,20 +400,20 @@ export default function ProfessionalAnalytics() {
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-[#5C6B61]">Hazırlıq Vaxtı</p>
-                  <p className="font-semibold text-[#1A4D2E]">{formatTime(selectedOrder.preparation_time_minutes)}</p>
+                  <p className="text-[#5C665F]">Hazırlıq Vaxtı</p>
+                  <p className="font-semibold text-[#181C1A]">{formatTime(selectedOrder.preparation_time_minutes)}</p>
                 </div>
                 <div>
-                  <p className="text-[#5C6B61]">Çatdırılma Vaxtı</p>
-                  <p className="font-semibold text-[#1A4D2E]">{formatTime(selectedOrder.delivery_time_minutes)}</p>
+                  <p className="text-[#5C665F]">Çatdırılma Vaxtı</p>
+                  <p className="font-semibold text-[#181C1A]">{formatTime(selectedOrder.delivery_time_minutes)}</p>
                 </div>
                 <div>
-                  <p className="text-[#5C6B61]">Ofisiant</p>
-                  <p className="font-semibold text-[#1A4D2E]">{selectedOrder.waiter?.full_name || '-'}</p>
+                  <p className="text-[#5C665F]">Ofisiant</p>
+                  <p className="font-semibold text-[#181C1A]">{selectedOrder.waiter?.full_name || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-[#5C6B61]">Sifariş Tarixi</p>
-                  <p className="font-semibold text-[#1A4D2E]">
+                  <p className="text-[#5C665F]">Sifariş Tarixi</p>
+                  <p className="font-semibold text-[#181C1A]">
                     {new Date(selectedOrder.order?.ordered_at).toLocaleString('az-AZ')}
                   </p>
                 </div>
@@ -427,7 +427,7 @@ export default function ProfessionalAnalytics() {
       <Dialog open={!!editingOrder} onOpenChange={() => setEditingOrder(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-[#1A4D2E] heading-font">
+            <DialogTitle className="text-[#181C1A] heading-font">
               Sifarişi Redaktə Et - #{editingOrder?.order?.order_number}
             </DialogTitle>
           </DialogHeader>
@@ -435,10 +435,10 @@ export default function ProfessionalAnalytics() {
             <div className="space-y-4">
               <div className="space-y-3">
                 {editItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-[#F5F9E9] rounded-lg">
+                  <div key={idx} className="flex items-center gap-3 p-3 bg-[#F9F9F7] rounded-lg">
                     <div className="flex-1">
-                      <p className="font-medium text-[#1A4D2E]">{item.name}</p>
-                      <p className="text-sm text-[#5C6B61]">{item.price?.toFixed(2)} AZN / ədəd</p>
+                      <p className="font-medium text-[#181C1A]">{item.name}</p>
+                      <p className="text-sm text-[#5C665F]">{item.price?.toFixed(2)} AZN / ədəd</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -488,7 +488,7 @@ export default function ProfessionalAnalytics() {
                 </Button>
                 <Button
                   onClick={handleUpdateOrder}
-                  className="flex-1 bg-[#4F9D69] hover:bg-[#1A4D2E] text-white"
+                  className="flex-1 bg-[#C05C3D] hover:bg-[#A64D31] text-white"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Yadda Saxla

@@ -116,26 +116,26 @@ export default function DiscountsPage() {
   const activeDiscounts = discounts.filter(d => d.is_active);
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent border-[#1A4D2E]"></div></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font">Endirimlər</h1>
-          <p className="text-[#5C6B61] mt-2">Endirim kampaniyalarını idarə edin</p>
+          <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Endirimlər</h1>
+          <p className="text-[#5C665F] mt-0.5">Endirim kampaniyalarını idarə edin</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md" data-testid="add-discount-btn">
+            <Button className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs rounded-xl" data-testid="add-discount-btn">
               <Plus className="w-4 h-4 mr-2" />
               Endirim Əlavə Et
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-[#1A4D2E] heading-font">
+              <DialogTitle className="text-[#181C1A] heading-font">
                 {editingDiscount ? 'Endirimi Redaktə Et' : 'Endirim Əlavə Et'}
               </DialogTitle>
             </DialogHeader>
@@ -212,7 +212,7 @@ export default function DiscountsPage() {
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white" data-testid="save-discount-btn">
+              <Button type="submit" className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white" data-testid="save-discount-btn">
                 {az.save}
               </Button>
             </form>
@@ -231,17 +231,17 @@ export default function DiscountsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Ümumi Endirimlər</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Ümumi Endirimlər</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{discounts.length}</div>
+            <div className="text-3xl font-bold text-[#181C1A]">{discounts.length}</div>
           </CardContent>
         </Card>
       </div>
 
       {discounts.length === 0 ? (
-        <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-          <p className="text-[#5C6B61] text-lg">Hələ endirim yoxdur</p>
+        <div className="bg-white border border-[#E6E5DF] rounded-2xl p-12 text-center">
+          <p className="text-[#5C665F] text-lg">Hələ endirim yoxdur</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -251,7 +251,7 @@ export default function DiscountsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${discount.is_active ? 'bg-[#F5F9E9]' : 'bg-gray-100'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${discount.is_active ? 'bg-[#F9F9F7]' : 'bg-gray-100'}`}>
                       {discount.discount_type === 'percentage' ? (
                         <Percent className={`w-6 h-6 ${discount.is_active ? 'text-[#4F9D69]' : 'text-gray-400'}`} />
                       ) : (
@@ -259,7 +259,7 @@ export default function DiscountsPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-[#1A4D2E]">{discount.name}</h3>
+                      <h3 className="text-lg font-bold text-[#181C1A]">{discount.name}</h3>
                       <p className="text-2xl font-bold text-[#4F9D69]">
                         {discount.discount_type === 'percentage' ? `${discount.value}%` : `${discount.value} AZN`}
                       </p>
@@ -279,10 +279,10 @@ export default function DiscountsPage() {
                 </div>
 
                 {discount.description && (
-                  <p className="text-sm text-[#5C6B61] mb-4">{discount.description}</p>
+                  <p className="text-sm text-[#5C665F] mb-4">{discount.description}</p>
                 )}
 
-                <div className="space-y-2 text-sm text-[#5C6B61] mb-4">
+                <div className="space-y-2 text-sm text-[#5C665F] mb-4">
                   {discount.min_order_amount > 0 && (
                     <p>Min. sifariş: <span className="font-semibold">{discount.min_order_amount} AZN</span></p>
                   )}
@@ -294,7 +294,7 @@ export default function DiscountsPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-[#E2E8E2]">
+                <div className="flex gap-2 pt-4 border-t border-[#E6E5DF]">
                   <Button variant="outline" size="sm" onClick={() => handleEdit(discount)} className="flex-1" data-testid={`edit-discount-${discount.id}`}>
                     <Edit className="w-4 h-4 mr-1" />
                     {az.edit}

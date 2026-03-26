@@ -134,26 +134,26 @@ export default function ReservationsPage() {
   }).length;
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent border-[#1A4D2E]"></div></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font">Rezervasiyalar</h1>
-          <p className="text-[#5C6B61] mt-2">Masa rezervasiyalarını idarə edin</p>
+          <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Rezervasiyalar</h1>
+          <p className="text-[#5C665F] mt-0.5">Masa rezervasiyalarını idarə edin</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-md" data-testid="add-reservation-btn">
+            <Button className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs rounded-xl" data-testid="add-reservation-btn">
               <Plus className="w-4 h-4 mr-2" />
               Rezervasiya Əlavə Et
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-[#1A4D2E] heading-font">Yeni Rezervasiya</DialogTitle>
+              <DialogTitle className="text-[#181C1A] heading-font">Yeni Rezervasiya</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -244,7 +244,7 @@ export default function ReservationsPage() {
                   placeholder="Ad günü, allergi və s."
                 />
               </div>
-              <Button type="submit" className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white" data-testid="save-reservation-btn">
+              <Button type="submit" className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white" data-testid="save-reservation-btn">
                 {az.save}
               </Button>
             </form>
@@ -263,15 +263,15 @@ export default function ReservationsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Ümumi Rezervasiyalar</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Ümumi Rezervasiyalar</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{reservations.length}</div>
+            <div className="text-3xl font-bold text-[#181C1A]">{reservations.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Gözləyən</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Gözləyən</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-yellow-600">
@@ -297,8 +297,8 @@ export default function ReservationsPage() {
       </div>
 
       {filteredReservations.length === 0 ? (
-        <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-          <p className="text-[#5C6B61] text-lg">Rezervasiya yoxdur</p>
+        <div className="bg-white border border-[#E6E5DF] rounded-2xl p-12 text-center">
+          <p className="text-[#5C665F] text-lg">Rezervasiya yoxdur</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -308,18 +308,18 @@ export default function ReservationsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-[#1A4D2E]">{reservation.customer_name}</h3>
+                    <h3 className="text-lg font-bold text-[#181C1A]">{reservation.customer_name}</h3>
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(reservation.status)}`}>
                       {getStatusLabel(reservation.status)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-[#5C6B61]">
+                  <div className="flex items-center gap-1 text-[#5C665F]">
                     <Users className="w-4 h-4" />
                     <span className="font-semibold">{reservation.guest_count}</span>
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm text-[#5C6B61] mb-4">
+                <div className="space-y-2 text-sm text-[#5C665F] mb-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     <span>{new Date(reservation.reservation_date).toLocaleDateString('az-AZ')}</span>
@@ -340,12 +340,12 @@ export default function ReservationsPage() {
                   )}
                 </div>
 
-                <div className="bg-[#F5F9E9] rounded-lg p-3 mb-4">
-                  <p className="text-sm font-semibold text-[#1A4D2E]">
+                <div className="bg-[#F9F9F7] rounded-lg p-3 mb-4">
+                  <p className="text-sm font-semibold text-[#181C1A]">
                     Stol {table?.table_number} - {venue?.name}
                   </p>
                   {reservation.special_requests && (
-                    <p className="text-xs text-[#5C6B61] mt-1">{reservation.special_requests}</p>
+                    <p className="text-xs text-[#5C665F] mt-1">{reservation.special_requests}</p>
                   )}
                 </div>
 

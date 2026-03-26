@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed } from 'lucide-react';
+import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
@@ -13,167 +13,91 @@ import FinancialReportPage from './FinancialReportPage';
 import DiscountsPage from './DiscountsPage';
 import SalesStatisticsPage from './SalesStatisticsPage';
 import MenuManagementPage from './MenuManagementPage';
+import VenuesTablesPage from './VenuesTablesPage';
 
-// Wrapper component for PIN-protected pages
 function ProtectedPage({ children, sectionName }) {
-  return (
-    <AdminPinGuard sectionName={sectionName}>
-      {children}
-    </AdminPinGuard>
-  );
+  return <AdminPinGuard sectionName={sectionName}>{children}</AdminPinGuard>;
 }
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const location = useLocation();
-
   const isActive = (path) => location.pathname === path;
 
+  const navItems = [
+    { to: '/admin', icon: Table2, label: az.activeTables, protected: false },
+    { to: '/admin/reservations', icon: Calendar, label: 'Rezervasiyalar', protected: false },
+    { to: '/admin/venues-tables', icon: MapPin, label: 'Məkan & Masalar', protected: false },
+    { to: '/admin/menu-management', icon: UtensilsCrossed, label: 'Menyu', protected: true },
+    { to: '/admin/users', icon: Users, label: az.users, protected: true },
+    { to: '/admin/expenses', icon: DollarSign, label: 'Xərclər', protected: true },
+    { to: '/admin/discounts', icon: Tag, label: 'Endirimlər', protected: true },
+    { to: '/admin/analytics', icon: LayoutDashboard, label: az.analytics, protected: true },
+    { to: '/admin/financial-report', icon: BarChart3, label: 'Maliyyə', protected: true },
+    { to: '/admin/sales-statistics', icon: ShoppingCart, label: 'Satış', protected: true },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F8FAF8]">
+    <div className="min-h-screen bg-[#F9F9F7]">
       <div className="flex">
-        <aside className="w-64 min-h-screen bg-white border-r border-[#E2E8E2] fixed left-0 top-0">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-[#1A4D2E] heading-font mb-2">
-              {az.admin}
-            </h1>
-            <p className="text-sm text-[#5C6B61] mb-8">{user?.full_name}</p>
-            
-            <nav className="space-y-2">
-              <Link
-                to="/admin"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-active-tables"
-              >
-                <Table2 className="w-5 h-5" />
-                <span className="accent-font">{az.activeTables}</span>
-              </Link>
-              
-              <Link
-                to="/admin/reservations"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/reservations')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-reservations"
-              >
-                <Calendar className="w-5 h-5" />
-                <span className="accent-font">Rezervasiyalar</span>
-              </Link>
-              
-              <Link
-                to="/admin/users"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/users')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-users"
-              >
-                <Users className="w-5 h-5" />
-                <span className="accent-font">{az.users}</span>
-              </Link>
-              
-              <Link
-                to="/admin/expenses"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/expenses')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-expenses"
-              >
-                <DollarSign className="w-5 h-5" />
-                <span className="accent-font">Xərclər</span>
-              </Link>
-              
-              <Link
-                to="/admin/analytics"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/analytics')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-analytics"
-              >
-                <LayoutDashboard className="w-5 h-5" />
-                <span className="accent-font">{az.analytics}</span>
-              </Link>
-              
-              <Link
-                to="/admin/financial-report"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/financial-report')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-financial-report"
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span className="accent-font">Maliyyə Hesabatı</span>
-              </Link>
-              
-              <Link
-                to="/admin/discounts"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/discounts')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-discounts"
-              >
-                <Tag className="w-5 h-5" />
-                <span className="accent-font">Endirimlər</span>
-              </Link>
-              
-              <Link
-                to="/admin/sales-statistics"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/sales-statistics')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-sales-statistics"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                <span className="accent-font">Satış Statistikası</span>
-              </Link>
-              
-              <Link
-                to="/admin/menu-management"
-                className={`flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 ${
-                  isActive('/admin/menu-management')
-                    ? 'bg-[#1A4D2E] text-white'
-                    : 'text-[#5C6B61] hover:bg-[#F5F9E9]'
-                }`}
-                data-testid="nav-menu-management"
-              >
-                <UtensilsCrossed className="w-5 h-5" />
-                <span className="accent-font">Menyu İdarəetməsi</span>
-              </Link>
-            </nav>
-            
-            <div className="absolute bottom-6 left-6 right-6">
-              <Button onClick={logout} variant="outline" className="w-full justify-start">
-                <LogOut className="w-4 h-4 mr-2" />
-                {az.logout}
-              </Button>
+        <aside className="w-56 min-h-screen bg-[#1A251E] fixed left-0 top-0 z-30">
+          <div className="flex flex-col h-full p-4">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5 mb-6 px-1">
+              <img
+                src="https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/51e072b5ec80fc46021df0d71dbee36c21f565c5904af6647ff4730065da4795.png"
+                alt="Logo" className="w-8 h-8 rounded-lg"
+              />
+              <div>
+                <h1 className="heading-font text-sm font-medium text-white">QR Restoran</h1>
+                <p className="text-[10px] text-[#8A948D]">Admin</p>
+              </div>
             </div>
+
+            {/* User */}
+            <div className="bg-white/5 rounded-xl p-2.5 mb-5 border border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#C05C3D] rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                  {user?.full_name?.charAt(0)?.toUpperCase() || 'A'}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-white truncate max-w-[120px]">{user?.full_name}</p>
+                  <p className="text-[10px] text-[#C05C3D]">Administrator</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Nav */}
+            <nav className="space-y-0.5 flex-1 overflow-y-auto">
+              {navItems.map(item => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
+                    isActive(item.to)
+                      ? 'bg-[#C05C3D]/15 text-[#C05C3D]'
+                      : 'text-[#8A948D] hover:bg-white/5 hover:text-white'
+                  }`}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  <span className="font-medium truncate">{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+
+            {/* Logout */}
+            <Button onClick={logout} variant="ghost" className="w-full justify-start text-[#8A948D] hover:text-white hover:bg-white/5 rounded-lg h-9 text-xs mt-2" data-testid="admin-logout-button">
+              <LogOut className="w-3.5 h-3.5 mr-2" /> {az.logout}
+            </Button>
           </div>
         </aside>
 
-        <main className="ml-64 flex-1 p-8">
+        <main className="ml-56 flex-1 p-6">
           <Routes>
-            {/* Unprotected pages - no PIN required */}
             <Route path="/" element={<ActiveTablesPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
-            
-            {/* Protected pages - PIN required */}
+            <Route path="/venues-tables" element={<VenuesTablesPage />} />
             <Route path="/users" element={<ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage>} />
             <Route path="/expenses" element={<ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage>} />
             <Route path="/analytics" element={<ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage>} />

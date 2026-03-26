@@ -212,22 +212,22 @@ export default function CustomerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-[#F5F9E9]">
+      <div className="min-h-screen flex justify-center items-center bg-[#F9F9F7]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F9E9] pb-24">
-      <header className="sticky top-0 z-50 bg-white border-b border-[#E2E8E2] shadow-sm">
+    <div className="min-h-screen bg-[#F9F9F7] pb-24">
+      <header className="sticky top-0 z-50 bg-white border-b border-[#E6E5DF] shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-[#1A4D2E] heading-font">
+              <h1 className="text-2xl font-bold text-[#181C1A] heading-font">
                 Stol {table?.table_number}
               </h1>
-              <p className="text-sm text-[#5C6B61]">{az.welcomeMessage}</p>
+              <p className="text-sm text-[#5C665F]">{az.welcomeMessage}</p>
             </div>
             {cart.length > 0 && (
               <div className="flex items-center gap-2 px-4 py-2 bg-[#1A4D2E] text-white rounded-full">
@@ -283,13 +283,13 @@ export default function CustomerPage() {
                     )}
                     <div className="flex gap-4 p-4">
                       {item.image_url && (
-                        <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F9E9]">
+                        <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#F9F9F7]">
                           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-[#1A4D2E] mb-1">{item.name}</h3>
-                        <p className="text-xs text-[#5C6B61] mb-2 line-clamp-2">{item.description}</p>
+                        <h3 className="text-lg font-bold text-[#181C1A] mb-1">{item.name}</h3>
+                        <p className="text-xs text-[#5C665F] mb-2 line-clamp-2">{item.description}</p>
                         <div className="flex items-center justify-between">
                           <div>
                             {hasDiscount ? (
@@ -298,12 +298,12 @@ export default function CustomerPage() {
                                 <span className="text-xl font-bold text-red-600">{discountedPrice.toFixed(2)} AZN</span>
                               </>
                             ) : (
-                              <span className="text-xl font-bold text-[#1A4D2E]">{item.price.toFixed(2)} AZN</span>
+                              <span className="text-xl font-bold text-[#181C1A]">{item.price.toFixed(2)} AZN</span>
                             )}
                           </div>
                           <Button 
                             onClick={() => addToCart(item)}
-                            className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white rounded-full px-4 py-2"
+                            className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-full px-4 py-2"
                             size="sm"
                           >
                             <Plus className="w-4 h-4" />
@@ -320,19 +320,19 @@ export default function CustomerPage() {
           <TabsContent value="orders">
             <div className="space-y-6">
               {orders.length === 0 ? (
-                <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-                  <p className="text-[#5C6B61] text-lg">Hələ sifariş yoxdur</p>
+                <div className="bg-white border border-[#E6E5DF] rounded-xl p-12 text-center">
+                  <p className="text-[#5C665F] text-lg">Hələ sifariş yoxdur</p>
                 </div>
               ) : (
                 <>
                   {orders.map(order => (
                     <Card key={order.id} className="bg-white">
                       <CardHeader>
-                        <CardTitle className="flex items-center justify-between text-[#1A4D2E]">
+                        <CardTitle className="flex items-center justify-between text-[#181C1A]">
                           <span>Sifariş #{order.order_number}</span>
                           {getStatusBadge(order.status)}
                         </CardTitle>
-                        <p className="text-sm text-[#5C6B61]">
+                        <p className="text-sm text-[#5C665F]">
                           {new Date(order.ordered_at).toLocaleString('az-AZ')}
                         </p>
                       </CardHeader>
@@ -368,7 +368,7 @@ export default function CustomerPage() {
                         
                         {/* Order discount */}
                         {order.discount_amount > 0 && (
-                          <div className="mt-3 pt-3 border-t border-dashed border-[#E2E8E2]">
+                          <div className="mt-3 pt-3 border-t border-dashed border-[#E6E5DF]">
                             <div className="flex justify-between items-center text-green-700">
                               <div className="flex items-center gap-1">
                                 <Tag className="w-4 h-4" />
@@ -382,14 +382,14 @@ export default function CustomerPage() {
                           </div>
                         )}
                         
-                        <div className="border-t border-[#E2E8E2] mt-4 pt-4">
+                        <div className="border-t border-[#E6E5DF] mt-4 pt-4">
                           {order.subtotal && order.subtotal !== order.total_amount && (
-                            <div className="flex justify-between text-sm text-[#5C6B61] mb-2">
+                            <div className="flex justify-between text-sm text-[#5C665F] mb-2">
                               <span>Ara cəm:</span>
                               <span>{order.subtotal?.toFixed(2)} AZN</span>
                             </div>
                           )}
-                          <div className="flex justify-between text-lg font-bold text-[#1A4D2E]">
+                          <div className="flex justify-between text-lg font-bold text-[#181C1A]">
                             <span>Cəmi:</span>
                             <span>{order.total_amount?.toFixed(2)} AZN</span>
                           </div>
@@ -414,7 +414,7 @@ export default function CustomerPage() {
       </main>
 
       {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E2E8E2] shadow-lg p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E6E5DF] shadow-lg p-4">
           <div className="container mx-auto">
             <div className="space-y-3">
               {cart.map(item => {
@@ -425,7 +425,7 @@ export default function CustomerPage() {
                 return (
                   <div key={item.id} className="flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-[#1A4D2E]">{item.name}</span>
+                      <span className="font-semibold text-[#181C1A]">{item.name}</span>
                       {hasDiscount && (
                         <Badge className="ml-2 bg-red-100 text-red-700 text-xs">
                           -{menuItem.discount_percentage}%
@@ -463,7 +463,7 @@ export default function CustomerPage() {
                             </span>
                           </>
                         ) : (
-                          <span className="font-bold text-[#1A4D2E]">
+                          <span className="font-bold text-[#181C1A]">
                             {(item.price * item.quantity).toFixed(2)} AZN
                           </span>
                         )}
@@ -474,7 +474,7 @@ export default function CustomerPage() {
               })}
               
               {/* Cart Summary with Discounts */}
-              <div className="border-t border-[#E2E8E2] pt-3 space-y-2">
+              <div className="border-t border-[#E6E5DF] pt-3 space-y-2">
                 {/* Show applicable order discount */}
                 {(() => {
                   const calculation = calculateFinalTotal();
@@ -499,7 +499,7 @@ export default function CustomerPage() {
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between text-sm text-[#5C6B61]">
+                      <div className="flex items-center justify-between text-sm text-[#5C665F]">
                         <span>Ara cəm:</span>
                         <span>{calculation.subtotal.toFixed(2)} AZN</span>
                       </div>
@@ -511,9 +511,9 @@ export default function CustomerPage() {
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between pt-2 border-t border-[#E2E8E2]">
-                        <span className="text-lg font-bold text-[#1A4D2E]">Cəmi:</span>
-                        <span className="text-2xl font-bold text-[#1A4D2E]">{calculation.total.toFixed(2)} AZN</span>
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E6E5DF]">
+                        <span className="text-lg font-bold text-[#181C1A]">Cəmi:</span>
+                        <span className="text-2xl font-bold text-[#181C1A]">{calculation.total.toFixed(2)} AZN</span>
                       </div>
                     </>
                   );
@@ -521,7 +521,7 @@ export default function CustomerPage() {
                 
                 <Button 
                   onClick={placeOrder}
-                  className="w-full bg-[#4F9D69] hover:bg-[#1A4D2E] text-white py-6 text-lg rounded-full mt-3"
+                  className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white py-6 text-lg rounded-full mt-3"
                   data-testid="place-order-button"
                 >
                   <Receipt className="w-5 h-5 mr-2" />

@@ -39,15 +39,15 @@ export default function SalesStatisticsPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A4D2E]"></div></div>;
+    return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent border-[#1A4D2E]"></div></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-[#1A4D2E] heading-font">Satış Statistikası</h1>
-          <p className="text-[#5C6B61] mt-2">Hansı məhsuldan nə qədər satılıb</p>
+          <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Satış Statistikası</h1>
+          <p className="text-[#5C665F] mt-0.5">Hansı məhsuldan nə qədər satılıb</p>
         </div>
         <div className="flex gap-2">
           {['today', 'month', 'year', 'all'].map((p) => (
@@ -61,7 +61,7 @@ export default function SalesStatisticsPage() {
               {getPeriodLabel(p)}
             </Button>
           ))}
-          <Button onClick={fetchSalesData} className="bg-[#4F9D69] hover:bg-[#1A4D2E] text-white">
+          <Button onClick={fetchSalesData} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white">
             <RefreshCw className="w-4 h-4 mr-2" />
             Yenilə
           </Button>
@@ -77,44 +77,44 @@ export default function SalesStatisticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{salesData?.total_revenue?.toFixed(2) || '0.00'} AZN</div>
-            <p className="text-xs text-white/80 mt-2">{getPeriodLabel(period)}</p>
+            <p className="text-xs text-white/80 mt-0.5">{getPeriodLabel(period)}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Satılan Məhsul</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Satılan Məhsul</CardTitle>
             <Package className="h-5 w-5 text-[#4F9D69]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{salesData?.total_items_sold || 0}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Ümumi ədəd</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{salesData?.total_items_sold || 0}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Ümumi ədəd</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Unikal Məhsul</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Unikal Məhsul</CardTitle>
             <BarChart2 className="h-5 w-5 text-[#4F9D69]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">{salesData?.unique_items_count || 0}</div>
-            <p className="text-xs text-[#5C6B61] mt-2">Müxtəlif yemək/içki</p>
+            <div className="text-3xl font-bold text-[#181C1A]">{salesData?.unique_items_count || 0}</div>
+            <p className="text-xs text-[#5C665F] mt-0.5">Müxtəlif yemək/içki</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-[#5C6B61]">Orta Qiymət</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#5C665F]">Orta Qiymət</CardTitle>
             <ShoppingBag className="h-5 w-5 text-[#4F9D69]" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1A4D2E]">
+            <div className="text-3xl font-bold text-[#181C1A]">
               {salesData?.total_items_sold > 0 
                 ? (salesData.total_revenue / salesData.total_items_sold).toFixed(2) 
                 : '0.00'} AZN
             </div>
-            <p className="text-xs text-[#5C6B61] mt-2">Məhsul başına</p>
+            <p className="text-xs text-[#5C665F] mt-0.5">Məhsul başına</p>
           </CardContent>
         </Card>
       </div>
@@ -122,22 +122,22 @@ export default function SalesStatisticsPage() {
       {/* Sales Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#1A4D2E] heading-font">Məhsul Satışları - {getPeriodLabel(period)}</CardTitle>
+          <CardTitle className="text-[#181C1A] heading-font">Məhsul Satışları - {getPeriodLabel(period)}</CardTitle>
         </CardHeader>
         <CardContent>
           {!salesData?.items || salesData.items.length === 0 ? (
-            <p className="text-center text-[#5C6B61] py-8">Bu dövr üçün satış məlumatı yoxdur</p>
+            <p className="text-center text-[#5C665F] py-8">Bu dövr üçün satış məlumatı yoxdur</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-[#F5F9E9]">
+                <thead className="bg-[#F9F9F7]">
                   <tr>
-                    <th className="text-left p-4 text-[#1A4D2E] font-semibold">#</th>
-                    <th className="text-left p-4 text-[#1A4D2E] font-semibold">Məhsul</th>
-                    <th className="text-center p-4 text-[#1A4D2E] font-semibold">Satılan Ədəd</th>
-                    <th className="text-center p-4 text-[#1A4D2E] font-semibold">Sifariş Sayı</th>
-                    <th className="text-right p-4 text-[#1A4D2E] font-semibold">Gəlir</th>
-                    <th className="text-right p-4 text-[#1A4D2E] font-semibold">Pay (%)</th>
+                    <th className="text-left p-4 text-[#181C1A] font-semibold">#</th>
+                    <th className="text-left p-4 text-[#181C1A] font-semibold">Məhsul</th>
+                    <th className="text-center p-4 text-[#181C1A] font-semibold">Satılan Ədəd</th>
+                    <th className="text-center p-4 text-[#181C1A] font-semibold">Sifariş Sayı</th>
+                    <th className="text-right p-4 text-[#181C1A] font-semibold">Gəlir</th>
+                    <th className="text-right p-4 text-[#181C1A] font-semibold">Pay (%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -146,18 +146,18 @@ export default function SalesStatisticsPage() {
                       ? ((item.total_revenue / salesData.total_revenue) * 100).toFixed(1)
                       : '0.0';
                     return (
-                      <tr key={item.id} className="border-t border-[#E2E8E2] hover:bg-[#F5F9E9]/50">
-                        <td className="p-4 text-[#5C6B61]">{idx + 1}</td>
+                      <tr key={item.id} className="border-t border-[#E6E5DF] hover:bg-[#F9F9F7]/50">
+                        <td className="p-4 text-[#5C665F]">{idx + 1}</td>
                         <td className="p-4">
-                          <span className="font-semibold text-[#1A4D2E]">{item.name}</span>
+                          <span className="font-semibold text-[#181C1A]">{item.name}</span>
                         </td>
                         <td className="p-4 text-center">
-                          <span className="inline-flex items-center justify-center w-12 h-8 bg-[#F5F9E9] rounded-md font-bold text-[#1A4D2E]">
+                          <span className="inline-flex items-center justify-center w-12 h-8 bg-[#F9F9F7] rounded-xl font-bold text-[#181C1A]">
                             {item.total_quantity}
                           </span>
                         </td>
-                        <td className="p-4 text-center text-[#5C6B61]">{item.orders_count}</td>
-                        <td className="p-4 text-right font-bold text-[#1A4D2E]">{item.total_revenue.toFixed(2)} AZN</td>
+                        <td className="p-4 text-center text-[#5C665F]">{item.orders_count}</td>
+                        <td className="p-4 text-right font-bold text-[#181C1A]">{item.total_revenue.toFixed(2)} AZN</td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-16 bg-gray-200 rounded-full h-2">
@@ -166,7 +166,7 @@ export default function SalesStatisticsPage() {
                                 style={{ width: `${Math.min(parseFloat(percentage), 100)}%` }}
                               />
                             </div>
-                            <span className="text-sm text-[#5C6B61] w-12">{percentage}%</span>
+                            <span className="text-sm text-[#5C665F] w-12">{percentage}%</span>
                           </div>
                         </td>
                       </tr>
