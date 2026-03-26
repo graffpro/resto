@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin } from 'lucide-react';
+import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
@@ -14,6 +14,8 @@ import DiscountsPage from './DiscountsPage';
 import SalesStatisticsPage from './SalesStatisticsPage';
 import MenuManagementPage from './MenuManagementPage';
 import VenuesTablesPage from './VenuesTablesPage';
+import StaffManagementPage from './StaffManagementPage';
+import InventoryPage from './InventoryPage';
 
 function ProtectedPage({ children, sectionName }) {
   return <AdminPinGuard sectionName={sectionName}>{children}</AdminPinGuard>;
@@ -30,6 +32,8 @@ export default function AdminDashboard() {
     { to: '/admin/venues-tables', icon: MapPin, label: 'Məkan & Masalar', protected: false },
     { to: '/admin/menu-management', icon: UtensilsCrossed, label: 'Menyu', protected: true },
     { to: '/admin/users', icon: Users, label: az.users, protected: true },
+    { to: '/admin/staff', icon: Award, label: 'Personal', protected: true },
+    { to: '/admin/inventory', icon: Package, label: 'İnventar', protected: true },
     { to: '/admin/expenses', icon: DollarSign, label: 'Xərclər', protected: true },
     { to: '/admin/discounts', icon: Tag, label: 'Endirimlər', protected: true },
     { to: '/admin/analytics', icon: LayoutDashboard, label: az.analytics, protected: true },
@@ -99,6 +103,8 @@ export default function AdminDashboard() {
             <Route path="/reservations" element={<ReservationsPage />} />
             <Route path="/venues-tables" element={<VenuesTablesPage />} />
             <Route path="/users" element={<ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage>} />
+            <Route path="/staff" element={<ProtectedPage sectionName="Personal"><StaffManagementPage /></ProtectedPage>} />
+            <Route path="/inventory" element={<ProtectedPage sectionName="İnventar"><InventoryPage /></ProtectedPage>} />
             <Route path="/expenses" element={<ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage>} />
             <Route path="/analytics" element={<ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage>} />
             <Route path="/financial-report" element={<ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage>} />
