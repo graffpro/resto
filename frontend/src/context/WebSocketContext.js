@@ -12,6 +12,7 @@ export function WebSocketProvider({ children, role }) {
   const [lastMessage, setLastMessage] = useState(null);
   const ws = useRef(null);
   const reconnectTimeout = useRef(null);
+  const pingInterval = useRef(null);
 
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
@@ -24,15 +25,14 @@ export function WebSocketProvider({ children, role }) {
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
-        // Start ping interval
-        const pingInterval = setInterval(() => {
+        // Ping every 15s to keep connection alive through proxies
+        if (pingInterval.current) clearInterval(pingInterval.current);
+        pingInterval.current = setInterval(() => {
           if (ws.current?.readyState === WebSocket.OPEN) {
             ws.current.send('ping');
           }
-        }, 30000);
-        ws.current.pingInterval = pingInterval;
+        }, 15000);
       };
 
       ws.current.onmessage = (event) => {
@@ -41,7 +41,6 @@ export function WebSocketProvider({ children, role }) {
           const message = JSON.parse(event.data);
           setLastMessage(message);
           
-          // Play sound for new orders and ready orders
           if (message.type === 'new_order' && role === 'kitchen') {
             playOrderSound();
           } else if (message.type === 'order_ready' && role === 'waiter') {
@@ -53,38 +52,28 @@ export function WebSocketProvider({ children, role }) {
       };
 
       ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
-        if (ws.current?.pingInterval) {
-          clearInterval(ws.current.pingInterval);
-        }
-        // Reconnect after 3 seconds
-        reconnectTimeout.current = setTimeout(connect, 3000);
+        if (pingInterval.current) clearInterval(pingInterval.current);
+        // Reconnect faster - 1.5s
+        reconnectTimeout.current = setTimeout(connect, 1500);
       };
 
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      ws.current.onerror = () => {
+        // Force close to trigger reconnect
+        if (ws.current) ws.current.close();
       };
     } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+      reconnectTimeout.current = setTimeout(connect, 2000);
     }
   }, [role]);
 
   useEffect(() => {
-    if (role) {
-      connect();
-    }
+    if (role) connect();
 
     return () => {
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
-      if (ws.current?.pingInterval) {
-        clearInterval(ws.current.pingInterval);
-      }
-      if (ws.current) {
-        ws.current.close();
-      }
+      if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
+      if (pingInterval.current) clearInterval(pingInterval.current);
+      if (ws.current) ws.current.close();
     };
   }, [role, connect]);
 

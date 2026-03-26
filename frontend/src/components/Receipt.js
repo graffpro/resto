@@ -22,7 +22,7 @@ export const Receipt = ({ order, table, venue, settings }) => {
 
       <div style={{ marginBottom: '10px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Stol:</span>
+          <span>Masa:</span>
           <span><strong>{table?.table_number}</strong></span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -127,7 +127,7 @@ export const printReceipt = (order, table, venue, settings) => {
       </div>
 
       <div style="margin-bottom: 10px;">
-        <div style="display: flex; justify-content: space-between;"><span>Stol:</span><span><strong>${table?.table_number}</strong></span></div>
+        <div style="display: flex; justify-content: space-between;"><span>Masa:</span><span><strong>${table?.table_number}</strong></span></div>
         <div style="display: flex; justify-content: space-between;"><span>Məkan:</span><span>${venue?.name}</span></div>
         <div style="display: flex; justify-content: space-between;"><span>Sifariş:</span><span>#${order.order_number}</span></div>
         <div style="display: flex; justify-content: space-between;"><span>Tarix:</span><span>${new Date(order.ordered_at).toLocaleString('az-AZ')}</span></div>

@@ -289,7 +289,7 @@ export default function ProfessionalAnalytics() {
               <table className="w-full">
                 <thead className="bg-[#F9F9F7]">
                   <tr>
-                    <th className="text-left p-3 text-[#181C1A] font-semibold">Stol</th>
+                    <th className="text-left p-3 text-[#181C1A] font-semibold">Masa</th>
                     <th className="text-left p-3 text-[#181C1A] font-semibold">Sifariş</th>
                     <th className="text-right p-3 text-[#181C1A] font-semibold">Məbləğ</th>
                     <th className="text-right p-3 text-[#181C1A] font-semibold">Hazırlıq</th>
@@ -301,7 +301,7 @@ export default function ProfessionalAnalytics() {
                 <tbody>
                   {analytics.slice(0, 50).map((item, idx) => (
                     <tr key={idx} className="border-t border-[#E6E5DF] hover:bg-[#F9F9F7]/50">
-                      <td className="p-3">Stol {item.table?.table_number}</td>
+                      <td className="p-3">Masa {item.table?.table_number}</td>
                       <td className="p-3 text-sm text-[#5C665F]">#{item.order?.order_number}</td>
                       <td className="p-3 text-right font-semibold text-[#181C1A]">{item.order?.total_amount?.toFixed(2)} AZN</td>
                       <td className="p-3 text-right text-sm">
@@ -367,8 +367,8 @@ export default function ProfessionalAnalytics() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[#F9F9F7] rounded-lg p-3">
-                  <p className="text-xs text-[#5C665F]">Stol</p>
-                  <p className="font-bold text-[#181C1A]">Stol {selectedOrder.table?.table_number}</p>
+                  <p className="text-xs text-[#5C665F]">Masa</p>
+                  <p className="font-bold text-[#181C1A]">Masa {selectedOrder.table?.table_number}</p>
                 </div>
                 <div className="bg-[#F9F9F7] rounded-lg p-3">
                   <p className="text-xs text-[#5C665F]">Status</p>

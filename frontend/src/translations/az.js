@@ -39,12 +39,12 @@ export const az = {
   isActive: "Aktiv",
   
   // Tables
-  tables: "Stollar",
-  addTable: "Stol əlavə et",
-  tableNumber: "Stol nömrəsi",
+  tables: "Masalar",
+  addTable: "Masa əlavə et",
+  tableNumber: "Masa nömrəsi",
   qrCode: "QR kod",
   downloadQR: "QR kodu yüklə",
-  deleteTable: "Stolu sil",
+  deleteTable: "Masanı sil",
   
   // Menu
   menu: "Menyu",
@@ -65,7 +65,7 @@ export const az = {
   // Orders
   orders: "Sifarişlər",
   orderNumber: "Sifariş nömrəsi",
-  table: "Stol",
+  table: "Masa",
   status: "Status",
   totalAmount: "Ümumi məbləğ",
   orderedAt: "Sifariş vaxtı",
@@ -80,7 +80,7 @@ export const az = {
   completed: "Tamamlandı",
   
   // Sessions
-  activeTables: "Aktiv stollar",
+  activeTables: "Aktiv masalar",
   sessionStarted: "Başlama vaxtı",
   activeOrders: "Aktiv sifarişlər",
   closeSession: "Hesabı bağla",
@@ -101,7 +101,7 @@ export const az = {
   
   // Customer
   welcomeMessage: "Xoş gəlmisiniz",
-  scanQRMessage: "Sifariş vermək üçün stoldakı QR kodu skan edin",
+  scanQRMessage: "Sifariş vermək üçün masadakı QR kodu skan edin",
   yourOrder: "Sizin sifarişiniz",
   addToOrder: "Sifarişə əlavə et",
   orderMore: "Daha çox sifariş et",

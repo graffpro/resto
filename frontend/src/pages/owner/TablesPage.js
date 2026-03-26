@@ -43,7 +43,7 @@ export default function TablesPage() {
     e.preventDefault();
     try {
       await axios.post(`${API}/tables`, formData);
-      toast.success('Stol əlavə edildi və QR kod yaradıldı');
+      toast.success('Masa əlavə edildi və QR kod yaradıldı');
       setDialogOpen(false);
       setFormData({ table_number: '', venue_id: '' });
       fetchData();
@@ -53,10 +53,10 @@ export default function TablesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Stolu silmək istədiyinizə əminsiniz?')) return;
+    if (!window.confirm('Masanı silmək istədiyinizə əminsiniz?')) return;
     try {
       await axios.delete(`${API}/tables/${id}`);
-      toast.success('Stol silindi');
+      toast.success('Masa silindi');
       fetchData();
     } catch (error) {
       toast.error('Xəta baş verdi');
@@ -122,14 +122,14 @@ export default function TablesPage() {
 
       {tables.length === 0 ? (
         <div className="bg-white border border-[#E2E8E2] rounded-xl p-12 text-center">
-          <p className="text-[#5C6B61] text-lg">Hələ stol yoxdur</p>
+          <p className="text-[#5C6B61] text-lg">Hələ masa yoxdur</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tables.map(table => (
             <div key={table.id} className="bg-white border border-[#E2E8E2] rounded-xl p-6" data-testid={`table-card-${table.id}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-[#1A4D2E]">Stol {table.table_number}</h3>
+                <h3 className="text-xl font-bold text-[#1A4D2E]">Masa {table.table_number}</h3>
               </div>
               <p className="text-sm text-[#5C6B61] mb-4">Məkan: {getVenueName(table.venue_id)}</p>
               <div className="mb-4 p-4 bg-[#F5F9E9] rounded-lg flex justify-center">

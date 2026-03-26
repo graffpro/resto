@@ -140,7 +140,7 @@ export default function SettingsPage() {
                 Admin Təhlükəsizlik PIN
               </CardTitle>
               <CardDescription>
-                Administrator həssas bölmələrə (Xərclər, Analitika, Maliyyə, Endirimlər, Satış Statistikası, Menyu) giriş edəndə bu PIN tələb olunacaq. Aktiv Stollar və Rezervasiyalar PIN tələb etmir.
+                Administrator həssas bölmələrə (Xərclər, Analitika, Maliyyə, Endirimlər, Satış Statistikası, Menyu) giriş edəndə bu PIN tələb olunacaq. Aktiv Masalar və Rezervasiyalar PIN tələb etmir.
               </CardDescription>
             </CardHeader>
             <CardContent>

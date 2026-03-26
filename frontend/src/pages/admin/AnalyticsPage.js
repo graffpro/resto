@@ -61,7 +61,7 @@ export default function AnalyticsPage() {
             <Card key={index}>
               <CardHeader>
                 <CardTitle className="text-[#1A4D2E] flex items-center justify-between">
-                  <span>Stol {item.table?.table_number} - {item.venue?.name}</span>
+                  <span>Masa {item.table?.table_number} - {item.venue?.name}</span>
                   <span className="text-sm font-normal text-[#5C6B61]">
                     Sifariş #{item.order?.order_number}
                   </span>

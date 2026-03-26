@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent, Package, X } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent, Package, X, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,7 @@ export default function MenuManagementPage() {
   
   // Recipe items for the current menu item being added/edited
   const [recipeItems, setRecipeItems] = useState([]);
+  const [uploading, setUploading] = useState(false);
   
   // Form states
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
@@ -337,22 +338,60 @@ export default function MenuManagementPage() {
                 <div>
                   <Label className="flex items-center gap-1">
                     <Image className="w-3 h-3" />
-                    Şəkil URL
+                    Şəkil
                   </Label>
-                  <Input
-                    value={itemForm.image_url}
-                    onChange={(e) => setItemForm(p => ({ ...p, image_url: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                    data-testid="item-image-input"
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer">
+                      <div className={`border-2 border-dashed rounded-lg p-3 text-center transition-colors ${uploading ? 'border-[#C05C3D] bg-[#C05C3D]/5' : 'border-[#E6E5DF] hover:border-[#C05C3D]'}`}>
+                        {uploading ? (
+                          <div className="flex items-center justify-center gap-2 text-xs text-[#C05C3D]">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Yüklənir...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 text-xs text-[#8A948D]">
+                            <Upload className="w-4 h-4" />
+                            Şəkil seçin (max 5MB)
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        disabled={uploading}
+                        data-testid="item-image-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) { toast.error('Şəkil 5MB-dan böyükdür'); return; }
+                          setUploading(true);
+                          try {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            const res = await axios.post(`${API}/upload/image`, formData, {
+                              headers: { 'Content-Type': 'multipart/form-data' }
+                            });
+                            const imageUrl = `${BACKEND_URL}${res.data.url}`;
+                            setItemForm(p => ({ ...p, image_url: imageUrl }));
+                            toast.success('Şəkil yükləndi');
+                          } catch (err) { toast.error(err.response?.data?.detail || 'Yükləmə xətası'); }
+                          finally { setUploading(false); }
+                        }}
+                      />
+                    </label>
+                  </div>
                   {itemForm.image_url && (
-                    <div className="mt-2 rounded-lg overflow-hidden border border-[#E6E5DF]">
+                    <div className="mt-2 rounded-lg overflow-hidden border border-[#E6E5DF] relative">
                       <img 
                         src={itemForm.image_url} 
                         alt="Preview" 
                         className="w-full h-32 object-cover"
                         onError={(e) => e.target.style.display = 'none'}
                       />
+                      <Button variant="ghost" size="sm" onClick={() => setItemForm(p => ({ ...p, image_url: '' }))} className="absolute top-1 right-1 h-6 w-6 p-0 bg-black/50 hover:bg-black/70 rounded-full">
+                        <X className="w-3 h-3 text-white" />
+                      </Button>
                     </div>
                   )}
                 </div>

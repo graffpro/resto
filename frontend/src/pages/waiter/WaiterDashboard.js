@@ -121,7 +121,7 @@ function WaiterContent() {
               <Card key={order.id} className="bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-[#181C1A]">
-                    <span>Stol {table?.table_number}</span>
+                    <span>Masa {table?.table_number}</span>
                     <Badge className="bg-green-100 text-green-800">{az.ready}</Badge>
                   </CardTitle>
                   <p className="text-sm text-[#5C665F]">{venue?.name}</p>

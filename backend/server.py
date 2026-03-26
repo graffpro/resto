@@ -1,7 +1,8 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
@@ -18,6 +19,9 @@ from io import BytesIO
 import base64
 import asyncio
 import json
+import re
+import requests
+import hashlib
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -32,6 +36,60 @@ security = HTTPBearer()
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
 JWT_ALGORITHM = 'HS256'
+
+# ==================== OBJECT STORAGE ====================
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+APP_NAME = "qr-restaurant"
+storage_key = None
+
+def init_storage():
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_KEY:
+        logging.warning("EMERGENT_LLM_KEY not set, storage disabled")
+        return None
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+        resp.raise_for_status()
+        storage_key = resp.json()["storage_key"]
+        logging.info("Object storage initialized")
+        return storage_key
+    except Exception as e:
+        logging.error(f"Storage init failed: {e}")
+        return None
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage not available")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_object(path: str):
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage not available")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key}, timeout=60
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+# ==================== SECURITY ====================
+def sanitize_input(text: str) -> str:
+    if not text:
+        return text
+    text = re.sub(r'[<>]', '', text)
+    text = text.strip()
+    return text[:500]
 
 class UserRole(str, Enum):
     OWNER = "owner"
@@ -1149,6 +1207,9 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
     # Deactivate any timed services for this session
     await deactivate_session_timed_services(session_id)
     
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    service_charge_pct = settings.get('service_charge_percentage', 0) if settings else 0
+    
     # Return detailed bill summary
     return {
         "message": "Session closed",
@@ -1161,6 +1222,7 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
             "subtotal": round(subtotal, 2),
             "total_discount": round(total_discount, 2),
             "total_service_charge": round(total_service_charge, 2),
+            "service_charge_percentage": service_charge_pct,
             "total_amount": round(total_amount, 2),
             "discounts_applied": discounts_applied,
             "closed_at": datetime.now(timezone.utc).isoformat()
@@ -1645,11 +1707,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security headers middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ==================== RATE LIMITER ====================
+rate_limit_store: Dict[str, list] = {}
+
+async def check_rate_limit(ip: str, limit: int = 60, window: int = 60):
+    now = datetime.now(timezone.utc).timestamp()
+    if ip not in rate_limit_store:
+        rate_limit_store[ip] = []
+    rate_limit_store[ip] = [t for t in rate_limit_store[ip] if t > now - window]
+    if len(rate_limit_store[ip]) >= limit:
+        raise HTTPException(status_code=429, detail="Çox sayda sorğu. Zəhmət olmasa gözləyin.")
+    rate_limit_store[ip].append(now)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        init_storage()
+    except Exception as e:
+        logger.error(f"Storage init on startup: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -1667,7 +1763,7 @@ async def get_settings():
             "tax_percentage": 18,
             "service_charge_percentage": 10,
             "currency": "AZN",
-            "admin_pin": ""  # PIN for admin protected sections
+            "admin_pin": ""
         }
         await db.settings.insert_one({**default_settings})
         return default_settings
@@ -1707,6 +1803,56 @@ async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_
         return {"valid": True}
     else:
         raise HTTPException(status_code=401, detail="Invalid PIN")
+
+# ==================== IMAGE UPLOAD ====================
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+@api_router.post("/upload/image")
+async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Yalnız JPEG, PNG, WebP və GIF şəkillər qəbul edilir")
+    
+    data = await file.read()
+    if len(data) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="Şəkil ölçüsü 5MB-dan böyük ola bilməz")
+    
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    file_id = str(uuid.uuid4())
+    path = f"{APP_NAME}/images/{file_id}.{ext}"
+    
+    try:
+        result = put_object(path, data, file.content_type)
+        # Store reference in DB
+        file_doc = {
+            "id": file_id,
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": file.content_type,
+            "size": result.get("size", len(data)),
+            "is_deleted": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.files.insert_one(file_doc)
+        file_doc.pop('_id', None)
+        return {"id": file_id, "path": result["path"], "url": f"/api/files/{file_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Yükləmə xətası: {str(e)}")
+
+@api_router.get("/files/{file_id}")
+async def get_file(file_id: str):
+    record = await db.files.find_one({"id": file_id, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Fayl tapılmadı")
+    try:
+        data, content_type = get_object(record["storage_path"])
+        return Response(content=data, media_type=record.get("content_type", content_type),
+                       headers={"Cache-Control": "public, max-age=86400"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fayl oxunma xətası: {str(e)}")
 
 @api_router.get("/analytics/popular-items")
 async def get_popular_items_stats():
@@ -1758,6 +1904,22 @@ async def get_sessions_history(current_user: dict = Depends(get_current_user)):
         })
     
     return result
+
+@api_router.delete("/sessions/{session_id}")
+async def delete_session(session_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    session = await db.table_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Sessiya tapılmadı")
+    
+    # Delete all related data
+    await db.orders.delete_many({"session_id": session_id})
+    await db.timed_services.delete_many({"session_id": session_id})
+    await db.table_sessions.delete_one({"id": session_id})
+    
+    return {"message": "Sessiya və bütün əlaqəli məlumatlar silindi"}
 
 
 class TableReservation(BaseModel):

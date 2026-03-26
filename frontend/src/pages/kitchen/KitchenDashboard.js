@@ -141,7 +141,7 @@ function KitchenContent() {
               <Card key={order.id} className="bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-[#181C1A]">
-                    <span>Stol {table?.table_number}</span>
+                    <span>Masa {table?.table_number}</span>
                     {getStatusBadge(order.status)}
                   </CardTitle>
                   <p className="text-sm text-[#5C665F]">{venue?.name}</p>

@@ -92,18 +92,28 @@ export default function ActiveTablesPage() {
   const closeSession = async (sessionId) => {
     if (!window.confirm('Hesabı bağlamaq istədiyinizə əminsiniz?')) return;
     try {
-      console.log('Closing session:', sessionId);
       const response = await axios.post(`${API}/sessions/close/${sessionId}`);
-      console.log('Close response:', response.data);
-      // Show detailed bill summary
       if (response.data.bill_summary) {
         setBillSummary(response.data.bill_summary);
       }
       toast.success('Hesab bağlandı');
+      setSelectedSession(null);
       fetchSessions();
       fetchClosedSessions();
     } catch (error) {
-      console.error('Close session error:', error);
+      toast.error(error.response?.data?.detail || 'Xəta baş verdi');
+    }
+  };
+
+  const deleteSession = async (sessionId) => {
+    if (!window.confirm('Sessiyanı silmək istədiyinizə əminsiniz? Bütün əlaqəli sifarişlər də silinəcək.')) return;
+    try {
+      await axios.delete(`${API}/sessions/${sessionId}`);
+      toast.success('Sessiya silindi');
+      setSelectedSession(null);
+      fetchSessions();
+      fetchClosedSessions();
+    } catch (error) {
       toast.error(error.response?.data?.detail || 'Xəta baş verdi');
     }
   };
@@ -227,12 +237,21 @@ export default function ActiveTablesPage() {
 
   const displaySessions = showClosed ? closedSessions : sessions.map(s => ({ ...s, isActive: true }));
 
+  // Group sessions by venue
+  const groupedByVenue = displaySessions.reduce((acc, item) => {
+    const venueName = item.venue?.name || 'Digər';
+    if (!acc[venueName]) acc[venueName] = [];
+    acc[venueName].push(item);
+    return acc;
+  }, {});
+  const venueNames = Object.keys(groupedByVenue).sort();
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">{az.activeTables}</h1>
-          <p className="text-xs text-[#8A948D] mt-0.5">{sessions.length} aktiv stol</p>
+          <p className="text-xs text-[#8A948D] mt-0.5">{sessions.length} aktiv masa</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -258,72 +277,80 @@ export default function ActiveTablesPage() {
       {displaySessions.length === 0 ? (
         <div className="bg-white border border-[#E6E5DF] rounded-2xl p-12 text-center">
           <p className="text-sm text-[#8A948D]">
-            {showClosed ? 'Bağlanmış stol yoxdur' : 'Hazırda aktiv stol yoxdur'}
+            {showClosed ? 'Bağlanmış masa yoxdur' : 'Hazırda aktiv masa yoxdur'}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {displaySessions.map((item) => {
-            const session = item.session || item;
-            const table = item.table;
-            const venue = item.venue;
-            const active_orders = item.active_orders || item.orders_count || 0;
-            const isActive = item.isActive || session.is_active;
-            
-            return (
-              <div 
-                key={session.id} 
-                className={`bg-white border rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(42,58,44,0.06)] hover:-translate-y-0.5 ${
-                  isActive ? 'border-[#3E6A4B]/30' : 'border-[#E6E5DF] cursor-pointer'
-                }`}
-                onClick={() => !isActive && openDetails(session, isActive)}
-                data-testid={`session-card-${session.id}`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="heading-font text-base font-semibold text-[#181C1A]">
-                    Stol {table?.table_number}
-                  </h3>
-                  <Badge className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-[#3E6A4B]/10 text-[#3E6A4B]' : 'bg-[#8A948D]/10 text-[#8A948D]'}`}>
-                    {isActive ? 'Aktiv' : 'Bağlı'}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-1.5 mb-4">
-                  <p className="text-xs text-[#5C665F]">
-                    <span className="text-[#8A948D]">Məkan:</span> {venue?.name}
-                  </p>
-                  <p className="text-xs text-[#5C665F]">
-                    <span className="text-[#8A948D]">Vaxt:</span> {getTimeAgo(session.started_at)}
-                  </p>
-                  <p className="text-xs text-[#5C665F]">
-                    <span className="text-[#8A948D]">Sifarişlər:</span> {active_orders}
-                  </p>
-                  {item.total_revenue !== undefined && (
-                    <p className="text-sm font-semibold text-[#C05C3D]">
-                      {item.total_revenue?.toFixed(2)} AZN
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openDetails(session, isActive);
-                    }}
-                    className="flex-1 h-8 text-xs rounded-xl border-[#E6E5DF]"
-                    data-testid={`view-details-${session.id}`}
-                  >
-                    <Eye className="w-3.5 h-3.5 mr-1" />
-                    Detallara Bax
-                  </Button>
-                </div>
+        <div className="space-y-6">
+          {venueNames.map(venueName => (
+            <div key={venueName}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 rounded-full bg-[#4F9D69]"></div>
+                <h2 className="heading-font text-sm font-semibold text-[#181C1A]">{venueName}</h2>
+                <Badge variant="outline" className="text-[10px] border-[#E6E5DF] text-[#8A948D]">{groupedByVenue[venueName].length}</Badge>
               </div>
-            );
-          })}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {groupedByVenue[venueName].map((item) => {
+                  const session = item.session || item;
+                  const table = item.table;
+                  const active_orders = item.active_orders || item.orders_count || 0;
+                  const isActive = item.isActive || session.is_active;
+                  
+                  return (
+                    <div 
+                      key={session.id} 
+                      className={`bg-white border rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(42,58,44,0.06)] hover:-translate-y-0.5 ${
+                        isActive ? 'border-[#3E6A4B]/30' : 'border-[#E6E5DF]'
+                      } cursor-pointer`}
+                      onClick={() => openDetails(session, isActive)}
+                      data-testid={`session-card-${session.id}`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="heading-font text-base font-semibold text-[#181C1A]">
+                          Masa {table?.table_number}
+                        </h3>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-[#3E6A4B]/10 text-[#3E6A4B]' : 'bg-[#8A948D]/10 text-[#8A948D]'}`}>
+                            {isActive ? 'Aktiv' : 'Bağlı'}
+                          </Badge>
+                          {!isActive && (
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }} className="h-6 w-6 p-0 text-red-400 hover:text-red-600" data-testid={`delete-session-${session.id}`}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5 mb-4">
+                        <p className="text-xs text-[#5C665F]">
+                          <span className="text-[#8A948D]">Vaxt:</span> {getTimeAgo(session.started_at)}
+                        </p>
+                        <p className="text-xs text-[#5C665F]">
+                          <span className="text-[#8A948D]">Sifarişlər:</span> {active_orders}
+                        </p>
+                        {item.total_revenue !== undefined && (
+                          <p className="text-sm font-semibold text-[#C05C3D]">
+                            {item.total_revenue?.toFixed(2)} AZN
+                          </p>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); openDetails(session, isActive); }}
+                        className="w-full h-8 text-xs rounded-xl border-[#E6E5DF]"
+                        data-testid={`view-details-${session.id}`}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1" />
+                        Detallara Bax
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -332,7 +359,7 @@ export default function ActiveTablesPage() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="heading-font text-lg font-medium text-[#181C1A] tracking-tight">
-              Stol {sessionDetails?.table?.table_number} - Sifariş Detalları
+              Masa {sessionDetails?.table?.table_number} - Sifariş Detalları
             </DialogTitle>
           </DialogHeader>
           
@@ -343,7 +370,7 @@ export default function ActiveTablesPage() {
           ) : sessionDetails ? (
             <div className="space-y-5">
               {/* Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#E6E5DF]">
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Məkan</p>
                   <p className="text-sm font-medium text-[#181C1A] mt-1">{sessionDetails.venue?.name}</p>
@@ -356,6 +383,12 @@ export default function ActiveTablesPage() {
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Endirim</p>
                   <p className="text-sm font-medium text-[#3E6A4B] mt-1">
                     -{(sessionDetails.orders || []).reduce((s, o) => s + (o.discount_amount || 0), 0).toFixed(2)} AZN
+                  </p>
+                </div>
+                <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#D48B30]/30">
+                  <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Xidmət haqqı</p>
+                  <p className="text-sm font-medium text-[#D48B30] mt-1">
+                    +{(sessionDetails.orders || []).reduce((s, o) => s + (o.service_charge_amount || 0), 0).toFixed(2)} AZN
                   </p>
                 </div>
                 <div className="bg-[#2A3A2C] rounded-xl p-3 text-center">
@@ -450,7 +483,7 @@ export default function ActiveTablesPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-sm text-[#8A948D] py-4">Bu stolda hələ sifariş yoxdur</p>
+                <p className="text-center text-sm text-[#8A948D] py-4">Bu masada hələ sifariş yoxdur</p>
               )}
 
               {/* Timed Services */}
@@ -526,7 +559,7 @@ export default function ActiveTablesPage() {
           <DialogHeader>
             <DialogTitle className="heading-font text-lg font-medium text-[#181C1A] flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#C05C3D]" />
-              Hesab Bağlandı - Stol {billSummary?.table?.table_number}
+              Hesab Bağlandı - Masa {billSummary?.table?.table_number}
             </DialogTitle>
           </DialogHeader>
           
@@ -606,6 +639,14 @@ export default function ActiveTablesPage() {
                             {order.discount_name} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
                           </span>
                           <span>-{order.discount_amount?.toFixed(2)} AZN</span>
+                        </div>
+                      )}
+
+                      {/* Service charge per order */}
+                      {order.service_charge_amount > 0 && (
+                        <div className="flex justify-between text-sm py-2 border-t border-dashed border-[#E2E8E2] text-[#D48B30]">
+                          <span>Xidmət haqqı ({order.service_charge_percentage || billSummary?.service_charge_percentage || 10}%)</span>
+                          <span>+{order.service_charge_amount?.toFixed(2)} AZN</span>
                         </div>
                       )}
 

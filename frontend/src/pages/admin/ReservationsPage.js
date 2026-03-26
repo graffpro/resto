@@ -210,15 +210,15 @@ export default function ReservationsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Stol *</Label>
+                  <Label>Masa *</Label>
                   <Select value={formData.table_id} onValueChange={(v) => setFormData(p => ({ ...p, table_id: v }))}>
                     <SelectTrigger data-testid="reservation-table-select">
-                      <SelectValue placeholder="Stol seçin" />
+                      <SelectValue placeholder="Masa seçin" />
                     </SelectTrigger>
                     <SelectContent>
                       {tables.map(table => (
                         <SelectItem key={table.id} value={table.id}>
-                          Stol {table.table_number} - {getVenueName(table.venue_id)}
+                          Masa {table.table_number} - {getVenueName(table.venue_id)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -342,7 +342,7 @@ export default function ReservationsPage() {
 
                 <div className="bg-[#F9F9F7] rounded-lg p-3 mb-4">
                   <p className="text-sm font-semibold text-[#181C1A]">
-                    Stol {table?.table_number} - {venue?.name}
+                    Masa {table?.table_number} - {venue?.name}
                   </p>
                   {reservation.special_requests && (
                     <p className="text-xs text-[#5C665F] mt-1">{reservation.special_requests}</p>
