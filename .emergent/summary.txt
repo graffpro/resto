@@ -1,0 +1,129 @@
+<analysis>Here is the handoff summary for the next agent:
+
+**original_problem_statement**: 
+Multi-Restaurant (Multi-Tenant) Architecture Management System. 
+- **Owner Role:** Manages multiple restaurants. Creates Administrators assigning them a login, password, PIN, and an expiration date (cascading deactivation).
+- **Admin Role:** Manages a specific restaurant. Needs to be able to edit orders, use a modern sleek UI, and communicate with the Kitchen via **Voice/Audio**.
+- **Deep Analytics & Inventory:** Detailed inventory tracking (Menu items linked to raw ingredients for auto-deduction) and staff management (Waiters' days off, shift tracking, and a performance/points system).
+- **UI/UX:** Highly modern, sleek, bento-grid design with smaller fonts and terracotta/forest-green aesthetics.
+
+**User's preferred language**: Azerbaijani. (The user strictly communicates in Azerbaijani). **INSTRUCT NEXT AGENT: You MUST respond to the user in Azerbaijani ONLY.**
+
+**what currently exists?** 
+A fully functional Multi-Restaurant React + FastAPI + MongoDB app. It features a completely modernized UI/UX (small fonts, bento grids, dark green/terracotta theme). It supports full CRUD for Restaurants, Admins, Venues, and Tables. Features include time-boxed Admins, Staff Shift/Points management, Deep Inventory tracking, Recipe mapping (Menu Items -> Ingredients), Admin PIN protection, Discounts, Service Charges, and Real-Time WebSockets for Kitchen/Waiters.
+
+**Last working item**:
+- **Last item agent was working**: Implementing the Recipe Mapping (linking Menu Items to Ingredients) and the auto-deduction of stock when an order is placed. The agent also fixed bugs where WebSockets were showing Offline and Discounts/Service Charges were missing from order detail modals.
+- **Status**: USER VERIFICATION PENDING
+- **Agent Testing Done**: Y (Subagent passed 14/16 tests, but noted that test data setup for the auto-deduction logic needed refinement to fully verify it).
+- **Which testing method agent to use?**: backend testing agent / manual testing by curl
+- **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+  Issue 1: **Verify Inventory Auto-Deduction Logic (P0)**
+     - Attempted fixes: Agent implemented the logic in the  endpoint to deduct stock based on the  collection.
+     - Next debug checklist: Create a test recipe (e.g., mapping a Drink to an Ingredient), place an order, and verify the  stock decreases accordingly in MongoDB.
+     - Why fix this issue and what will be achieved with the fix? Ensures inventory tracking is perfectly accurate when items are sold.
+     - Status: TESTING PENDING
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Backend
+
+**In progress Task List**:
+*None currently mid-code. Last task was technically completed but needs the final verification mentioned above.*
+
+**Upcoming and Future Tasks**:
+- P0: **Admin-Kitchen Voice Communication:** Implement audio/voice-note messaging between the Admin dashboard and Kitchen dashboard. The user explicitly requested: *Administrator Mətbəxlə səsli danışa bilməlidir*. (Use  for WebRTC or third-party audio service).
+- P1: **Refactor :** The backend file is currently over 2,200 lines long. It urgently needs to be broken down into  and  for maintainability before adding more massive features.
+- P2: **WhatsApp/Twilio Integration:** Implement automated daily sales reports or customer receipts via WhatsApp (Requires User API Key).
+- P2: **Performance Optimization:** Resolve N+1 queries in analytics endpoints.
+
+**Completed work in this session**:
+- Fixed broken Multi-Restaurant Architecture ( added) (DONE)
+- Implemented full CRUD for Restaurants, Admins, Venues, and Tables (DONE)
+- Complete UI/UX Overhaul (Modern design, smaller fonts, new color scheme) (DONE)
+- Admin Order Editing (adding/removing items from active tables) (DONE)
+- Staff Management System (Points, shifts, rest days) (DONE)
+- Inventory Management (Raw materials, transactions, stock) (DONE)
+- Recipe Mapping & Auto-Deduction logic (DONE)
+- Fixed WebSocket connection drops (changed  to  for ingress) (DONE)
+- Added Service Charge & Discounts to frontend Bill Summary (DONE)
+
+**Earlier issues found/mentioned but not fixed**:
+*All user-reported bugs from this session (Offline WS, Missing Discounts, Missing Service Charge, Close Table button placement) were addressed.*
+
+**Known issue recurrence from previous fork**:
+- Issue recurrence in previous fork: WebSockets failing in preview environment.
+- Recurrence count: 1
+- Status: RESOLVED (Agent discovered that all WS routes must be prefixed with  to pass through the Kubernetes ingress controller successfully).
+
+**Code Architecture**:
+
+
+**Key Technical Concepts**:
+React, FastAPI, MongoDB, JWT Authentication, WebSockets (Routed via ), RBAC (Cascading deactivation), Inventory Tracking, Recipe Mapping.
+
+**key DB schema**:
+- : {id, name, address, phone, is_active}
+- : {username, role, restaurant_id, admin_pin, expires_at, points, rest_days}
+- : {id, name, unit, current_stock, min_stock_level}
+- : {ingredient_id, type (purchase/usage), quantity, cost}
+- : {menu_item_id, ingredients: [{ingredient_id, quantity}]}
+- : {..., service_charge_amount, discount_amount, total_amount}
+
+**changes in tech stack**:
+- None.
+
+**All files of reference**:
+-  (Contains entire backend logic. Very large).
+-  (Handles WS connections, updated to use ).
+-  (Contains Stock and Recipe tabs).
+-  (Staff points and shifts).
+-  (Updated with order editing and service charge display).
+
+**Areas that need refactoring**:
+-  MUST be refactored. It handles Auth, WebSockets, Orders, Inventory, Staff, and Analytics all in one 2,200+ line file. Split this into standard FastAPI router structures.
+
+**key api endpoints**:
+- : Modified to auto-deduct inventory based on recipes.
+- : Real-time WebSocket connection.
+- : Link menu items to ingredients.
+- : Verifies personal Admin PIN or fallback Settings PIN.
+
+**Critical Info for New Agent**:
+- **LANGUAGE**: The user strictly speaks Azerbaijani. Always reply in Azerbaijani.
+- **WEBSOCKETS**: If you ever touch WebSockets, remember the Kubernetes ingress requires the  prefix (e.g., ). 
+- **DATABASE**: Always exclude  () when returning MongoDB documents to FastAPI.
+- **PIN GUARD**: Admins have their own personal PINs now. The system checks the user's PIN first, then falls back to the global .
+
+**documents and test reports created in this job**:
+-  through 
+-  (Updated with completed features)
+-  (Created by design agent for UI overhaul)
+
+**Last 10 User Messages and any pending HUMAN messages**:
+1. (User) Clarified Owner role, cascading admin deactivation, requested UI overhaul, order editing, voice comms, inventory/staff tracking.
+2. (User) Bəli, birdə əlavə olaraq bir şe əlavə edə biliriksə silə və ya redakte edə bilməliyik... (Confirmed need for full CRUD for all entities).
+3. (User) Davam et (Continue).
+4. (User) Bəli (Approved agent's plan for Staff/Inventory).
+5. (User) Növbəti tapşırıqların hamısını başla... (Agreed to link menu to ingredients. Reported bugs: Discounts not showing, Service charge missing, Kitchen/Waiter showing offline).
+6. (User) davam elə (Continue - Agent ran out of context right after this).
+
+**Project Health Check**:
+Healthy.
+
+**3rd Party Integrations**:
+- OpenAI TTS & STT / WebRTC (For upcoming Voice Communication P0 task - *Will require integration subagent*).
+- Twilio / WhatsApp (For upcoming P2 task - *Requires User API Key*).
+
+**Testing status**:
+- Testing agent used after significant changes: YES (Extensively up to Iteration 5).
+- Troubleshoot agent used after agent stuck in loop: NO.
+- Test files created: Handled internally by test agent.
+- Known regressions: None currently known, but auto-deduct needs final verification.
+
+**Credentials to test flow**:
+- Owner:  / 
+- Admin:  /  (Admin PIN: 1234)
+
+**What agent forgot to execute**:
+- The agent implemented almost everything requested in the massive pivot, but **Voice Communication between Admin and Kitchen** has not been started yet. This is a primary user request.</analysis>

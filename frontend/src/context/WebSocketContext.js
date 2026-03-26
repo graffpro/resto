@@ -18,7 +18,7 @@ export function WebSocketProvider({ children, role }) {
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const backendUrl = process.env.REACT_APP_BACKEND_URL?.replace(/^https?:/, '') || '';
-    const wsUrl = `${wsProtocol}${backendUrl}/ws/${role}`;
+    const wsUrl = `${wsProtocol}${backendUrl}/api/ws/${role}`;
 
     try {
       ws.current = new WebSocket(wsUrl);

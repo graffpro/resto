@@ -197,7 +197,9 @@ class Order(BaseModel):
     discount_type: Optional[str] = None  # percentage or fixed
     discount_value: float = 0  # The discount rate/amount
     discount_amount: float = 0  # Calculated discount
-    total_amount: float  # Final amount after all discounts
+    service_charge_percentage: float = 0
+    service_charge_amount: float = 0
+    total_amount: float  # Final amount after all discounts + service charge
     status: OrderStatus = OrderStatus.PENDING
     ordered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     preparing_started_at: Optional[datetime] = None
@@ -772,6 +774,7 @@ async def get_inventory_summary(current_user: dict = Depends(get_current_user)):
             "unit": ing['unit'],
             "current_stock": ing.get('current_stock', 0),
             "min_stock": ing.get('min_stock', 0),
+            "cost_per_unit": ing.get('cost_per_unit', 0),
             "total_purchased": total_purchased,
             "total_used": total_used,
             "total_cost": round(total_cost, 2),
@@ -779,6 +782,72 @@ async def get_inventory_summary(current_user: dict = Depends(get_current_user)):
         })
     
     return summary
+
+# ==================== MENU-INGREDIENT MAPPING ====================
+class RecipeItem(BaseModel):
+    ingredient_id: str
+    quantity: float
+
+class RecipeCreate(BaseModel):
+    menu_item_id: str
+    ingredients: List[RecipeItem]
+
+@api_router.post("/recipes")
+async def set_recipe(recipe: RecipeCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    menu_item = await db.menu_items.find_one({"id": recipe.menu_item_id}, {"_id": 0})
+    if not menu_item:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    # Build recipe with ingredient names
+    recipe_items = []
+    for ri in recipe.ingredients:
+        ing = await db.ingredients.find_one({"id": ri.ingredient_id}, {"_id": 0})
+        if not ing:
+            continue
+        recipe_items.append({
+            "ingredient_id": ri.ingredient_id,
+            "ingredient_name": ing['name'],
+            "ingredient_unit": ing['unit'],
+            "quantity": ri.quantity
+        })
+    
+    # Upsert recipe
+    await db.recipes.update_one(
+        {"menu_item_id": recipe.menu_item_id},
+        {"$set": {
+            "menu_item_id": recipe.menu_item_id,
+            "menu_item_name": menu_item['name'],
+            "ingredients": recipe_items,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Recipe saved", "menu_item": menu_item['name'], "ingredients_count": len(recipe_items)}
+
+@api_router.get("/recipes")
+async def get_all_recipes(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(1000)
+    return recipes
+
+@api_router.get("/recipes/{menu_item_id}")
+async def get_recipe(menu_item_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    recipe = await db.recipes.find_one({"menu_item_id": menu_item_id}, {"_id": 0})
+    return recipe or {"menu_item_id": menu_item_id, "ingredients": []}
+
+@api_router.delete("/recipes/{menu_item_id}")
+async def delete_recipe(menu_item_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.recipes.delete_one({"menu_item_id": menu_item_id})
+    return {"message": "Recipe deleted"}
 
 # Staff Analytics
 @api_router.get("/analytics/staff-performance")
@@ -1031,6 +1100,7 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
     # Calculate totals
     subtotal = sum(o.get('subtotal', o.get('total_amount', 0)) for o in orders)
     total_discount = sum(o.get('discount_amount', 0) for o in orders)
+    total_service_charge = sum(o.get('service_charge_amount', 0) for o in orders)
     total_amount = sum(o.get('total_amount', 0) for o in orders)
     
     # Collect discount details
@@ -1087,6 +1157,7 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
             "orders_count": len(orders),
             "subtotal": round(subtotal, 2),
             "total_discount": round(total_discount, 2),
+            "total_service_charge": round(total_service_charge, 2),
             "total_amount": round(total_amount, 2),
             "discounts_applied": discounts_applied,
             "closed_at": datetime.now(timezone.utc).isoformat()
@@ -1274,6 +1345,16 @@ async def create_order(order: OrderCreate):
         
         total_amount = subtotal - discount_amount
     
+    # Apply service charge from restaurant settings
+    service_charge_pct = 0
+    service_charge_amount = 0
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    if settings:
+        service_charge_pct = settings.get('service_charge_percentage', 0)
+    if service_charge_pct > 0:
+        service_charge_amount = round(total_amount * (service_charge_pct / 100), 2)
+        total_amount = total_amount + service_charge_amount
+
     order_obj = Order(
         order_number=order_number,
         session_id=session['id'],
@@ -1285,12 +1366,45 @@ async def create_order(order: OrderCreate):
         discount_type=discount_type,
         discount_value=discount_value,
         discount_amount=round(discount_amount, 2),
+        service_charge_percentage=service_charge_pct,
+        service_charge_amount=round(service_charge_amount, 2),
         total_amount=round(total_amount, 2)
     )
     
     doc = order_obj.model_dump()
     doc['ordered_at'] = doc['ordered_at'].isoformat()
     await db.orders.insert_one(doc)
+    
+    # Auto-deduct stock from inventory based on recipes
+    for item in processed_items:
+        menu_item_id = item.get('menu_item_id')
+        if not menu_item_id:
+            continue
+        recipe = await db.recipes.find_one({"menu_item_id": menu_item_id}, {"_id": 0})
+        if not recipe:
+            continue
+        for ri in recipe.get('ingredients', []):
+            deduct_qty = ri['quantity'] * item.get('quantity', 1)
+            ing = await db.ingredients.find_one({"id": ri['ingredient_id']}, {"_id": 0})
+            if ing:
+                new_stock = max(0, ing.get('current_stock', 0) - deduct_qty)
+                await db.ingredients.update_one({"id": ri['ingredient_id']}, {"$set": {"current_stock": new_stock}})
+                # Log the auto-deduction as a usage transaction
+                tx_doc = {
+                    "id": str(uuid.uuid4()),
+                    "ingredient_id": ri['ingredient_id'],
+                    "ingredient_name": ri.get('ingredient_name', ''),
+                    "transaction_type": "usage",
+                    "quantity": deduct_qty,
+                    "unit_cost": None,
+                    "total_cost": 0,
+                    "notes": f"Avtomatik: Sifariş #{order_obj.order_number} - {item.get('name', '')}",
+                    "date": datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+                    "stock_after": new_stock,
+                    "created_by": "system",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.stock_transactions.insert_one(tx_doc)
     
     # Get table info for notification
     table = await db.tables.find_one({"id": session['table_id']}, {"_id": 0})
@@ -2047,7 +2161,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.websocket("/ws/{role}")
+@app.websocket("/api/ws/{role}")
 async def websocket_endpoint(websocket: WebSocket, role: str):
     await manager.connect(websocket, role)
     try:

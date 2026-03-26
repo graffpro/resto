@@ -287,7 +287,7 @@ export default function ActiveTablesPage() {
           ) : sessionDetails ? (
             <div className="space-y-5">
               {/* Summary */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#E6E5DF]">
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Məkan</p>
                   <p className="text-sm font-medium text-[#181C1A] mt-1">{sessionDetails.venue?.name}</p>
@@ -295,6 +295,12 @@ export default function ActiveTablesPage() {
                 <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#E6E5DF]">
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Sifariş</p>
                   <p className="text-sm font-medium text-[#181C1A] mt-1">{sessionDetails.orders?.length || 0}</p>
+                </div>
+                <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#E6E5DF]">
+                  <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Endirim</p>
+                  <p className="text-sm font-medium text-[#3E6A4B] mt-1">
+                    -{(sessionDetails.orders || []).reduce((s, o) => s + (o.discount_amount || 0), 0).toFixed(2)} AZN
+                  </p>
                 </div>
                 <div className="bg-[#2A3A2C] rounded-xl p-3 text-center">
                   <p className="text-[10px] text-white/60 uppercase tracking-wider">Cəmi</p>
@@ -341,14 +347,38 @@ export default function ActiveTablesPage() {
                       <div className="space-y-1.5 mb-2">
                         {order.items.map((item, i) => (
                           <div key={i} className="flex justify-between text-xs">
-                            <span className="text-[#5C665F]">
-                              {item.name} x{item.quantity}
-                            </span>
-                            <span className="font-medium text-[#181C1A]">
-                              {(item.price * item.quantity).toFixed(2)} AZN
-                            </span>
+                            <div className="flex-1">
+                              <span className="text-[#5C665F]">{item.name} x{item.quantity}</span>
+                              {item.discount_percentage > 0 && (
+                                <span className="ml-1.5 text-[10px] text-[#3E6A4B] bg-[#3E6A4B]/10 px-1 py-0.5 rounded">-{item.discount_percentage}%</span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              {item.discount_percentage > 0 && (
+                                <span className="text-[10px] text-[#8A948D] line-through mr-1">{(item.price * item.quantity).toFixed(2)}</span>
+                              )}
+                              <span className="font-medium text-[#181C1A]">
+                                {(item.discounted_price || (item.price * item.quantity)).toFixed(2)} AZN
+                              </span>
+                            </div>
                           </div>
                         ))}
+                      </div>
+                      
+                      {/* Order level discount & service charge */}
+                      <div className="space-y-1 mb-2">
+                        {order.discount_amount > 0 && (
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-[#3E6A4B] flex items-center gap-1"><Tag className="w-3 h-3" />{order.discount_name || 'Endirim'} ({order.discount_value}{order.discount_type === 'percentage' ? '%' : ' AZN'})</span>
+                            <span className="text-[#3E6A4B]">-{order.discount_amount?.toFixed(2)} AZN</span>
+                          </div>
+                        )}
+                        {order.service_charge_amount > 0 && (
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-[#D48B30]">Xidmət haqqı ({order.service_charge_percentage}%)</span>
+                            <span className="text-[#D48B30]">+{order.service_charge_amount?.toFixed(2)} AZN</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex justify-between items-center pt-2 border-t border-[#E6E5DF]">
@@ -401,20 +431,20 @@ export default function ActiveTablesPage() {
           </DialogHeader>
           
           {billSummary && (
-            <div className="space-y-6 print:text-black" id="bill-to-print">
+            <div className="space-y-4 print:text-black" id="bill-to-print">
               {/* Header Info */}
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-[#F5F9E9] rounded-lg p-3">
-                  <p className="text-xs text-[#5C6B61]">Məkan</p>
-                  <p className="font-bold text-[#181C1A]">{billSummary.venue?.name}</p>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-[#F9F9F7] rounded-xl p-3 border border-[#E6E5DF]">
+                  <p className="text-[10px] text-[#8A948D] uppercase">Məkan</p>
+                  <p className="text-sm font-medium text-[#181C1A] mt-1">{billSummary.venue?.name}</p>
                 </div>
-                <div className="bg-[#F5F9E9] rounded-lg p-3">
-                  <p className="text-xs text-[#5C6B61]">Sifariş Sayı</p>
-                  <p className="font-bold text-[#181C1A]">{billSummary.orders_count}</p>
+                <div className="bg-[#F9F9F7] rounded-xl p-3 border border-[#E6E5DF]">
+                  <p className="text-[10px] text-[#8A948D] uppercase">Sifariş</p>
+                  <p className="text-sm font-medium text-[#181C1A] mt-1">{billSummary.orders_count}</p>
                 </div>
-                <div className="bg-[#F5F9E9] rounded-lg p-3">
-                  <p className="text-xs text-[#5C6B61]">Bağlanma Vaxtı</p>
-                  <p className="font-bold text-[#181C1A]">
+                <div className="bg-[#F9F9F7] rounded-xl p-3 border border-[#E6E5DF]">
+                  <p className="text-[10px] text-[#8A948D] uppercase">Bağlanma</p>
+                  <p className="text-sm font-medium text-[#181C1A] mt-1">
                     {new Date(billSummary.closed_at).toLocaleTimeString('az-AZ')}
                   </p>
                 </div>
@@ -490,14 +520,14 @@ export default function ActiveTablesPage() {
 
               {/* Discounts Summary */}
               {billSummary.discounts_applied?.length > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
-                    <Tag className="w-4 h-4" />
+                <div className="bg-[#3E6A4B]/5 border border-[#3E6A4B]/20 rounded-xl p-3">
+                  <h4 className="text-xs font-medium text-[#3E6A4B] mb-2 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" />
                     Tətbiq Edilən Endirimlər
                   </h4>
                   <div className="space-y-1">
                     {billSummary.discounts_applied.map((disc, idx) => (
-                      <div key={idx} className="flex justify-between text-sm text-green-700">
+                      <div key={idx} className="flex justify-between text-xs text-[#3E6A4B]">
                         <span>
                           {disc.item_name ? `${disc.item_name}` : disc.discount_name}
                           {' '}({disc.discount_type === 'percentage' ? `${disc.discount_value}%` : `${disc.discount_value} AZN`})
@@ -510,36 +540,36 @@ export default function ActiveTablesPage() {
               )}
 
               {/* Grand Total */}
-              <div className="bg-[#2A3A2C] text-white rounded-xl p-6">
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between">
-                    <span>Ara Cəm</span>
+              <div className="bg-[#2A3A2C] text-white rounded-2xl p-5">
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/70">Ara Cəm</span>
                     <span>{billSummary.subtotal?.toFixed(2)} AZN</span>
                   </div>
                   {billSummary.total_discount > 0 && (
-                    <div className="flex justify-between text-green-300">
-                      <span>Ümumi Endirim</span>
+                    <div className="flex justify-between text-sm text-green-300">
+                      <span>Endirim</span>
                       <span>-{billSummary.total_discount?.toFixed(2)} AZN</span>
                     </div>
                   )}
+                  {billSummary.total_service_charge > 0 && (
+                    <div className="flex justify-between text-sm text-[#D48B30]">
+                      <span>Xidmət haqqı</span>
+                      <span>+{billSummary.total_service_charge?.toFixed(2)} AZN</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t border-white/30">
-                  <span className="text-xl font-bold">YEKUN MƏBLƏĞ</span>
-                  <span className="text-4xl font-bold">{billSummary.total_amount?.toFixed(2)} AZN</span>
+                <div className="flex justify-between items-center pt-3 border-t border-white/20">
+                  <span className="text-sm font-medium">YEKUN MƏBLƏĞ</span>
+                  <span className="text-2xl font-bold">{billSummary.total_amount?.toFixed(2)} AZN</span>
                 </div>
               </div>
 
               {/* Print Button */}
               <div className="flex justify-end gap-2 print:hidden">
-                <Button variant="outline" onClick={() => setBillSummary(null)}>
-                  Bağla
-                </Button>
-                <Button 
-                  onClick={() => window.print()} 
-                  className="bg-[#4F9D69] hover:bg-[#2A3A2C] text-white"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Çap Et
+                <Button variant="outline" onClick={() => setBillSummary(null)} className="rounded-xl text-xs">Bağla</Button>
+                <Button onClick={() => window.print()} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl text-xs">
+                  <Printer className="w-4 h-4 mr-2" /> Çap Et
                 </Button>
               </div>
             </div>
