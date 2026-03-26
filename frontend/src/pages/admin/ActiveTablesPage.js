@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { RefreshCw, XCircle, Eye, Clock, ShoppingBag, Printer, Tag, Plus, Minus, Pencil, Trash2, Timer, Coffee } from 'lucide-react';
+import { RefreshCw, XCircle, Eye, Clock, ShoppingBag, Printer, Tag, Plus, Minus, Pencil, Trash2, Timer, Coffee, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import az from '@/translations/az';
+import { initAudio, playTimedServiceAlarm } from '@/utils/notifications';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -29,6 +30,12 @@ export default function ActiveTablesPage() {
   const [timedServices, setTimedServices] = useState([]);
   const [showTimedDialog, setShowTimedDialog] = useState(false);
   const [timedForm, setTimedForm] = useState({ menu_item_id: '', interval_minutes: 45, notes: '' });
+  
+  // Global timed services alert state
+  const [allActiveTimedServices, setAllActiveTimedServices] = useState([]);
+  const [alertedServiceIds, setAlertedServiceIds] = useState(new Set());
+  const [alertingTableIds, setAlertingTableIds] = useState(new Set());
+  const audioInitialized = useRef(false);
 
   useEffect(() => {
     fetchSessions();
@@ -36,6 +43,70 @@ export default function ActiveTablesPage() {
     fetchMenuItems();
     const interval = setInterval(fetchSessions, 10000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Poll all active timed services every 5 seconds for alerts
+  const fetchAllActiveTimedServices = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/timed-services/active`);
+      setAllActiveTimedServices(res.data);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchAllActiveTimedServices();
+    const interval = setInterval(fetchAllActiveTimedServices, 5000);
+    return () => clearInterval(interval);
+  }, [fetchAllActiveTimedServices]);
+
+  // Check for due timed services and trigger alarm
+  useEffect(() => {
+    const now = new Date();
+    const newAlertingTables = new Set();
+    let shouldAlarm = false;
+
+    allActiveTimedServices.forEach(svc => {
+      if (!svc.is_active || !svc.next_serve_at) return;
+      const nextServe = new Date(svc.next_serve_at);
+      if (nextServe <= now) {
+        newAlertingTables.add(svc.table_id);
+        // Only alarm if not already alerted for this service
+        if (!alertedServiceIds.has(svc.id)) {
+          shouldAlarm = true;
+          setAlertedServiceIds(prev => new Set([...prev, svc.id]));
+        }
+      }
+    });
+
+    setAlertingTableIds(newAlertingTables);
+
+    if (shouldAlarm && audioInitialized.current) {
+      playTimedServiceAlarm();
+      // Repeat alarm every 8 seconds while there are due services
+    }
+  }, [allActiveTimedServices]);
+
+  // Repeat alarm while there are alerting tables
+  useEffect(() => {
+    if (alertingTableIds.size === 0 || !audioInitialized.current) return;
+    const alarmInterval = setInterval(() => {
+      if (alertingTableIds.size > 0) {
+        playTimedServiceAlarm();
+      }
+    }, 8000);
+    return () => clearInterval(alarmInterval);
+  }, [alertingTableIds]);
+
+  // Init audio on first user interaction
+  useEffect(() => {
+    const handleClick = () => {
+      if (!audioInitialized.current) {
+        initAudio();
+        audioInitialized.current = true;
+      }
+    };
+    document.addEventListener('click', handleClick, { once: true });
+    return () => document.removeEventListener('click', handleClick);
   }, []);
 
   const fetchMenuItems = async () => {
@@ -206,7 +277,14 @@ export default function ActiveTablesPage() {
     try {
       await axios.put(`${API}/timed-services/${svcId}/serve`);
       toast.success('Xidmət edildi kimi qeyd olundu');
+      // Remove from alerted set so alarm stops
+      setAlertedServiceIds(prev => {
+        const next = new Set(prev);
+        next.delete(svcId);
+        return next;
+      });
       fetchTimedServices(selectedSession.id);
+      fetchAllActiveTimedServices();
     } catch { toast.error('Xəta'); }
   };
 
@@ -295,21 +373,37 @@ export default function ActiveTablesPage() {
                   const table = item.table;
                   const active_orders = item.active_orders || item.orders_count || 0;
                   const isActive = item.isActive || session.is_active;
+                  const isAlerting = alertingTableIds.has(table?.id);
+                  const alertingService = isAlerting ? allActiveTimedServices.find(s => s.table_id === table?.id && s.is_active && new Date(s.next_serve_at) <= new Date()) : null;
                   
                   return (
                     <div 
                       key={session.id} 
-                      className={`bg-white border rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(42,58,44,0.06)] hover:-translate-y-0.5 ${
-                        isActive ? 'border-[#3E6A4B]/30' : 'border-[#E6E5DF]'
-                      } cursor-pointer`}
+                      className={`border rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(42,58,44,0.06)] hover:-translate-y-0.5 cursor-pointer relative overflow-hidden ${
+                        isAlerting
+                          ? 'border-red-500 bg-red-50 shadow-[0_0_20px_rgba(220,38,38,0.2)]'
+                          : isActive ? 'bg-white border-[#3E6A4B]/30' : 'bg-white border-[#E6E5DF]'
+                      }`}
+                      style={isAlerting ? { animation: 'timedAlertPulse 1s ease-in-out infinite' } : {}}
                       onClick={() => openDetails(session, isActive)}
                       data-testid={`session-card-${session.id}`}
                     >
-                      <div className="flex items-center justify-between mb-3">
+                      {/* Red flash overlay */}
+                      {isAlerting && (
+                        <div className="absolute inset-0 bg-red-500/10 pointer-events-none" style={{ animation: 'timedAlertFlash 1s ease-in-out infinite' }} />
+                      )}
+                      
+                      <div className="flex items-center justify-between mb-3 relative z-10">
                         <h3 className="heading-font text-base font-semibold text-[#181C1A]">
                           Masa {table?.table_number}
                         </h3>
                         <div className="flex items-center gap-1.5">
+                          {isAlerting && (
+                            <Badge className="bg-red-500 text-white text-[10px] rounded-full px-2 py-0.5 font-medium flex items-center gap-1" style={{ animation: 'timedAlertPulse 1s ease-in-out infinite' }}>
+                              <Volume2 className="w-3 h-3" />
+                              {alertingService?.menu_item_name}
+                            </Badge>
+                          )}
                           <Badge className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-[#3E6A4B]/10 text-[#3E6A4B]' : 'bg-[#8A948D]/10 text-[#8A948D]'}`}>
                             {isActive ? 'Aktiv' : 'Bağlı'}
                           </Badge>
@@ -321,7 +415,7 @@ export default function ActiveTablesPage() {
                         </div>
                       </div>
                       
-                      <div className="space-y-1.5 mb-4">
+                      <div className="space-y-1.5 mb-4 relative z-10">
                         <p className="text-xs text-[#5C665F]">
                           <span className="text-[#8A948D]">Vaxt:</span> {getTimeAgo(session.started_at)}
                         </p>
@@ -339,11 +433,11 @@ export default function ActiveTablesPage() {
                         variant="outline"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); openDetails(session, isActive); }}
-                        className="w-full h-8 text-xs rounded-xl border-[#E6E5DF]"
+                        className={`w-full h-8 text-xs rounded-xl relative z-10 ${isAlerting ? 'border-red-400 text-red-600 bg-white' : 'border-[#E6E5DF]'}`}
                         data-testid={`view-details-${session.id}`}
                       >
                         <Eye className="w-3.5 h-3.5 mr-1" />
-                        Detallara Bax
+                        {isAlerting ? 'Xidmət vaxtı çatıb!' : 'Detallara Bax'}
                       </Button>
                     </div>
                   );

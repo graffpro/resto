@@ -51,6 +51,37 @@ export const playNotificationSound = () => {
 // Alias for WebSocket context usage
 export const playOrderSound = playNotificationSound;
 
+// Ding-ding alarm for timed services (repeating pattern)
+export const playTimedServiceAlarm = () => {
+  if (!audioContext) initAudio();
+  
+  try {
+    const playDing = (startTime, freq) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+      osc.start(startTime);
+      osc.stop(startTime + 0.15);
+    };
+
+    const now = audioContext.currentTime;
+    // ding ding, ding ding, ding ding pattern
+    playDing(now, 1200);
+    playDing(now + 0.18, 1200);
+    playDing(now + 0.5, 1200);
+    playDing(now + 0.68, 1200);
+    playDing(now + 1.0, 1200);
+    playDing(now + 1.18, 1200);
+  } catch (error) {
+    console.error('Alarm playback failed:', error);
+  }
+};
+
 export const requestNotificationPermission = async () => {
   if ('Notification' in window && Notification.permission === 'default') {
     await Notification.requestPermission();
