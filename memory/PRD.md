@@ -10,7 +10,7 @@ Real-Time In-House QR-Code Restaurant Management System with **Multi-Restaurant 
 
 ## Technical Stack
 - Frontend: React 18, Shadcn/UI, TailwindCSS, Outfit + Manrope fonts
-- Backend: FastAPI (Python), MongoDB, WebSocket, JWT/RBAC
+- Backend: FastAPI (Python), MongoDB, WebSocket, JWT/RBAC, WebRTC
 - Design: Terracotta (#C05C3D) + Forest Green (#2A3A2C) + Warm Gray (#F9F9F7)
 
 ## What's Been Implemented
@@ -34,23 +34,28 @@ Real-Time In-House QR-Code Restaurant Management System with **Multi-Restaurant 
 - Venues & Tables full CRUD by Admin
 - Users full CRUD with edit/delete/toggle
 
-### Phase 7: Staff Management & Inventory (March 2026 - Complete)
-- **Staff Management Page**: Performance leaderboard, period filters (day/week/month/year)
-- **Points System**: Add/deduct points with reason, full history tracking per staff
-- **Shift Tracking**: Work/Rest/Absent/Late shift types with date and time
-- **Inventory Page**: Ingredient CRUD with unit types (ədəd, kq, litr, qram, etc.)
-- **Stock Transactions**: Purchase (stock increase) and Usage (stock decrease) tracking
-- **Inventory Summary**: Total purchased vs used, cost tracking, low stock alerts
-- **PIN Verification**: Uses user's personal admin_pin first
+### Phase 7: Staff Management & Inventory (Complete)
+- Staff Management Page: Performance leaderboard, period filters
+- Points System: Add/deduct points with reason, full history
+- Shift Tracking: Work/Rest/Absent/Late shift types
+- Inventory Page: Ingredient CRUD with unit types
+- Stock Transactions: Purchase/Usage tracking
+- Recipe Mapping & Auto-Deduction: Menu items linked to ingredients
+
+### Phase 8: New Features (March 2026 - Complete)
+- **Settings Page**: Admins can edit service charge %, tax %, restaurant info, PIN
+- **Recipe in Menu Item Creation**: When adding/editing menu items, admins can specify ingredient quantities (recipe) directly in the form
+- **Auto-Deduction Verified**: Stock automatically decreases when orders are placed for recipe-linked items
+- **Timed Table Service**: Admin can set recurring services for tables (e.g., tea every 45 minutes) with interval, mark served, and auto-deactivation on session close
+- **Admin-Kitchen Voice Communication (WebRTC)**: Live audio calls between Admin and Kitchen dashboards using peer-to-peer WebRTC with signaling via WebSocket
 
 ## Database Collections
 - `restaurants`, `users`, `venues`, `tables`, `table_sessions`
 - `categories`, `menu_items`, `menus`, `orders`, `reservations`
 - `expenses`, `discounts`, `settings`
-- `shift_logs` (NEW) - {user_id, date, shift_type, start_time, end_time, notes}
-- `points_history` (NEW) - {user_id, points, reason, new_total}
-- `ingredients` (NEW) - {name, unit, current_stock, min_stock, cost_per_unit}
-- `stock_transactions` (NEW) - {ingredient_id, transaction_type, quantity, unit_cost, total_cost, stock_after}
+- `shift_logs`, `points_history`
+- `ingredients`, `stock_transactions`, `recipes`
+- `timed_services` (NEW) - {table_id, session_id, menu_item_id, interval_minutes, next_serve_at, serve_count}
 
 ## Credentials
 - Owner: `owner` / `owner123`
@@ -58,8 +63,12 @@ Real-Time In-House QR-Code Restaurant Management System with **Multi-Restaurant 
 
 ## Remaining Tasks
 
+### P1 (High Priority)
+- [ ] Refactor `server.py` (~2470 lines) into `/routes/`, `/models/`, `/database.py` modules
+
 ### P2 (Medium Priority)
-- [ ] Admin-Kitchen Voice Communication (audio/voice messaging)
-- [ ] WhatsApp Integration (Twilio API key required)
+- [ ] WhatsApp Integration (Twilio API key required from user)
 - [ ] Performance optimization (N+1 queries in analytics)
-- [ ] Menu item → ingredient mapping (auto-deduct stock on order)
+
+### P3 (Low Priority)
+- [ ] Accessibility improvements (aria-describedby on modals)
