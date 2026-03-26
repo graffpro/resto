@@ -369,6 +369,20 @@ async def toggle_restaurant_status(restaurant_id: str, current_user: dict = Depe
     
     return {"message": "Restaurant status updated", "is_active": new_status}
 
+@api_router.delete("/restaurants/{restaurant_id}")
+async def delete_restaurant(restaurant_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] != UserRole.OWNER:
+        raise HTTPException(status_code=403, detail="Only owner can delete restaurants")
+    
+    restaurant = await db.restaurants.find_one({"id": restaurant_id}, {"_id": 0})
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
+    # Delete all users associated with this restaurant
+    await db.users.delete_many({"restaurant_id": restaurant_id})
+    await db.restaurants.delete_one({"id": restaurant_id})
+    return {"message": "Restaurant deleted"}
+
 # ==================== USERS ====================
 
 @api_router.post("/users", response_model=User)
@@ -480,6 +494,22 @@ async def toggle_user_status(user_id: str, current_user: dict = Depends(get_curr
     
     return {"message": "User status updated", "is_active": new_status}
 
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # If deleting an admin, also delete all their staff
+    if user.get('role') == 'admin':
+        await db.users.delete_many({"created_by": user_id})
+    
+    await db.users.delete_one({"id": user_id})
+    return {"message": "User deleted"}
+
 # Waiter points and rest days
 @api_router.put("/users/{user_id}/add-points")
 async def add_user_points(user_id: str, points: int, current_user: dict = Depends(get_current_user)):
@@ -565,8 +595,8 @@ async def get_staff_performance(current_user: dict = Depends(get_current_user), 
 
 @api_router.post("/venues", response_model=Venue)
 async def create_venue(venue: VenueCreate, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only owner can create venues")
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     venue_obj = Venue(**venue.model_dump())
     doc = venue_obj.model_dump()
@@ -584,8 +614,8 @@ async def get_venues():
 
 @api_router.put("/venues/{venue_id}", response_model=Venue)
 async def update_venue(venue_id: str, venue: VenueCreate, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only owner can update venues")
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     existing = await db.venues.find_one({"id": venue_id}, {"_id": 0})
     if not existing:
@@ -599,8 +629,8 @@ async def update_venue(venue_id: str, venue: VenueCreate, current_user: dict = D
 
 @api_router.delete("/venues/{venue_id}")
 async def delete_venue(venue_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only owner can delete venues")
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     result = await db.venues.delete_one({"id": venue_id})
     if result.deleted_count == 0:
@@ -609,8 +639,8 @@ async def delete_venue(venue_id: str, current_user: dict = Depends(get_current_u
 
 @api_router.post("/tables", response_model=Table)
 async def create_table(table: TableCreate, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only owner can create tables")
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     table_id = str(uuid.uuid4())
     qr_code = generate_qr_code(table_id)
@@ -639,10 +669,26 @@ async def get_tables(venue_id: Optional[str] = None):
             table['created_at'] = datetime.fromisoformat(table['created_at'])
     return tables
 
+@api_router.put("/tables/{table_id}", response_model=Table)
+async def update_table(table_id: str, table: TableCreate, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    existing = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Table not found")
+    
+    await db.tables.update_one({"id": table_id}, {"$set": {"table_number": table.table_number, "venue_id": table.venue_id}})
+    updated = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    if isinstance(updated['created_at'], str):
+        updated['created_at'] = datetime.fromisoformat(updated['created_at'])
+    return Table(**updated)
+
+
 @api_router.delete("/tables/{table_id}")
 async def delete_table(table_id: str, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.OWNER:
-        raise HTTPException(status_code=403, detail="Only owner can delete tables")
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     
     result = await db.tables.delete_one({"id": table_id})
     if result.deleted_count == 0:
