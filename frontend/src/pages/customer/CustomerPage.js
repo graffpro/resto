@@ -231,6 +231,24 @@ export default function CustomerPage() {
           ))}
         </div>
 
+        {/* Active Discount Campaigns Banner */}
+        {activeDiscounts.length > 0 && (
+          <div className="mb-3 space-y-1.5">
+            {activeDiscounts.map(d => (
+              <div key={d.id} className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2" data-testid={`discount-banner-${d.id}`}>
+                <Tag className="w-4 h-4 text-green-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-green-800 truncate">{d.name}</p>
+                  <p className="text-[10px] text-green-600">
+                    {d.discount_type === 'percentage' ? `${d.value}% endirim` : `${d.value} AZN endirim`}
+                    {d.min_order_amount > 0 && ` (min. ${d.min_order_amount} AZN)`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Menu Items */}
         <div className="space-y-2.5">
           {filteredItems.map(item => {
@@ -321,10 +339,13 @@ export default function CustomerPage() {
                       <span className="font-medium text-[#181C1A]">{(item.discounted_price || (item.price * item.quantity)).toFixed(2)} AZN</span>
                     </div>
                   ))}
-                  {order.service_charge_amount > 0 && (
-                    <div className="flex justify-between text-[10px] text-[#D48B30] pt-1 border-t border-dashed border-[#E8E8E4] mt-1">
-                      <span>Xidmət haqqı ({order.service_charge_percentage}%)</span>
-                      <span>+{order.service_charge_amount?.toFixed(2)} AZN</span>
+                  {order.discount_amount > 0 && (
+                    <div className="flex justify-between text-[10px] text-green-600 pt-1 border-t border-dashed border-[#E8E8E4] mt-1">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        {order.discount_name || 'Endirim'} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
+                      </span>
+                      <span>-{order.discount_amount?.toFixed(2)} AZN</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs font-bold text-[#181C1A] pt-1.5 border-t border-[#E8E8E4] mt-1.5">

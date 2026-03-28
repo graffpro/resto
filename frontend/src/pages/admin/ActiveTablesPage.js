@@ -509,7 +509,7 @@ export default function ActiveTablesPage() {
           ) : sessionDetails ? (
             <div className="space-y-5">
               {/* Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#E6E5DF]">
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Məkan</p>
                   <p className="text-sm font-medium text-[#181C1A] mt-1">{sessionDetails.venue?.name}</p>
@@ -522,12 +522,6 @@ export default function ActiveTablesPage() {
                   <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Endirim</p>
                   <p className="text-sm font-medium text-[#3E6A4B] mt-1">
                     -{(sessionDetails.orders || []).reduce((s, o) => s + (o.discount_amount || 0), 0).toFixed(2)} AZN
-                  </p>
-                </div>
-                <div className="bg-[#F9F9F7] rounded-xl p-3 text-center border border-[#D48B30]/30">
-                  <p className="text-[10px] text-[#8A948D] uppercase tracking-wider">Xidmət haqqı</p>
-                  <p className="text-sm font-medium text-[#D48B30] mt-1">
-                    +{(sessionDetails.orders || []).reduce((s, o) => s + (o.service_charge_amount || 0), 0).toFixed(2)} AZN
                   </p>
                 </div>
                 <div className="bg-[#2A3A2C] rounded-xl p-3 text-center">
@@ -593,18 +587,12 @@ export default function ActiveTablesPage() {
                         ))}
                       </div>
                       
-                      {/* Order level discount & service charge */}
+                      {/* Order level discount (no per-order service charge) */}
                       <div className="space-y-1 mb-2">
                         {order.discount_amount > 0 && (
                           <div className="flex justify-between text-[10px]">
                             <span className="text-[#3E6A4B] flex items-center gap-1"><Tag className="w-3 h-3" />{order.discount_name || 'Endirim'} ({order.discount_value}{order.discount_type === 'percentage' ? '%' : ' AZN'})</span>
                             <span className="text-[#3E6A4B]">-{order.discount_amount?.toFixed(2)} AZN</span>
-                          </div>
-                        )}
-                        {order.service_charge_amount > 0 && (
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-[#D48B30]">Xidmət haqqı ({order.service_charge_percentage}%)</span>
-                            <span className="text-[#D48B30]">+{order.service_charge_amount?.toFixed(2)} AZN</span>
                           </div>
                         )}
                       </div>
@@ -790,14 +778,6 @@ export default function ActiveTablesPage() {
                             {order.discount_name} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
                           </span>
                           <span>-{order.discount_amount?.toFixed(2)} AZN</span>
-                        </div>
-                      )}
-
-                      {/* Service charge per order */}
-                      {order.service_charge_amount > 0 && (
-                        <div className="flex justify-between text-sm py-2 border-t border-dashed border-[#E2E8E2] text-[#D48B30]">
-                          <span>Xidmət haqqı ({order.service_charge_percentage || billSummary?.service_charge_percentage || 10}%)</span>
-                          <span>+{order.service_charge_amount?.toFixed(2)} AZN</span>
                         </div>
                       )}
 

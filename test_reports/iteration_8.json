@@ -1,0 +1,101 @@
+{
+  "summary": "Iteration 8 testing complete. All backend tests passed (9/9). Frontend UI verified for service charge removal from per-order, discount banners on customer page, discount details in orders, timed service buttons (Verildi/Yetərlidir), and table transfer functionality.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All Dialog modals", "issues": ["Missing aria-describedby attribute for accessibility (console warning) - minor, inherited from previous iterations"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration8_features.py",
+    "/app/test_reports/pytest/iteration8_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed syntax error in ActiveTablesPage.js line 598 (extra closing brace)",
+    "POST /api/orders correctly sets service_charge_amount=0 (no per-order service charge)",
+    "POST /api/sessions/close/{id} correctly calculates service_charge on total (10% = 8.91 AZN on 89.1 AZN)",
+    "GET /api/discounts/active returns active discount campaigns for customer view",
+    "PUT /api/timed-services/{id}/serve creates order with service_charge_amount=0",
+    "PUT /api/timed-services/{id}/stop correctly deactivates timed service (is_active=false)",
+    "Customer page shows active discount campaign banners at top of menu",
+    "Customer 'Sifarişlərim' shows discount per order (discount_name, discount_amount)",
+    "Customer page does NOT show service charge per order (correct)",
+    "Admin session detail does NOT show per-order service charge (correct)",
+    "Bill summary modal shows service charge as total only (total_service_charge)",
+    "Session detail shows 'Masa Dəyişdir' button for transfer",
+    "Timed service has both 'Verildi' and 'Yetərlidir' buttons"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration8_features.py",
+    "/app/frontend/src/pages/admin/ActiveTablesPage.js"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "100% (all UI elements present and functional)"
+  },
+  "test_credentials": {
+    "admin": {"username": "admin1", "password": "admin123", "PIN": "1234"}
+  },
+  "seed_data_creation": "Created test orders and timed services during testing (cleaned up after tests)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 8 features fully tested. Key changes: 1) Service charge removed from per-order calculation - now only applied when admin closes table (total_service_charge in bill_summary). 2) Customer sees active discount campaign banners via GET /api/discounts/active. 3) Customer 'Sifarişlərim' shows discount_name and discount_amount per order. 4) Timed service 'Verildi' creates order with service_charge_amount=0. 5) Timed service 'Yetərlidir' stops service (is_active=false). 6) Table transfer via POST /api/sessions/transfer works correctly.",
+  "features_tested": {
+    "order_no_service_charge": "PASS - POST /api/orders sets service_charge_amount=0",
+    "close_session_service_charge": "PASS - POST /api/sessions/close calculates total_service_charge on total",
+    "active_discounts_api": "PASS - GET /api/discounts/active returns active campaigns",
+    "session_transfer": "PASS - POST /api/sessions/transfer moves session to new table",
+    "transfer_fails_same_table": "PASS - Returns 400 for same table",
+    "timed_service_serve_no_charge": "PASS - PUT /api/timed-services/{id}/serve creates order with service_charge_amount=0",
+    "timed_service_stop": "PASS - PUT /api/timed-services/{id}/stop sets is_active=false",
+    "customer_discount_banners": "PASS - Active discount banners displayed on customer page",
+    "customer_orders_discount": "PASS - Discount name and amount shown in 'Sifarişlərim'",
+    "customer_no_per_order_service_charge": "PASS - No service charge displayed per order",
+    "admin_no_per_order_service_charge": "PASS - No service charge displayed per order in session details",
+    "bill_summary_service_charge": "PASS - Service charge shown as total in bill summary",
+    "transfer_button": "PASS - 'Masa Dəyişdir' button present in session details",
+    "verildi_button": "PASS - 'Verildi' button present for timed services",
+    "yeterlidir_button": "PASS - 'Yetərlidir' button present for timed services"
+  },
+  "api_endpoints_tested": [
+    "POST /api/auth/login - PASS",
+    "GET /api/discounts/active - PASS (returns active discount campaigns)",
+    "POST /api/orders - PASS (service_charge_amount=0)",
+    "POST /api/sessions/close/{id} - PASS (calculates total_service_charge)",
+    "POST /api/sessions/transfer - PASS (moves session to new table)",
+    "PUT /api/timed-services/{id}/serve - PASS (creates order without service charge)",
+    "PUT /api/timed-services/{id}/stop - PASS (deactivates service)"
+  ],
+  "ui_verification": {
+    "customer_page": {
+      "discount_banners": "PASS - '50 AZN+ Endirim - 15% endirim (min. 50 AZN)' displayed",
+      "orders_panel_discount": "PASS - Shows discount name and amount per order",
+      "no_per_order_service_charge": "PASS - Service charge not shown per order"
+    },
+    "admin_session_details": {
+      "summary_cards": "PASS - Shows Məkan, Sifariş, Endirim, Cəmi",
+      "order_discount": "PASS - Shows discount per order",
+      "no_per_order_service_charge": "PASS - Service charge not shown per order",
+      "transfer_button": "PASS - 'Masa Dəyişdir' button present",
+      "close_button": "PASS - 'Hesabı Bağla' button present",
+      "timed_service_buttons": "PASS - 'Verildi' and 'Yetərlidir' buttons present"
+    },
+    "bill_summary_modal": {
+      "service_charge_total": "PASS - Shows total_service_charge (10% = 8.91 AZN)",
+      "discounts_applied": "PASS - Shows discounts_applied array"
+    }
+  },
+  "bill_summary_example": {
+    "subtotal": 99.0,
+    "total_discount": 9.9,
+    "total_service_charge": 8.91,
+    "service_charge_percentage": 10,
+    "total_amount": 98.01
+  }
+}

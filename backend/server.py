@@ -23,19 +23,24 @@ import re
 import requests
 import hashlib
 
+# Shared modules (new modular architecture)
+from database import db, client, JWT_SECRET, JWT_ALGORITHM
+from models import (
+    UserRole, OrderStatus, Restaurant, RestaurantCreate, User, UserCreate,
+    LoginRequest, Venue, VenueCreate, Table, TableCreate, TableSession,
+    Category, CategoryCreate, MenuItem, MenuItemCreate, OrderItem, Order,
+    OrderCreate, ShiftLogCreate, PointsAction, IngredientCreate,
+    StockTransactionCreate, RecipeCreate, TimedServiceCreate, TableTransferRequest
+)
+from auth import create_token, verify_token, get_current_user, hash_password, verify_password
+from ws_manager import manager, voice_manager, ConnectionManager, VoiceCallManager
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer()
-
-JWT_SECRET = os.environ.get('JWT_SECRET', 'your-secret-key-change-in-production')
-JWT_ALGORITHM = 'HS256'
 
 # ==================== OBJECT STORAGE ====================
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
@@ -1158,8 +1163,13 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
     # Calculate totals
     subtotal = sum(o.get('subtotal', o.get('total_amount', 0)) for o in orders)
     total_discount = sum(o.get('discount_amount', 0) for o in orders)
-    total_service_charge = sum(o.get('service_charge_amount', 0) for o in orders)
-    total_amount = sum(o.get('total_amount', 0) for o in orders)
+    orders_total = sum(o.get('total_amount', 0) for o in orders)
+    
+    # Calculate service charge on the final total (applied only at close)
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    service_charge_pct = settings.get('service_charge_percentage', 0) if settings else 0
+    total_service_charge = round(orders_total * (service_charge_pct / 100), 2) if service_charge_pct > 0 else 0
+    total_amount = round(orders_total + total_service_charge, 2)
     
     # Collect discount details
     discounts_applied = []
@@ -1206,9 +1216,6 @@ async def close_session(session_id: str, current_user: dict = Depends(get_curren
     
     # Deactivate any timed services for this session
     await deactivate_session_timed_services(session_id)
-    
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    service_charge_pct = settings.get('service_charge_percentage', 0) if settings else 0
     
     # Return detailed bill summary
     return {
@@ -1410,15 +1417,7 @@ async def create_order(order: OrderCreate):
         
         total_amount = subtotal - discount_amount
     
-    # Apply service charge from restaurant settings
-    service_charge_pct = 0
-    service_charge_amount = 0
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    if settings:
-        service_charge_pct = settings.get('service_charge_percentage', 0)
-    if service_charge_pct > 0:
-        service_charge_amount = round(total_amount * (service_charge_pct / 100), 2)
-        total_amount = total_amount + service_charge_amount
+    # Service charge is NOT applied per order - only when admin closes the session
 
     order_obj = Order(
         order_number=order_number,
@@ -1431,8 +1430,8 @@ async def create_order(order: OrderCreate):
         discount_type=discount_type,
         discount_value=discount_value,
         discount_amount=round(discount_amount, 2),
-        service_charge_percentage=service_charge_pct,
-        service_charge_amount=round(service_charge_amount, 2),
+        service_charge_percentage=0,
+        service_charge_amount=0,
         total_amount=round(total_amount, 2)
     )
     
@@ -2595,14 +2594,8 @@ async def mark_timed_service_served(service_id: str, current_user: dict = Depend
     # Add the served item to the session's orders (create a mini order)
     session = await db.table_sessions.find_one({"id": svc['session_id'], "is_active": True}, {"_id": 0})
     if session:
-        # Get settings for service charge
-        settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-        service_charge_pct = settings.get('service_charge_percentage', 0) if settings else 0
-        
         item_price = svc.get('menu_item_price', 0)
         subtotal = item_price
-        service_charge_amount = round(subtotal * (service_charge_pct / 100), 2) if service_charge_pct > 0 else 0
-        total = round(subtotal + service_charge_amount, 2)
         
         # Generate order number
         order_count = await db.orders.count_documents({})
@@ -2627,9 +2620,9 @@ async def mark_timed_service_served(service_id: str, current_user: dict = Depend
             "discount_type": None,
             "discount_value": 0,
             "discount_amount": 0,
-            "service_charge_percentage": service_charge_pct,
-            "service_charge_amount": service_charge_amount,
-            "total_amount": total,
+            "service_charge_percentage": 0,
+            "service_charge_amount": 0,
+            "total_amount": subtotal,
             "status": "delivered",
             "ordered_at": now.isoformat(),
             "notes": f"Vaxtlı xidmət: {svc.get('notes', '')}" if svc.get('notes') else "Vaxtlı xidmət"
