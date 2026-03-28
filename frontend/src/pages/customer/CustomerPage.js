@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Minus, ShoppingCart, Receipt, Search, Tag, ChevronDown, X, Clock } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Receipt, Search, Tag, X, Clock, Info, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import az from '@/translations/az';
@@ -26,11 +25,13 @@ export default function CustomerPage() {
   const [activeDiscounts, setActiveDiscounts] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
+  const [serviceChargePercentage, setServiceChargePercentage] = useState(0);
 
   useEffect(() => {
     initSession();
     fetchMenu();
     fetchActiveDiscounts();
+    fetchSettings();
   }, [tableId]);
 
   useEffect(() => {
@@ -40,6 +41,22 @@ export default function CustomerPage() {
       return () => clearInterval(interval);
     }
   }, [session]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await axios.get(`${API}/settings`);
+      setServiceChargePercentage(response.data.service_charge_percentage || 0);
+    } catch {}
+  };
+
+  const estimatedServiceCharge = useMemo(() => {
+    if (serviceChargePercentage <= 0 || totalBill <= 0) return 0;
+    return Math.round(totalBill * (serviceChargePercentage / 100) * 100) / 100;
+  }, [totalBill, serviceChargePercentage]);
+
+  const estimatedGrandTotal = useMemo(() => {
+    return Math.round((totalBill + estimatedServiceCharge) * 100) / 100;
+  }, [totalBill, estimatedServiceCharge]);
 
   const initSession = async () => {
     try {
@@ -185,7 +202,7 @@ export default function CustomerPage() {
                 <button onClick={() => setShowOrders(!showOrders)} className="relative px-3 py-1.5 rounded-full bg-[#2A3A2C] text-white text-[10px] font-medium" data-testid="show-orders-btn">
                   <Clock className="w-3 h-3 inline mr-1" />
                   {orders.length} sifariş
-                  {totalBill > 0 && <span className="ml-1 opacity-70">({totalBill.toFixed(0)} AZN)</span>}
+                  {estimatedGrandTotal > 0 && <span className="ml-1 opacity-70">({estimatedGrandTotal.toFixed(0)} AZN)</span>}
                 </button>
               )}
               {cartItemCount > 0 && (
@@ -274,11 +291,14 @@ export default function CustomerPage() {
                     <div className="flex items-start justify-between gap-1">
                       <h3 className="text-sm font-semibold text-[#181C1A] leading-tight truncate">{item.name}</h3>
                       {hasDiscount && (
-                        <span className="shrink-0 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">-{item.discount_percentage}%</span>
+                        <span className="shrink-0 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold" data-testid={`item-discount-badge-${item.id}`}>-{item.discount_percentage}%</span>
                       )}
                     </div>
                     {item.description && (
                       <p className="text-[10px] text-[#8A948D] mt-0.5 line-clamp-1">{item.description}</p>
+                    )}
+                    {hasDiscount && (
+                      <p className="text-[9px] text-green-600 font-medium mt-0.5" data-testid={`item-discount-reason-${item.id}`}>Xüsusi endirim: -{item.discount_percentage}%</p>
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-1.5">
@@ -321,31 +341,52 @@ export default function CustomerPage() {
       {/* Orders Overlay */}
       {showOrders && (
         <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={() => setShowOrders(false)}>
-          <div className="absolute bottom-0 left-0 right-0 max-h-[70vh] bg-white rounded-t-3xl overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="orders-panel">
-            <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-4 py-3 flex items-center justify-between">
-              <h2 className="font-bold text-[#181C1A]">Sifarişlərim</h2>
-              <button onClick={() => setShowOrders(false)}><X className="w-5 h-5 text-[#8A948D]" /></button>
+          <div className="absolute bottom-0 left-0 right-0 max-h-[75vh] bg-white rounded-t-3xl overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="orders-panel">
+            <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-4 py-3 flex items-center justify-between z-10">
+              <h2 className="font-bold text-[#181C1A]" data-testid="orders-panel-title">Sifarişlərim</h2>
+              <button onClick={() => setShowOrders(false)} data-testid="close-orders-btn"><X className="w-5 h-5 text-[#8A948D]" /></button>
             </div>
             <div className="p-4 space-y-3">
+              {orders.length === 0 && (
+                <p className="text-center text-sm text-[#8A948D] py-6" data-testid="no-orders-msg">Hələ sifariş yoxdur</p>
+              )}
               {orders.map(order => (
-                <div key={order.id} className="border border-[#E8E8E4] rounded-xl p-3">
+                <div key={order.id} className="border border-[#E8E8E4] rounded-xl p-3" data-testid={`order-card-${order.id}`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-[#181C1A]">#{order.order_number}</span>
                     {getStatusBadge(order.status)}
                   </div>
-                  {order.items.map((item, i) => (
-                    <div key={i} className="flex justify-between text-xs text-[#5C665F] py-0.5">
-                      <span>{item.name} x{item.quantity}</span>
-                      <span className="font-medium text-[#181C1A]">{(item.discounted_price || (item.price * item.quantity)).toFixed(2)} AZN</span>
-                    </div>
-                  ))}
+                  {order.items.map((item, i) => {
+                    const originalPrice = item.price * item.quantity;
+                    const finalPrice = item.discounted_price != null ? item.discounted_price : originalPrice;
+                    const hasItemDiscount = item.discount_percentage > 0;
+                    return (
+                      <div key={i} className="py-1">
+                        <div className="flex justify-between text-xs text-[#5C665F]">
+                          <span className="flex-1">{item.name} x{item.quantity}</span>
+                          <div className="text-right">
+                            {hasItemDiscount && (
+                              <span className="line-through text-[10px] text-[#B0B5B2] mr-1">{originalPrice.toFixed(2)}</span>
+                            )}
+                            <span className="font-medium text-[#181C1A]">{finalPrice.toFixed(2)} AZN</span>
+                          </div>
+                        </div>
+                        {hasItemDiscount && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Percent className="w-2.5 h-2.5 text-green-600" />
+                            <span className="text-[10px] text-green-600 font-medium">Məhsul endirimi: -{item.discount_percentage}%</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {order.discount_amount > 0 && (
-                    <div className="flex justify-between text-[10px] text-green-600 pt-1 border-t border-dashed border-[#E8E8E4] mt-1">
-                      <span className="flex items-center gap-1">
+                    <div className="bg-green-50 rounded-lg px-2 py-1.5 mt-1.5 flex justify-between items-center">
+                      <span className="flex items-center gap-1 text-[10px] text-green-700 font-medium">
                         <Tag className="w-3 h-3" />
-                        {order.discount_name || 'Endirim'} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
+                        {order.discount_name || 'Kampaniya endirimi'} ({order.discount_type === 'percentage' ? `${order.discount_value}%` : `${order.discount_value} AZN`})
                       </span>
-                      <span>-{order.discount_amount?.toFixed(2)} AZN</span>
+                      <span className="text-[10px] text-green-700 font-bold">-{order.discount_amount?.toFixed(2)} AZN</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs font-bold text-[#181C1A] pt-1.5 border-t border-[#E8E8E4] mt-1.5">
@@ -354,10 +395,36 @@ export default function CustomerPage() {
                   </div>
                 </div>
               ))}
-              <div className="bg-[#2A3A2C] text-white rounded-xl p-4 text-center">
-                <p className="text-xs text-white/60">Ümumi hesab</p>
-                <p className="text-2xl font-bold">{totalBill.toFixed(2)} AZN</p>
-              </div>
+
+              {/* Bill Summary with Service Charge */}
+              {orders.length > 0 && (
+                <div className="bg-[#2A3A2C] text-white rounded-xl p-4 space-y-2" data-testid="bill-summary">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/70">Sifarişlər cəmi</span>
+                    <span>{totalBill.toFixed(2)} AZN</span>
+                  </div>
+                  {serviceChargePercentage > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/70 flex items-center gap-1">
+                        Servis haqqı ({serviceChargePercentage}%)
+                        <Info className="w-3 h-3 opacity-50" />
+                      </span>
+                      <span>+{estimatedServiceCharge.toFixed(2)} AZN</span>
+                    </div>
+                  )}
+                  <div className="border-t border-white/20 pt-2 mt-1">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[10px] text-white/50 uppercase tracking-wide">Təxmini ümumi hesab</p>
+                      </div>
+                      <p className="text-2xl font-bold" data-testid="grand-total">{estimatedGrandTotal.toFixed(2)} AZN</p>
+                    </div>
+                  </div>
+                  {serviceChargePercentage > 0 && (
+                    <p className="text-[9px] text-white/40 text-center">* Servis haqqı masa bağlananda hesablanır</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -377,10 +444,13 @@ export default function CustomerPage() {
                 const hasDiscount = menuItem?.discount_percentage > 0;
                 const unitPrice = hasDiscount ? item.price * (1 - menuItem.discount_percentage / 100) : item.price;
                 return (
-                  <div key={item.id} className="flex items-center justify-between">
+                  <div key={item.id} className="flex items-center justify-between" data-testid={`cart-item-${item.id}`}>
                     <div className="flex-1 min-w-0 mr-2">
                       <p className="text-sm font-medium text-[#181C1A] truncate">{item.name}</p>
-                      <p className="text-[10px] text-[#8A948D]">{unitPrice.toFixed(2)} AZN/ədəd</p>
+                      <p className="text-[10px] text-[#8A948D]">
+                        {hasDiscount && <span className="text-green-600 mr-1">(-{menuItem.discount_percentage}%)</span>}
+                        {unitPrice.toFixed(2)} AZN/ədəd
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button onClick={() => updateCartQuantity(item.id, -1)} className="w-7 h-7 rounded-full border border-[#E8E8E4] flex items-center justify-center">
@@ -424,6 +494,12 @@ export default function CustomerPage() {
                       <span>Cəmi</span>
                       <span>{calc.total.toFixed(2)} AZN</span>
                     </div>
+                    {serviceChargePercentage > 0 && (
+                      <p className="text-[10px] text-[#8A948D] mt-1 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        {serviceChargePercentage}% servis haqqı masa bağlananda əlavə olunacaq
+                      </p>
+                    )}
                   </div>
                 );
               })()}
