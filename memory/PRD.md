@@ -1,49 +1,32 @@
 # Real-Time QR-Code Restaurant Management System - PRD
 
 ## Original Problem Statement
-Real-Time In-House QR-Code Restaurant Management System with **Multi-Restaurant (Multi-Tenant) Architecture**.
-
-- **Owner (Sahib):** Manages multiple restaurants. Creates time-limited Administrators.
-- **Admin (Administrator):** Manages restaurant. Edits orders, manages venues/tables/users/staff/inventory.
-- **Deep Analytics & Inventory:** Detailed inventory tracking and staff management with points system.
-- **UI/UX:** Modern, sleek, informative design with smaller fonts. All text in Azerbaijani. "Masa" not "Stol".
+Multi-Restaurant (Multi-Tenant) QR-Code Restaurant Management System with Owner/Admin/Kitchen/Waiter/Customer roles.
 
 ## Technical Stack
-- Frontend: React 18, Shadcn/UI, TailwindCSS, Outfit + Manrope fonts
-- Backend: FastAPI (Python), MongoDB, WebSocket, JWT/RBAC, WebRTC, Object Storage
-- Design: Terracotta (#C05C3D) + Forest Green (#2A3A2C) + Warm Gray (#F9F9F7)
+- Frontend: React 18, Shadcn/UI, TailwindCSS
+- Backend: FastAPI, MongoDB, WebSocket, JWT/RBAC, WebRTC, Object Storage
 
-## What's Been Implemented
+## What's Been Implemented (Complete)
 
-### Phase 1-7: Core System (Complete)
-- Full CRUD, Auth, Analytics, Inventory, Staff, Recipe auto-deduction, WebSocket
+### Core: Auth, CRUD, QR, Orders, Analytics, Expenses, Multi-menu, Reservations, Discounts, PIN protection
+### Multi-Restaurant: Restaurant CRUD, cascading deactivation, time-limited admins
+### UI/UX: Modern design, dark sidebars, terracotta/green theme, "Masa" not "Stol"
+### Admin Features: Order editing, Venues & Tables CRUD, Users CRUD
+### Staff & Inventory: Points, shifts, recipes, auto-deduction from stock
+### Voice & Timed Services: WebRTC live calls, timed table service with alarm
+### Quality & Security: Service charge display, venue grouping, image upload, customer redesign, security headers
 
-### Phase 8: Voice Call & Timed Services (Complete)
-- Settings Page, Recipe in Menu, Timed Table Service, WebRTC Voice Calls
-
-### Phase 9: Quality & Security (Complete - March 2026)
-- "Stol" → "Masa", Service charge display, Venue grouping, Session cascade delete
-- Image upload via Object Storage, Customer page redesign, WebSocket stability
-- Security headers, input sanitization
-
-### Phase 9.1: Timed Service Alarm (Complete - March 2026)
-- **Sound alarm**: "ding ding, ding ding, ding ding" pattern when timed service is due
-- **Visual alert**: Table card flashes red with pulse animation
-- **Red badge**: Shows menu item name (e.g., "Çay") on the alerting table
-- **Button text**: Changes to "Xidmət vaxtı çatıb!" (Service time arrived!)
-- **Repeat alarm**: Sounds every 8 seconds until "Verildi" (Served) is clicked
-- **Auto-stop**: Alarm stops when service is marked as served
+### Latest Features (March 2026):
+- **Verildi = Hesaba Əlavə**: Vaxtlı xidmət "Verildi" basılanda sifariş yaradılır (TS- prefix)
+- **Yetərlidir düyməsi**: Müştəri daha istəmirsə vaxtlı xidməti dayandırır
+- **Masa Dəyişdir**: Admin müştərini bir masadan digərinə köçürə bilər (session, orders, timed_services hamısı köçürülür)
+- **Vaxtlı Xidmət Alarmı**: Masa kartı qırmızı yanıb sönür, "ding ding" səs çalır
 
 ## Credentials
 - Owner: `owner` / `owner123`
 - Admin: `admin1` / `admin123` (PIN: 1234)
 
 ## Remaining Tasks
-
-### P1 (High Priority)
-- [ ] Refactor `server.py` (~2600 lines) into `/routes/`, `/models/` modules
-
-### P2 (Medium Priority)
-- [ ] WhatsApp Integration (Twilio API key required)
-- [ ] Performance optimization (N+1 queries)
-- [ ] Accessibility fixes (aria-describedby)
+### P1: Refactor `server.py` (~2700 lines) into modular routes
+### P2: WhatsApp/Twilio integration, Performance optimization
