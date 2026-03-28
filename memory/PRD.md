@@ -1,32 +1,34 @@
 # Real-Time QR-Code Restaurant Management System - PRD
 
 ## Original Problem Statement
-Multi-Restaurant (Multi-Tenant) QR-Code Restaurant Management System with Owner/Admin/Kitchen/Waiter/Customer roles.
+Multi-Restaurant (Multi-Tenant) QR-Code Restaurant Management System.
 
 ## Technical Stack
 - Frontend: React 18, Shadcn/UI, TailwindCSS
 - Backend: FastAPI, MongoDB, WebSocket, JWT/RBAC, WebRTC, Object Storage
+- Modular: database.py, models.py, auth.py, ws_manager.py + server.py
 
-## What's Been Implemented (Complete)
+## Implemented Features (All Complete & Tested)
 
-### Core: Auth, CRUD, QR, Orders, Analytics, Expenses, Multi-menu, Reservations, Discounts, PIN protection
+### Core: Auth, CRUD, QR, Orders, Analytics, Expenses, Multi-menu, Reservations, Discounts, PIN
 ### Multi-Restaurant: Restaurant CRUD, cascading deactivation, time-limited admins
-### UI/UX: Modern design, dark sidebars, terracotta/green theme, "Masa" not "Stol"
-### Admin Features: Order editing, Venues & Tables CRUD, Users CRUD
+### UI/UX: Modern design, "Masa" (not "Stol"), terracotta/green theme
 ### Staff & Inventory: Points, shifts, recipes, auto-deduction from stock
-### Voice & Timed Services: WebRTC live calls, timed table service with alarm
-### Quality & Security: Service charge display, venue grouping, image upload, customer redesign, security headers
-
-### Latest Features (March 2026):
-- **Verildi = Hesaba Əlavə**: Vaxtlı xidmət "Verildi" basılanda sifariş yaradılır (TS- prefix)
-- **Yetərlidir düyməsi**: Müştəri daha istəmirsə vaxtlı xidməti dayandırır
-- **Masa Dəyişdir**: Admin müştərini bir masadan digərinə köçürə bilər (session, orders, timed_services hamısı köçürülür)
-- **Vaxtlı Xidmət Alarmı**: Masa kartı qırmızı yanıb sönür, "ding ding" səs çalır
+### Voice & Timed Services: WebRTC live calls, timed table service with alarm (ding-ding), Verildi/Yetərlidir
+### Image Upload: Menu items via Object Storage
+### Customer: Redesigned compact menu with images, search, categories, cart
+### Table Transfer: Admin moves session between tables
+### Service Charge: Applied ONLY at table close (not per order), shown in bill summary
+### Discounts: Customer sees campaign banners + discount details in orders
+### Security: Headers, input sanitization, rate limiter
+### Refactoring: Shared modules (database.py, models.py, auth.py, ws_manager.py)
 
 ## Credentials
-- Owner: `owner` / `owner123`
+- Owner: `owner` / `owner123`  
 - Admin: `admin1` / `admin123` (PIN: 1234)
 
 ## Remaining Tasks
-### P1: Refactor `server.py` (~2700 lines) into modular routes
-### P2: WhatsApp/Twilio integration, Performance optimization
+### P2: WhatsApp/Twilio integration (requires user API key)
+### P2: Performance optimization (N+1 queries)
+### P3: Accessibility (aria-describedby on dialogs)
+### P3: Multi-language support
