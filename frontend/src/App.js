@@ -2,12 +2,22 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import '@/App.css';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import LoginPage from '@/pages/LoginPage';
-import OwnerDashboard from '@/pages/owner/OwnerDashboard';
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import KitchenDashboard from '@/pages/kitchen/KitchenDashboard';
-import WaiterDashboard from '@/pages/waiter/WaiterDashboard';
-import CustomerPage from '@/pages/customer/CustomerPage';
+import { lazy, Suspense } from 'react';
+
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const OwnerDashboard = lazy(() => import('@/pages/owner/OwnerDashboard'));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const KitchenDashboard = lazy(() => import('@/pages/kitchen/KitchenDashboard'));
+const WaiterDashboard = lazy(() => import('@/pages/waiter/WaiterDashboard'));
+const CustomerPage = lazy(() => import('@/pages/customer/CustomerPage'));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F9F9F7]" role="status" aria-label="Yüklənir">
+      <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent"></div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
@@ -36,15 +46,15 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/table/:tableId" element={<CustomerPage />} />
-      <Route path="/customer/:tableId" element={<CustomerPage />} />
+      <Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
+      <Route path="/table/:tableId" element={<Suspense fallback={<PageLoader />}><CustomerPage /></Suspense>} />
+      <Route path="/customer/:tableId" element={<Suspense fallback={<PageLoader />}><CustomerPage /></Suspense>} />
       
       <Route
         path="/owner/*"
         element={
           <ProtectedRoute allowedRoles={['owner']}>
-            <OwnerDashboard />
+            <Suspense fallback={<PageLoader />}><OwnerDashboard /></Suspense>
           </ProtectedRoute>
         }
       />
@@ -53,7 +63,7 @@ function AppRoutes() {
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={['admin', 'owner']}>
-            <AdminDashboard />
+            <Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>
           </ProtectedRoute>
         }
       />
@@ -62,7 +72,7 @@ function AppRoutes() {
         path="/kitchen"
         element={
           <ProtectedRoute allowedRoles={['kitchen']}>
-            <KitchenDashboard />
+            <Suspense fallback={<PageLoader />}><KitchenDashboard /></Suspense>
           </ProtectedRoute>
         }
       />
@@ -71,7 +81,7 @@ function AppRoutes() {
         path="/waiter"
         element={
           <ProtectedRoute allowedRoles={['waiter']}>
-            <WaiterDashboard />
+            <Suspense fallback={<PageLoader />}><WaiterDashboard /></Suspense>
           </ProtectedRoute>
         }
       />

@@ -29,19 +29,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" data-testid="login-page">
+    <div className="min-h-screen flex" data-testid="login-page" role="main">
       {/* Left - Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" aria-hidden="true">
         <img
           src="https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/bd5f07138fc166454b3ad2256f020efc946ad91278e4bdfaa5d7d9cc1f3707ab.png"
-          alt="Restaurant"
+          alt="Restoran interyeri"
           className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1A251E]/90 via-[#1A251E]/40 to-transparent" />
         <div className="relative z-10 flex flex-col justify-end p-12 text-white">
           <img
             src="https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/51e072b5ec80fc46021df0d71dbee36c21f565c5904af6647ff4730065da4795.png"
-            alt="Logo"
+            alt="QR Restoran logosu"
             className="w-14 h-14 mb-6 rounded-xl"
           />
           <h1 className="heading-font text-3xl font-light tracking-tight mb-2">QR Restoran</h1>
@@ -58,7 +59,7 @@ export default function LoginPage() {
             <div className="lg:hidden flex items-center gap-3 mb-8">
               <img
                 src="https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/51e072b5ec80fc46021df0d71dbee36c21f565c5904af6647ff4730065da4795.png"
-                alt="Logo"
+                alt="QR Restoran logosu"
                 className="w-10 h-10 rounded-xl"
               />
               <span className="heading-font text-lg font-medium text-[#181C1A]">QR Restoran</span>
@@ -67,22 +68,24 @@ export default function LoginPage() {
             <p className="text-sm text-[#5C665F] mt-1">Hesabınıza giriş edin</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" aria-label="Giriş formu">
             <div>
               <Label htmlFor="username" className="text-xs font-medium text-[#5C665F] uppercase tracking-wider">
                 {az.username}
               </Label>
               <div className="relative mt-1.5">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" aria-hidden="true" />
                 <Input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
+                  autoComplete="username"
                   className="pl-10 h-11 text-sm bg-white border-[#E6E5DF] rounded-xl focus:border-[#C05C3D] focus:ring-[#C05C3D]"
                   placeholder="İstifadəçi adınız"
                   data-testid="username-input"
+                  aria-required="true"
                 />
               </div>
             </div>
@@ -92,16 +95,18 @@ export default function LoginPage() {
                 {az.password}
               </Label>
               <div className="relative mt-1.5">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" aria-hidden="true" />
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   className="pl-10 h-11 text-sm bg-white border-[#E6E5DF] rounded-xl focus:border-[#C05C3D] focus:ring-[#C05C3D]"
                   placeholder="Şifrəniz"
                   data-testid="password-input"
+                  aria-required="true"
                 />
               </div>
             </div>
@@ -111,12 +116,13 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white h-11 text-sm font-medium rounded-xl transition-all duration-300 active:scale-[0.98]"
               data-testid="login-button"
+              aria-label={loading ? 'Yüklənir...' : 'Daxil olun'}
             >
               {loading ? az.loading : az.loginButton}
             </Button>
           </form>
 
-          <div className="mt-8 p-3 bg-[#F0EFEA] rounded-xl border border-[#E6E5DF]">
+          <div className="mt-8 p-3 bg-[#F0EFEA] rounded-xl border border-[#E6E5DF]" role="note" aria-label="Demo giriş məlumatları">
             <p className="text-xs text-[#8A948D] text-center">
               Demo giriş: <span className="font-medium text-[#5C665F]">owner / owner123</span>
             </p>

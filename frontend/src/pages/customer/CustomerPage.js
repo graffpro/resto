@@ -188,9 +188,9 @@ export default function CustomerPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8]" data-testid="customer-page">
+    <div className="min-h-screen bg-[#FAFAF8]" data-testid="customer-page" role="main" aria-label="Müştəri menyusu">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E8E8E4]">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#E8E8E4]" role="banner">
         <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
@@ -226,11 +226,12 @@ export default function CustomerPage() {
             placeholder="Axtar..."
             className="pl-9 h-9 text-sm bg-white border-[#E8E8E4] rounded-xl"
             data-testid="menu-search"
+            aria-label="Menyu axtarışı"
           />
         </div>
 
         {/* Categories */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-hide" role="tablist" aria-label="Kateqoriyalar">
           <button
             onClick={() => setSelectedCategory('all')}
             className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
@@ -277,7 +278,7 @@ export default function CustomerPage() {
               <div key={item.id} className="bg-white rounded-xl border border-[#E8E8E4] overflow-hidden flex" data-testid={`menu-item-${item.id}`}>
                 {item.image_url ? (
                   <div className="w-24 h-24 shrink-0 bg-[#F5F5F3]">
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
+                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.parentElement.style.display = 'none'; }} />
                   </div>
                 ) : (
                   <div className="w-16 h-24 shrink-0 bg-gradient-to-br from-[#E8E8E4] to-[#F5F5F3] flex items-center justify-center">
