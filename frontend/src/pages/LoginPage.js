@@ -121,12 +121,6 @@ export default function LoginPage() {
               {loading ? az.loading : az.loginButton}
             </Button>
           </form>
-
-          <div className="mt-8 p-3 bg-[#F0EFEA] rounded-xl border border-[#E6E5DF]" role="note" aria-label="Demo giriş məlumatları">
-            <p className="text-xs text-[#8A948D] text-center">
-              Demo giriş: <span className="font-medium text-[#5C665F]">owner / owner123</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
