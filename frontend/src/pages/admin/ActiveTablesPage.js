@@ -30,6 +30,9 @@ export default function ActiveTablesPage() {
   const [timedServices, setTimedServices] = useState([]);
   const [showTimedDialog, setShowTimedDialog] = useState(false);
   const [timedForm, setTimedForm] = useState({ menu_item_id: '', interval_minutes: 45, notes: '' });
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [allTables, setAllTables] = useState([]);
+  const [transferTargetId, setTransferTargetId] = useState('');
   
   // Global timed services alert state
   const [allActiveTimedServices, setAllActiveTimedServices] = useState([]);
@@ -41,6 +44,7 @@ export default function ActiveTablesPage() {
     fetchSessions();
     fetchClosedSessions();
     fetchMenuItems();
+    fetchAllTables();
     const interval = setInterval(fetchSessions, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -114,6 +118,13 @@ export default function ActiveTablesPage() {
       const res = await axios.get(`${API}/menu-items`);
       setMenuItems(res.data);
     } catch (e) { /* silent */ }
+  };
+
+  const fetchAllTables = async () => {
+    try {
+      const res = await axios.get(`${API}/tables`);
+      setAllTables(res.data);
+    } catch { /* silent */ }
   };
 
   const fetchTimedServices = async (sessionId) => {
@@ -270,7 +281,41 @@ export default function ActiveTablesPage() {
       await axios.delete(`${API}/timed-services/${svcId}`);
       toast.success('Vaxtlı xidmət silindi');
       fetchTimedServices(selectedSession.id);
+      fetchAllActiveTimedServices();
     } catch { toast.error('Xəta'); }
+  };
+
+  const stopTimedService = async (svcId) => {
+    try {
+      await axios.put(`${API}/timed-services/${svcId}/stop`);
+      toast.success('Vaxtlı xidmət dayandırıldı');
+      setAlertedServiceIds(prev => {
+        const next = new Set(prev);
+        next.delete(svcId);
+        return next;
+      });
+      fetchTimedServices(selectedSession.id);
+      fetchAllActiveTimedServices();
+    } catch { toast.error('Xəta'); }
+  };
+
+  const transferTable = async () => {
+    if (!transferTargetId || !selectedSession) { toast.error('Masa seçin'); return; }
+    try {
+      const res = await axios.post(`${API}/sessions/transfer`, {
+        session_id: selectedSession.id,
+        new_table_id: transferTargetId
+      });
+      toast.success(res.data.message);
+      setShowTransferDialog(false);
+      setTransferTargetId('');
+      setSelectedSession(null);
+      setSessionDetails(null);
+      fetchSessions();
+      fetchAllTables();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Köçürmə xətası');
+    }
   };
 
   const markTimedServiceServed = async (svcId) => {
@@ -610,6 +655,9 @@ export default function ActiveTablesPage() {
                               <Button variant="outline" size="sm" onClick={() => markTimedServiceServed(svc.id)} className="h-6 px-2 text-[10px] rounded-lg border-[#4F9D69] text-[#4F9D69]" data-testid={`mark-served-${svc.id}`}>
                                 Verildi
                               </Button>
+                              <Button variant="outline" size="sm" onClick={() => stopTimedService(svc.id)} className="h-6 px-2 text-[10px] rounded-lg border-[#8A948D] text-[#8A948D]" data-testid={`stop-timed-${svc.id}`}>
+                                Yetərlidir
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => deleteTimedService(svc.id)} className="h-6 w-6 p-0 text-red-500" data-testid={`delete-timed-${svc.id}`}>
                                 <Trash2 className="w-3 h-3" />
                               </Button>
@@ -626,7 +674,16 @@ export default function ActiveTablesPage() {
 
               {/* Close Session Button - ONLY inside detail modal */}
               {selectedSession?.is_active && (
-                <div className="flex justify-end pt-4 border-t border-[#E6E5DF]">
+                <div className="flex justify-between items-center pt-4 border-t border-[#E6E5DF]">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowTransferDialog(true)}
+                    className="text-xs h-9 rounded-xl border-[#4F9D69] text-[#4F9D69]"
+                    data-testid="transfer-table-btn"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                    Masa Dəyişdir
+                  </Button>
                   <Button
                     variant="destructive"
                     onClick={() => {
@@ -920,6 +977,48 @@ export default function ActiveTablesPage() {
             </div>
             <Button onClick={createTimedService} className="w-full bg-[#D48B30] hover:bg-[#B87526] text-white rounded-xl text-xs" data-testid="save-timed-service-btn">
               <Timer className="w-3.5 h-3.5 mr-1" /> Başlat
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Table Transfer Dialog */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="heading-font text-base font-medium flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-[#4F9D69]" />
+              Masa Dəyişdir
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-[#F9F9F7] rounded-xl p-3 border border-[#E6E5DF]">
+              <p className="text-[10px] text-[#8A948D]">Hazırkı masa</p>
+              <p className="text-sm font-semibold text-[#181C1A]">Masa {sessionDetails?.table?.table_number}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-[#5C665F]">Yeni masa seçin *</Label>
+              <Select value={transferTargetId} onValueChange={setTransferTargetId}>
+                <SelectTrigger className="h-9" data-testid="transfer-table-select">
+                  <SelectValue placeholder="Masa seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allTables
+                    .filter(t => t.id !== sessionDetails?.table?.id)
+                    .map(t => {
+                      const hasSession = sessions.some(s => (s.session || s).table_id === t.id);
+                      return (
+                        <SelectItem key={t.id} value={t.id} disabled={hasSession}>
+                          Masa {t.table_number} {hasSession ? '(Tutulub)' : ''}
+                        </SelectItem>
+                      );
+                    })
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={transferTable} className="w-full bg-[#4F9D69] hover:bg-[#3E7E55] text-white rounded-xl text-xs" data-testid="confirm-transfer-btn">
+              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Köçür
             </Button>
           </div>
         </DialogContent>

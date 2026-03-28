@@ -2592,6 +2592,59 @@ async def mark_timed_service_served(service_id: str, current_user: dict = Depend
     now = datetime.now(timezone.utc)
     next_serve = now + timedelta(minutes=svc['interval_minutes'])
     
+    # Add the served item to the session's orders (create a mini order)
+    session = await db.table_sessions.find_one({"id": svc['session_id'], "is_active": True}, {"_id": 0})
+    if session:
+        # Get settings for service charge
+        settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+        service_charge_pct = settings.get('service_charge_percentage', 0) if settings else 0
+        
+        item_price = svc.get('menu_item_price', 0)
+        subtotal = item_price
+        service_charge_amount = round(subtotal * (service_charge_pct / 100), 2) if service_charge_pct > 0 else 0
+        total = round(subtotal + service_charge_amount, 2)
+        
+        # Generate order number
+        order_count = await db.orders.count_documents({})
+        order_number = f"TS-{order_count + 1:04d}"
+        
+        order_doc = {
+            "id": str(uuid.uuid4()),
+            "order_number": order_number,
+            "session_id": svc['session_id'],
+            "table_id": svc['table_id'],
+            "items": [{
+                "menu_item_id": svc['menu_item_id'],
+                "name": svc['menu_item_name'],
+                "price": item_price,
+                "quantity": 1,
+                "discount_percentage": 0,
+                "discounted_price": item_price
+            }],
+            "subtotal": subtotal,
+            "discount_id": None,
+            "discount_name": None,
+            "discount_type": None,
+            "discount_value": 0,
+            "discount_amount": 0,
+            "service_charge_percentage": service_charge_pct,
+            "service_charge_amount": service_charge_amount,
+            "total_amount": total,
+            "status": "delivered",
+            "ordered_at": now.isoformat(),
+            "notes": f"Vaxtlı xidmət: {svc.get('notes', '')}" if svc.get('notes') else "Vaxtlı xidmət"
+        }
+        await db.orders.insert_one(order_doc)
+        order_doc.pop('_id', None)
+        
+        # Notify via WebSocket
+        table = await db.tables.find_one({"id": svc['table_id']}, {"_id": 0})
+        await manager.broadcast_to_role({
+            "type": "timed_service_order",
+            "data": {"order": order_doc, "table": table, "timed_service": svc},
+            "timestamp": now.isoformat()
+        }, "kitchen")
+    
     await db.timed_services.update_one({"id": service_id}, {"$set": {
         "last_served_at": now.isoformat(),
         "next_serve_at": next_serve.isoformat(),
@@ -2600,6 +2653,15 @@ async def mark_timed_service_served(service_id: str, current_user: dict = Depend
     
     updated = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
     return updated
+
+@api_router.put("/timed-services/{service_id}/stop")
+async def stop_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
+    """Stop a timed service - 'Yetərlidir' (Enough)"""
+    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    if not svc:
+        raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
+    await db.timed_services.update_one({"id": service_id}, {"$set": {"is_active": False}})
+    return {"message": "Vaxtlı xidmət dayandırıldı", "is_active": False}
 
 @api_router.delete("/timed-services/{service_id}")
 async def delete_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
@@ -2625,6 +2687,71 @@ async def deactivate_session_timed_services(session_id: str):
         {"session_id": session_id, "is_active": True},
         {"$set": {"is_active": False}}
     )
+
+# ==================== TABLE TRANSFER ====================
+class TableTransferRequest(BaseModel):
+    session_id: str
+    new_table_id: str
+
+@api_router.post("/sessions/transfer")
+async def transfer_table(req: TableTransferRequest, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Verify session exists and is active
+    session = await db.table_sessions.find_one({"id": req.session_id, "is_active": True}, {"_id": 0})
+    if not session:
+        raise HTTPException(status_code=404, detail="Aktiv sessiya tapılmadı")
+    
+    old_table_id = session['table_id']
+    if old_table_id == req.new_table_id:
+        raise HTTPException(status_code=400, detail="Eyni masa seçilə bilməz")
+    
+    # Verify new table exists
+    new_table = await db.tables.find_one({"id": req.new_table_id}, {"_id": 0})
+    if not new_table:
+        raise HTTPException(status_code=404, detail="Yeni masa tapılmadı")
+    
+    # Check new table doesn't have an active session
+    existing = await db.table_sessions.find_one({"table_id": req.new_table_id, "is_active": True}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu masada artıq aktiv sessiya var")
+    
+    # Transfer: update session, orders, and timed services
+    await db.table_sessions.update_one({"id": req.session_id}, {"$set": {"table_id": req.new_table_id}})
+    await db.orders.update_many({"session_id": req.session_id}, {"$set": {"table_id": req.new_table_id}})
+    await db.timed_services.update_many({"session_id": req.session_id}, {"$set": {
+        "table_id": req.new_table_id,
+        "table_number": new_table.get('table_number', '')
+    }})
+    
+    old_table = await db.tables.find_one({"id": old_table_id}, {"_id": 0})
+    
+    # Notify via WebSocket
+    await manager.broadcast_to_role({
+        "type": "table_transferred",
+        "data": {
+            "session_id": req.session_id,
+            "old_table": old_table,
+            "new_table": new_table
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }, "kitchen")
+    await manager.broadcast_to_role({
+        "type": "table_transferred",
+        "data": {
+            "session_id": req.session_id,
+            "old_table": old_table,
+            "new_table": new_table
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }, "waiter")
+    
+    return {
+        "message": f"Masa {old_table.get('table_number','')} → Masa {new_table.get('table_number','')} köçürüldü",
+        "old_table": old_table,
+        "new_table": new_table
+    }
 
 
 # Include router at the end after all routes are defined
