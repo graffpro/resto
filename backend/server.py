@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -319,9 +319,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 def generate_qr_code(table_id: str, base_url: str = None) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    if not base_url:
-        base_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+    if not base_url or base_url.strip() == '':
+        base_url = os.environ.get('FRONTEND_URL', '')
     base_url = base_url.rstrip('/')
+    if not base_url:
+        base_url = 'http://localhost:3000'
     qr_data = f"{base_url}/table/{table_id}"
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -393,7 +395,8 @@ async def get_restaurants(current_user: dict = Depends(get_current_user)):
     if current_user['role'] != UserRole.OWNER:
         raise HTTPException(status_code=403, detail="Only owner can view all restaurants")
     
-    restaurants = await db.restaurants.find({"created_by": current_user['id']}, {"_id": 0}).to_list(1000)
+    # Owner sees ALL restaurants (not just their own)
+    restaurants = await db.restaurants.find({}, {"_id": 0}).to_list(1000)
     
     # Add admin count and status for each restaurant
     for rest in restaurants:
@@ -1093,10 +1096,17 @@ async def delete_table(table_id: str, current_user: dict = Depends(get_current_u
     return {"message": "Table deleted"}
 
 @api_router.post("/sessions/start/{table_id}")
-async def start_session(table_id: str):
+async def start_session(table_id: str, request: Request = None):
     table = await db.tables.find_one({"id": table_id}, {"_id": 0})
     if not table:
         raise HTTPException(status_code=404, detail="Table not found")
+    
+    device_id = None
+    try:
+        body = await request.json()
+        device_id = body.get("device_id")
+    except:
+        pass
     
     active_session = await db.table_sessions.find_one({
         "table_id": table_id,
@@ -1106,9 +1116,22 @@ async def start_session(table_id: str):
     if active_session:
         if isinstance(active_session['started_at'], str):
             active_session['started_at'] = datetime.fromisoformat(active_session['started_at'])
+        
+        stored_device = active_session.get("device_id")
+        is_owner = (not stored_device) or (stored_device == device_id)
+        
+        # If no device was registered yet, register this one
+        if not stored_device and device_id:
+            await db.table_sessions.update_one(
+                {"id": active_session["id"]},
+                {"$set": {"device_id": device_id}}
+            )
+            is_owner = True
+        
         return {
             "session": active_session,
-            "table": table
+            "table": table,
+            "is_session_owner": is_owner
         }
     
     session_token = str(uuid.uuid4())
@@ -1119,11 +1142,14 @@ async def start_session(table_id: str):
     
     doc = session.model_dump()
     doc['started_at'] = doc['started_at'].isoformat()
+    if device_id:
+        doc['device_id'] = device_id
     await db.table_sessions.insert_one(doc)
     
     return {
         "session": session,
-        "table": table
+        "table": table,
+        "is_session_owner": True
     }
 
 @api_router.get("/sessions/active")
@@ -1879,7 +1905,9 @@ async def regenerate_all_qr(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    base_url = settings.get("base_url") if settings else None
+    base_url = settings.get("base_url", "").strip() if settings else ""
+    if not base_url:
+        raise HTTPException(status_code=400, detail="Əvvəlcə Ayarlarda sayt ünvanını daxil edin")
     tables = await db.tables.find({}, {"_id": 0}).to_list(1000)
     count = 0
     for t in tables:

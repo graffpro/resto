@@ -28,6 +28,17 @@ export default function CustomerPage() {
   const [serviceChargePercentage, setServiceChargePercentage] = useState(0);
   const [callingWaiter, setCallingWaiter] = useState(false);
   const [venueRules, setVenueRules] = useState([]);
+  const [isSessionOwner, setIsSessionOwner] = useState(true);
+
+  // Generate or retrieve device ID
+  const getDeviceId = () => {
+    let id = localStorage.getItem('qr_device_id');
+    if (!id) {
+      id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+      localStorage.setItem('qr_device_id', id);
+    }
+    return id;
+  };
 
   useEffect(() => {
     initSession();
@@ -82,9 +93,11 @@ export default function CustomerPage() {
 
   const initSession = async () => {
     try {
-      const response = await axios.post(`${API}/sessions/start/${tableId}`);
+      const deviceId = getDeviceId();
+      const response = await axios.post(`${API}/sessions/start/${tableId}`, { device_id: deviceId });
       setSession(response.data.session);
       setTable(response.data.table);
+      setIsSessionOwner(response.data.is_session_owner !== false);
       if (response.data.table?.venue_id) {
         fetchVenueRules(response.data.table.venue_id);
       }
@@ -254,6 +267,12 @@ export default function CustomerPage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-3 pb-32">
+        {/* Non-owner warning */}
+        {!isSessionOwner && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 text-center" data-testid="non-owner-warning">
+            <p className="text-xs text-red-600 font-medium">Bu masa artıq başqa cihazdan idarə olunur. Yalnız sifarişlərə baxa bilərsiniz.</p>
+          </div>
+        )}
         {/* Search */}
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" />
@@ -356,13 +375,13 @@ export default function CustomerPage() {
                           <Minus className="w-3 h-3 text-[#5C665F]" />
                         </button>
                         <span className="text-xs font-bold w-5 text-center">{inCart.quantity}</span>
-                        <button onClick={() => addToCart(item)} className="w-7 h-7 rounded-full bg-[#C05C3D] flex items-center justify-center text-white" data-testid={`cart-plus-${item.id}`}>
+                        <button onClick={() => addToCart(item)} disabled={!isSessionOwner} className={`w-7 h-7 rounded-full flex items-center justify-center text-white ${isSessionOwner ? 'bg-[#C05C3D]' : 'bg-gray-300 cursor-not-allowed'}`} data-testid={`cart-plus-${item.id}`}>
                           <Plus className="w-3 h-3" />
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => addToCart(item)} className="h-7 px-3 rounded-full bg-[#C05C3D] text-white text-[11px] font-medium flex items-center gap-1" data-testid={`add-to-cart-${item.id}`}>
-                        <Plus className="w-3 h-3" /> Əlavə et
+                      <button onClick={() => addToCart(item)} disabled={!isSessionOwner} className={`h-7 px-3 rounded-full text-white text-[11px] font-medium flex items-center gap-1 ${isSessionOwner ? 'bg-[#C05C3D]' : 'bg-gray-300 cursor-not-allowed'}`} data-testid={`add-to-cart-${item.id}`}>
+                        <Plus className="w-3 h-3" /> {isSessionOwner ? 'Əlavə et' : 'Baxış rejimi'}
                       </button>
                     )}
                   </div>
