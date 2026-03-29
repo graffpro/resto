@@ -47,13 +47,15 @@ STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
 APP_NAME = "qr-restaurant"
 storage_key = None
+LOCAL_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(LOCAL_UPLOAD_DIR, exist_ok=True)
 
 def init_storage():
     global storage_key
     if storage_key:
         return storage_key
     if not EMERGENT_KEY:
-        logging.warning("EMERGENT_LLM_KEY not set, storage disabled")
+        logging.warning("EMERGENT_LLM_KEY not set, using local storage")
         return None
     try:
         resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
@@ -62,13 +64,17 @@ def init_storage():
         logging.info("Object storage initialized")
         return storage_key
     except Exception as e:
-        logging.error(f"Storage init failed: {e}")
+        logging.error(f"Storage init failed: {e}, using local storage")
         return None
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
     key = init_storage()
     if not key:
-        raise HTTPException(status_code=503, detail="Storage not available")
+        # Local fallback
+        local_path = os.path.join(LOCAL_UPLOAD_DIR, os.path.basename(path))
+        with open(local_path, "wb") as f:
+            f.write(data)
+        return {"path": os.path.basename(path), "size": len(data), "local": True}
     resp = requests.put(
         f"{STORAGE_URL}/objects/{path}",
         headers={"X-Storage-Key": key, "Content-Type": content_type},
@@ -78,6 +84,14 @@ def put_object(path: str, data: bytes, content_type: str) -> dict:
     return resp.json()
 
 def get_object(path: str):
+    # Try local first
+    local_path = os.path.join(LOCAL_UPLOAD_DIR, os.path.basename(path))
+    if os.path.exists(local_path):
+        with open(local_path, "rb") as f:
+            data = f.read()
+        import mimetypes
+        ct = mimetypes.guess_type(local_path)[0] or "application/octet-stream"
+        return data, ct
     key = init_storage()
     if not key:
         raise HTTPException(status_code=503, detail="Storage not available")

@@ -10,6 +10,8 @@ services:
     environment:
       - MONGO_URL=${MONGO_URL}
       - DB_NAME=${DB_NAME:-restaurant_db}
+    volumes:
+      - uploads_data:/app/backend/uploads
     restart: unless-stopped
     depends_on:
       - mongo
@@ -24,3 +26,4 @@ services:
 
 volumes:
   mongo_data:
+  uploads_data:
