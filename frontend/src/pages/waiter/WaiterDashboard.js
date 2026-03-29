@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
-import { RefreshCw, CheckCircle, LogOut, Clock, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, CheckCircle, LogOut, Clock, Wifi, WifiOff, Bell, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,18 +13,50 @@ import { playNotificationSound, initAudio } from '@/utils/notifications';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
+function playDingDing(times = 5) {
+  let count = 0;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const play = () => {
+    if (count >= times) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(1200, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+    count++;
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.frequency.setValueAtTime(1500, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc2.start(ctx.currentTime);
+      osc2.stop(ctx.currentTime + 0.3);
+      setTimeout(play, 600);
+    }, 200);
+  };
+  play();
+}
+
 function WaiterContent() {
   const { user, logout } = useAuth();
   const { isConnected, lastMessage } = useWebSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [waiterCalls, setWaiterCalls] = useState([]);
   const prevOrdersCount = useRef(0);
 
   useEffect(() => {
     initAudio();
     fetchOrders();
-    // Reduced polling interval since we have WebSocket
-    const interval = setInterval(fetchOrders, 15000);
+    fetchWaiterCalls();
+    const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -36,6 +68,12 @@ function WaiterContent() {
       toast.success('Sifariş hazırdır!', { duration: 5000 });
     } else if (lastMessage?.type === 'order_update') {
       fetchOrders();
+    } else if (lastMessage?.type === 'waiter_call') {
+      fetchWaiterCalls();
+      playDingDing(5);
+      toast.error(`Masa ${lastMessage.table_number} ofisiant çağırır!`, { duration: 10000 });
+    } else if (lastMessage?.type === 'waiter_call_ack') {
+      setWaiterCalls(prev => prev.filter(c => c.id !== lastMessage.call_id));
     }
   }, [lastMessage]);
 
@@ -66,6 +104,21 @@ function WaiterContent() {
     } catch (error) {
       toast.error('Xəta baş verdi');
     }
+  };
+
+  const fetchWaiterCalls = async () => {
+    try {
+      const response = await axios.get(`${API}/waiter-calls?status=pending`);
+      setWaiterCalls(response.data || []);
+    } catch {}
+  };
+
+  const acknowledgeCall = async (callId) => {
+    try {
+      await axios.post(`${API}/waiter-call/${callId}/acknowledge`);
+      setWaiterCalls(prev => prev.filter(c => c.id !== callId));
+      toast.success('Qəbul edildi');
+    } catch {}
   };
 
   const getTimeSince = (dateStr) => {
@@ -110,6 +163,37 @@ function WaiterContent() {
             </Button>
           </div>
         </div>
+
+        {/* Waiter Calls - Flashing Red */}
+        {waiterCalls.length > 0 && (
+          <div className="mb-6 space-y-3" data-testid="waiter-calls-section">
+            <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
+              <BellRing className="w-5 h-5 animate-bounce" />
+              Ofisiant çağırışları ({waiterCalls.length})
+            </h2>
+            {waiterCalls.map(call => (
+              <div
+                key={call.id}
+                className="bg-red-50 border-2 border-red-500 rounded-xl p-4 flex items-center justify-between animate-pulse"
+                style={{ animation: 'pulse 0.5s ease-in-out infinite alternate' }}
+                data-testid={`waiter-call-${call.id}`}
+              >
+                <div>
+                  <p className="text-lg font-bold text-red-700">Masa {call.table_number}</p>
+                  <p className="text-xs text-red-500">{new Date(call.created_at).toLocaleTimeString('az-AZ')}</p>
+                </div>
+                <Button
+                  onClick={() => acknowledgeCall(call.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  data-testid={`ack-call-${call.id}`}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Qəbul et
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {orders.length === 0 ? (
           <div className="bg-white border border-[#E6E5DF] rounded-xl p-12 text-center">

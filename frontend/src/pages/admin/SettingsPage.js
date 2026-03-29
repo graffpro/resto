@@ -165,6 +165,43 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* QR Code Base URL */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-[#181C1A]">QR Kod Ayarları</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-xs text-[#5C665F]">Sayt ünvanı (QR kod üçün)</Label>
+              <Input
+                value={settings?.base_url || ''}
+                onChange={(e) => setSettings(s => ({ ...s, base_url: e.target.value }))}
+                placeholder="http://178.18.240.211"
+                data-testid="settings-base-url"
+              />
+              <p className="text-[10px] text-[#5C665F] mt-1">QR kodlarda istifadə olunacaq ünvan. Dəyişdirdikdən sonra "QR Kodları Yenilə" basın.</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch(`${API}/tables/regenerate-qr`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+                  const data = await res.json();
+                  toast.success(data.message || 'QR kodlar yeniləndi');
+                } catch { toast.error('Xəta'); }
+              }}
+              data-testid="regenerate-qr-btn"
+            >
+              QR Kodları Yenilə
+            </Button>
+          </CardContent>
+        </Card>
+
         <Button type="submit" disabled={saving} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white" data-testid="save-settings-btn">
           <Save className="w-4 h-4 mr-2" />
           {saving ? 'Saxlanılır...' : 'Yadda Saxla'}

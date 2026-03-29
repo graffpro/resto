@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Minus, ShoppingCart, Receipt, Search, Tag, X, Clock, Info, Percent } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Receipt, Search, Tag, X, Clock, Info, Percent, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -26,6 +26,8 @@ export default function CustomerPage() {
   const [showCart, setShowCart] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
   const [serviceChargePercentage, setServiceChargePercentage] = useState(0);
+  const [callingWaiter, setCallingWaiter] = useState(false);
+  const [venueRules, setVenueRules] = useState([]);
 
   useEffect(() => {
     initSession();
@@ -49,6 +51,26 @@ export default function CustomerPage() {
     } catch {}
   };
 
+  const fetchVenueRules = async (venueId) => {
+    try {
+      const response = await axios.get(`${API}/venues/${venueId}/order-rules`);
+      setVenueRules(response.data || []);
+    } catch {}
+  };
+
+  const callWaiter = async () => {
+    if (callingWaiter) return;
+    setCallingWaiter(true);
+    try {
+      await axios.post(`${API}/waiter-call/${tableId}`);
+      toast.success('Ofisiant çağırıldı!');
+      setTimeout(() => setCallingWaiter(false), 30000);
+    } catch {
+      toast.error('Xəta baş verdi');
+      setCallingWaiter(false);
+    }
+  };
+
   const estimatedServiceCharge = useMemo(() => {
     if (serviceChargePercentage <= 0 || totalBill <= 0) return 0;
     return Math.round(totalBill * (serviceChargePercentage / 100) * 100) / 100;
@@ -63,6 +85,9 @@ export default function CustomerPage() {
       const response = await axios.post(`${API}/sessions/start/${tableId}`);
       setSession(response.data.session);
       setTable(response.data.table);
+      if (response.data.table?.venue_id) {
+        fetchVenueRules(response.data.table.venue_id);
+      }
     } catch { toast.error('Xəta baş verdi'); }
     finally { setLoading(false); }
   };
@@ -157,7 +182,10 @@ export default function CustomerPage() {
       setCart([]);
       setShowCart(false);
       fetchOrders();
-    } catch { toast.error('Xəta baş verdi'); }
+    } catch (err) {
+      const msg = err?.response?.data?.detail || 'Xəta baş verdi';
+      toast.error(msg);
+    }
   };
 
   const filteredItems = menuItems.filter(item => {
@@ -198,6 +226,15 @@ export default function CustomerPage() {
               <h1 className="text-lg font-bold text-[#181C1A] -mt-0.5">{table?.table_number}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={callWaiter}
+                disabled={callingWaiter}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-medium flex items-center gap-1 transition-all ${callingWaiter ? 'bg-green-600 text-white animate-pulse' : 'bg-amber-500 text-white active:scale-95'}`}
+                data-testid="call-waiter-btn"
+              >
+                <Bell className="w-3 h-3" />
+                {callingWaiter ? 'Çağırıldı' : 'Ofisiant'}
+              </button>
               {orders.length > 0 && (
                 <button onClick={() => setShowOrders(!showOrders)} className="relative px-3 py-1.5 rounded-full bg-[#2A3A2C] text-white text-[10px] font-medium" data-testid="show-orders-btn">
                   <Clock className="w-3 h-3 inline mr-1" />

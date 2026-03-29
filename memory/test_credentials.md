@@ -1,6 +1,10 @@
 # Test Credentials
 
 ## Owner
+- Username: `graff`
+- Password: `Testforresto123`
+
+## Emergent Test Owner
 - Username: `owner`
 - Password: `owner123`
 

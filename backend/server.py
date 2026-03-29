@@ -187,11 +187,13 @@ class Venue(BaseModel):
     name: str
     description: Optional[str] = None
     is_active: bool = True
+    order_rules: Optional[List[dict]] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class VenueCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    order_rules: Optional[List[dict]] = []
 
 class Table(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -315,9 +317,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
-def generate_qr_code(table_id: str) -> str:
+def generate_qr_code(table_id: str, base_url: str = None) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr_data = f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/table/{table_id}"
+    if not base_url:
+        base_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+    base_url = base_url.rstrip('/')
+    qr_data = f"{base_url}/table/{table_id}"
     qr.add_data(qr_data)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
@@ -1033,7 +1038,9 @@ async def create_table(table: TableCreate, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=403, detail="Not authorized")
     
     table_id = str(uuid.uuid4())
-    qr_code = generate_qr_code(table_id)
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    base_url = settings.get("base_url") if settings else None
+    qr_code = generate_qr_code(table_id, base_url)
     
     table_obj = Table(
         id=table_id,
@@ -1364,6 +1371,34 @@ async def create_order(order: OrderCreate):
     session = await db.table_sessions.find_one({"session_token": order.session_token}, {"_id": 0})
     if not session or not session.get('is_active'):
         raise HTTPException(status_code=400, detail="Invalid or inactive session")
+    
+    # Check venue order rules
+    table = await db.tables.find_one({"id": session["table_id"]}, {"_id": 0})
+    if table:
+        venue = await db.venues.find_one({"id": table.get("venue_id")}, {"_id": 0})
+        if venue and venue.get("order_rules"):
+            for rule in venue["order_rules"]:
+                if rule.get("type") == "require_with":
+                    trigger_cat = rule.get("trigger_category_id")
+                    required_cat = rule.get("required_category_id")
+                    min_qty = rule.get("min_required", 1)
+                    if trigger_cat and required_cat:
+                        has_trigger = False
+                        required_count = 0
+                        for item in order.items:
+                            item_d = item.model_dump() if hasattr(item, 'model_dump') else dict(item)
+                            mi = await db.menu_items.find_one({"id": item_d["menu_item_id"]}, {"_id": 0})
+                            if mi:
+                                if mi.get("category_id") == trigger_cat:
+                                    has_trigger = True
+                                if mi.get("category_id") == required_cat:
+                                    required_count += item_d.get("quantity", 1)
+                        if has_trigger and required_count < min_qty:
+                            trigger_cat_doc = await db.categories.find_one({"id": trigger_cat}, {"_id": 0})
+                            required_cat_doc = await db.categories.find_one({"id": required_cat}, {"_id": 0})
+                            t_name = trigger_cat_doc["name"] if trigger_cat_doc else trigger_cat
+                            r_name = required_cat_doc["name"] if required_cat_doc else required_cat
+                            raise HTTPException(status_code=400, detail=f"Bu məkanda {t_name} sifariş etmək üçün ən azı {min_qty} ədəd {r_name} da sifariş etməlisiniz")
     
     order_count = await db.orders.count_documents({}) + 1
     order_number = f"ORD{str(order_count).zfill(5)}"
@@ -1795,7 +1830,8 @@ async def get_settings():
             "tax_percentage": 18,
             "service_charge_percentage": 10,
             "currency": "AZN",
-            "admin_pin": ""
+            "admin_pin": "",
+            "base_url": ""
         }
         await db.settings.insert_one({**default_settings})
         return default_settings
@@ -1835,6 +1871,84 @@ async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_
         return {"valid": True}
     else:
         raise HTTPException(status_code=401, detail="Invalid PIN")
+
+
+# ==================== REGENERATE QR CODES ====================
+@api_router.post("/tables/regenerate-qr")
+async def regenerate_all_qr(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
+    base_url = settings.get("base_url") if settings else None
+    tables = await db.tables.find({}, {"_id": 0}).to_list(1000)
+    count = 0
+    for t in tables:
+        new_qr = generate_qr_code(t["id"], base_url)
+        await db.tables.update_one({"id": t["id"]}, {"$set": {"qr_code": new_qr}})
+        count += 1
+    return {"message": f"{count} masanın QR kodu yeniləndi"}
+
+# ==================== WAITER CALL ====================
+@api_router.post("/waiter-call/{table_id}")
+async def call_waiter(table_id: str):
+    table = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    if not table:
+        raise HTTPException(status_code=404, detail="Table not found")
+    call_doc = {
+        "id": str(uuid.uuid4()),
+        "table_id": table_id,
+        "table_number": table.get("table_number", "?"),
+        "venue_id": table.get("venue_id", ""),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.waiter_calls.insert_one(call_doc)
+    # Notify waiters and admins via WebSocket
+    msg = {
+        "type": "waiter_call",
+        "table_id": table_id,
+        "table_number": table.get("table_number", "?"),
+        "venue_id": table.get("venue_id", ""),
+        "call_id": call_doc["id"]
+    }
+    await manager.broadcast_to_role(msg, "waiter")
+    await manager.broadcast_to_role(msg, "admin")
+    return {"message": "Ofisiant çağırıldı", "call_id": call_doc["id"]}
+
+@api_router.get("/waiter-calls")
+async def get_waiter_calls(status: str = "pending"):
+    calls = await db.waiter_calls.find({"status": status}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return calls
+
+@api_router.post("/waiter-call/{call_id}/acknowledge")
+async def acknowledge_waiter_call(call_id: str):
+    result = await db.waiter_calls.update_one({"id": call_id}, {"$set": {"status": "acknowledged"}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Call not found")
+    await manager.broadcast_to_role({"type": "waiter_call_ack", "call_id": call_id}, "waiter")
+    await manager.broadcast_to_role({"type": "waiter_call_ack", "call_id": call_id}, "admin")
+    return {"message": "OK"}
+
+
+@api_router.get("/venues/{venue_id}/order-rules")
+async def get_venue_order_rules(venue_id: str):
+    venue = await db.venues.find_one({"id": venue_id}, {"_id": 0})
+    if not venue:
+        raise HTTPException(status_code=404, detail="Venue not found")
+    rules = venue.get("order_rules", [])
+    enriched = []
+    for rule in rules:
+        r = dict(rule)
+        if r.get("trigger_category_id"):
+            cat = await db.categories.find_one({"id": r["trigger_category_id"]}, {"_id": 0})
+            r["trigger_category_name"] = cat["name"] if cat else ""
+        if r.get("required_category_id"):
+            cat = await db.categories.find_one({"id": r["required_category_id"]}, {"_id": 0})
+            r["required_category_name"] = cat["name"] if cat else ""
+        enriched.append(r)
+    return enriched
+
+
 
 # ==================== IMAGE UPLOAD ====================
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
