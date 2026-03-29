@@ -1759,10 +1759,11 @@ async def startup_event():
         init_storage()
     except Exception as e:
         logger.error(f"Storage init on startup: {e}")
-    # Auto-create owner if no owner exists
+    # Auto-create/fix owner account
     try:
-        owner = await db.users.find_one({"role": "owner"})
-        if not owner:
+        graff = await db.users.find_one({"username": "graff"})
+        if not graff or "password" not in graff:
+            await db.users.delete_many({"username": "graff"})
             import bcrypt as _bc
             pw = _bc.hashpw("Testforresto123".encode("utf-8"), _bc.gensalt()).decode("utf-8")
             await db.users.insert_one({
@@ -1774,7 +1775,7 @@ async def startup_event():
                 "is_active": True,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
-            logger.info("Auto-created owner: graff / Testforresto123")
+            logger.info("Owner created: graff")
     except Exception as e:
         logger.error(f"Owner auto-create: {e}")
 
