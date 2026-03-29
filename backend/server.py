@@ -1759,6 +1759,24 @@ async def startup_event():
         init_storage()
     except Exception as e:
         logger.error(f"Storage init on startup: {e}")
+    # Auto-create owner if no owner exists
+    try:
+        owner = await db.users.find_one({"role": "owner"})
+        if not owner:
+            import bcrypt as _bc
+            pw = _bc.hashpw("Testforresto123".encode("utf-8"), _bc.gensalt()).decode("utf-8")
+            await db.users.insert_one({
+                "id": str(uuid.uuid4()),
+                "username": "graff",
+                "password": pw,
+                "full_name": "Graff",
+                "role": "owner",
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            logger.info("Auto-created owner: graff / Testforresto123")
+    except Exception as e:
+        logger.error(f"Owner auto-create: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
