@@ -34,7 +34,11 @@ COPY deploy/nginx.conf /etc/nginx/sites-available/default
 # Supervisor config
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/app.conf
 
+# Entrypoint script
+COPY deploy/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Expose port 80
 EXPOSE 80
 
-CMD ["supervisord", "-n", "-c", "/etc/supervisor/conf.d/app.conf"]
+CMD ["/app/entrypoint.sh"]
