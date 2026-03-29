@@ -3,7 +3,7 @@
 # Stage 1: Build React frontend
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/yarn.lock ./
+COPY frontend/package.json ./
 RUN yarn install --production=false
 COPY frontend/ ./
 ARG REACT_APP_BACKEND_URL
