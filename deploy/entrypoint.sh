@@ -23,10 +23,8 @@ from datetime import datetime, timezone
 client = MongoClient(os.environ.get('MONGO_URL', 'mongodb://mongo:27017'))
 db = client[os.environ.get('DB_NAME', 'restaurant_db')]
 
-# Delete ALL old graff records
 db.users.delete_many({'username': 'graff'})
 
-# Create fresh owner
 pw = bcrypt.hashpw('Testforresto123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 db.users.insert_one({
     'id': str(uuid.uuid4()),
@@ -38,11 +36,9 @@ db.users.insert_one({
     'created_at': datetime.now(timezone.utc).isoformat()
 })
 
-# Verify
 user = db.users.find_one({'username': 'graff'})
-assert user is not None, 'FAILED: user not created'
-assert 'password' in user, 'FAILED: password field missing'
-assert bcrypt.checkpw('Testforresto123'.encode('utf-8'), user['password'].encode('utf-8')), 'FAILED: password mismatch'
+assert user and 'password' in user
+assert bcrypt.checkpw('Testforresto123'.encode('utf-8'), user['password'].encode('utf-8'))
 print('Owner OK: graff / Testforresto123')
 client.close()
 "
