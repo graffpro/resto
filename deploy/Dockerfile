@@ -14,31 +14,20 @@ RUN yarn build
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install nginx and supervisor
 RUN apt-get update && apt-get install -y --no-install-recommends nginx supervisor && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
 COPY backend/ ./backend/
-
-# Copy built frontend
 COPY --from=frontend-build /app/frontend/build /var/www/html
-
-# Nginx config
 COPY deploy/nginx.conf /etc/nginx/sites-available/default
-
-# Supervisor config
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/app.conf
-
-# Entrypoint script
 COPY deploy/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Expose port 80
-EXPOSE 80
+ENV PYTHONPATH=/app/backend
 
+EXPOSE 80
 CMD ["/app/entrypoint.sh"]
