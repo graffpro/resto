@@ -1,10 +1,10 @@
 # Multi-stage build for QR Restaurant Management System
 
 # Stage 1: Build React frontend
-FROM node:18-alpine AS frontend-build
+FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/yarn.lock ./
-RUN yarn install --frozen-lockfile --production=false && yarn add ajv@8.12.0
+RUN yarn install --production=false
 COPY frontend/ ./
 ARG REACT_APP_BACKEND_URL
 ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
