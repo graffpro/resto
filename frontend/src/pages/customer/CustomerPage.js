@@ -269,27 +269,28 @@ export default function CustomerPage() {
                 data-testid="call-waiter-btn"
               >
                 <Bell className="w-3.5 h-3.5" />
-                {callingWaiter ? 'Cagirildi' : 'Ofisiant'}
+                {callingWaiter ? 'Cagirildi' : 'Ofitsiant Çağır'}
               </button>
               {orders.length > 0 && (
                 <button
                   onClick={() => setShowOrders(!showOrders)}
-                  className="relative px-3.5 py-2 rounded-full bg-white/10 backdrop-blur text-white text-[11px] font-semibold border border-white/20 hover:bg-white/20 transition-all"
+                  className="relative px-4 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold border border-emerald-400/50 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all active:scale-95"
                   data-testid="show-orders-btn"
                 >
-                  <Receipt className="w-3.5 h-3.5 inline mr-1" />
-                  {orders.length}
-                  {estimatedGrandTotal > 0 && <span className="ml-1 text-amber-300">({estimatedGrandTotal.toFixed(0)})</span>}
+                  <Receipt className="w-4 h-4 inline mr-1.5" />
+                  Sifarişlərim ({orders.length})
+                  {estimatedGrandTotal > 0 && <span className="ml-1 text-emerald-100 font-bold">• {estimatedGrandTotal.toFixed(0)} AZN</span>}
                 </button>
               )}
               {cartItemCount > 0 && (
                 <button
                   onClick={() => setShowCart(!showCart)}
-                  className="relative p-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 transition-all active:scale-95"
+                  className="relative px-4 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white text-xs font-bold shadow-lg shadow-rose-500/40 hover:shadow-rose-500/60 transition-all active:scale-95"
                   data-testid="show-cart-btn"
                 >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-rose-500 text-[10px] font-bold rounded-full flex items-center justify-center shadow">{cartItemCount}</span>
+                  <ShoppingCart className="w-4 h-4 inline mr-1.5" />
+                  Səbət ({cartItemCount})
+                  <span className="ml-1 text-rose-100 font-bold">• {getCartTotal().toFixed(0)} AZN</span>
                 </button>
               )}
             </div>
