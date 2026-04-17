@@ -5,10 +5,34 @@ export const initAudio = () => {
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
+  // CRITICAL: Resume AudioContext on mobile/Capacitor WebView
+  // Mobile browsers suspend AudioContext until user interaction
+  if (audioContext.state === 'suspended') {
+    audioContext.resume().then(() => {
+      console.log('[Audio] AudioContext resumed successfully');
+    }).catch(e => console.error('[Audio] Resume failed:', e));
+  }
+  return audioContext;
 };
+
+// Force resume on any user interaction (for mobile)
+const forceResumeAudio = () => {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+};
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', forceResumeAudio, { passive: true });
+  document.addEventListener('touchstart', forceResumeAudio, { passive: true });
+  document.addEventListener('touchend', forceResumeAudio, { passive: true });
+}
 
 export const playNotificationSound = () => {
   if (!audioContext) initAudio();
+  // Ensure resumed before playing
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
   
   try {
     const oscillator = audioContext.createOscillator();
@@ -53,6 +77,7 @@ export const playOrderSound = playNotificationSound;
 // Ding-ding alarm for timed services (repeating pattern)
 export const playTimedServiceAlarm = () => {
   if (!audioContext) initAudio();
+  if (audioContext.state === 'suspended') audioContext.resume();
   
   try {
     const playDing = (startTime, freq) => {
@@ -69,7 +94,6 @@ export const playTimedServiceAlarm = () => {
     };
 
     const now = audioContext.currentTime;
-    // ding ding, ding ding, ding ding pattern
     playDing(now, 1200);
     playDing(now + 0.18, 1200);
     playDing(now + 0.5, 1200);
@@ -85,10 +109,15 @@ export const playTimedServiceAlarm = () => {
 // Returns an object with a stop() method
 export const startContinuousAlarm = (intervalMs = 3000) => {
   if (!audioContext) initAudio();
+  if (audioContext.state === 'suspended') audioContext.resume();
   let stopped = false;
   
   const playLoudAlarm = () => {
     if (stopped || !audioContext) return;
+    // Resume every time in case it got suspended again
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
     try {
       const now = audioContext.currentTime;
       const playTone = (time, freq, dur) => {
@@ -98,15 +127,18 @@ export const startContinuousAlarm = (intervalMs = 3000) => {
         gain.connect(audioContext.destination);
         osc.frequency.setValueAtTime(freq, time);
         osc.type = 'square';
-        gain.gain.setValueAtTime(0.35, time);
+        gain.gain.setValueAtTime(0.5, time);
         gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
         osc.start(time);
         osc.stop(time + dur);
       };
+      // Louder and more urgent pattern
       playTone(now, 1400, 0.15);
-      playTone(now + 0.2, 1600, 0.15);
+      playTone(now + 0.2, 1800, 0.15);
       playTone(now + 0.4, 1400, 0.15);
-      playTone(now + 0.6, 1600, 0.15);
+      playTone(now + 0.6, 1800, 0.15);
+      playTone(now + 0.8, 1400, 0.15);
+      playTone(now + 1.0, 1800, 0.15);
     } catch (e) {
       console.error('Alarm error:', e);
     }

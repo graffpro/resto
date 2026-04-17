@@ -18,15 +18,23 @@ export function WebSocketProvider({ children, role }) {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const backendUrl = process.env.REACT_APP_BACKEND_URL?.replace(/^https?:/, '') || '';
-    const wsUrl = `${wsProtocol}${backendUrl}/api/ws/${role}`;
+    // Use REACT_APP_BACKEND_URL if set, otherwise fall back to current page host
+    const envUrl = process.env.REACT_APP_BACKEND_URL;
+    let wsHost;
+    if (envUrl && envUrl.length > 1) {
+      wsHost = envUrl.replace(/^https?:\/\//, '');
+    } else {
+      wsHost = window.location.host;
+    }
+    const wsUrl = `${wsProtocol}//${wsHost}/api/ws/${role}`;
+    console.log('[WS] Connecting to:', wsUrl);
 
     try {
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
+        console.log('[WS] Connected');
         setIsConnected(true);
-        // Ping every 15s to keep connection alive through proxies
         if (pingInterval.current) clearInterval(pingInterval.current);
         pingInterval.current = setInterval(() => {
           if (ws.current?.readyState === WebSocket.OPEN) {
@@ -52,17 +60,18 @@ export function WebSocketProvider({ children, role }) {
       };
 
       ws.current.onclose = () => {
+        console.log('[WS] Disconnected, reconnecting...');
         setIsConnected(false);
         if (pingInterval.current) clearInterval(pingInterval.current);
-        // Reconnect faster - 1.5s
         reconnectTimeout.current = setTimeout(connect, 1500);
       };
 
-      ws.current.onerror = () => {
-        // Force close to trigger reconnect
+      ws.current.onerror = (err) => {
+        console.error('[WS] Error:', err);
         if (ws.current) ws.current.close();
       };
     } catch (error) {
+      console.error('[WS] Connection failed:', error);
       reconnectTimeout.current = setTimeout(connect, 2000);
     }
   }, [role]);
@@ -70,7 +79,17 @@ export function WebSocketProvider({ children, role }) {
   useEffect(() => {
     if (role) connect();
 
+    // Reconnect when app comes back from background (Capacitor)
+    const handleResume = () => {
+      console.log('[WS] App resumed, reconnecting...');
+      if (ws.current?.readyState !== WebSocket.OPEN) {
+        connect();
+      }
+    };
+    window.addEventListener('capacitor-resume', handleResume);
+
     return () => {
+      window.removeEventListener('capacitor-resume', handleResume);
       if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
       if (pingInterval.current) clearInterval(pingInterval.current);
       if (ws.current) ws.current.close();
