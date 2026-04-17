@@ -509,34 +509,47 @@ export default function CustomerPage() {
               {isSessionOwner && (() => {
                 const inCart = cart.find(c => c.id === selectedItem.id);
                 return (
-                  <div className="flex items-center gap-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      {inCart && (
+                        <div className="flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-2">
+                          <button
+                            onClick={() => updateCartQuantity(selectedItem.id, -1)}
+                            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20"
+                            data-testid="modal-cart-minus"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="text-lg font-bold text-white w-6 text-center">{inCart.quantity}</span>
+                          <button
+                            onClick={() => addToCart(selectedItem)}
+                            className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black hover:bg-amber-400"
+                            data-testid="modal-cart-plus"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      <Button
+                        onClick={() => { addToCart(selectedItem); }}
+                        className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black rounded-2xl text-sm font-bold shadow-lg shadow-amber-500/30"
+                        data-testid="modal-add-to-cart"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {inCart ? 'Daha əlavə et' : 'Səbətə əlavə et'}
+                      </Button>
+                    </div>
+                    {/* Go to Cart button - shows when item is in cart */}
                     {inCart && (
-                      <div className="flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-2">
-                        <button
-                          onClick={() => updateCartQuantity(selectedItem.id, -1)}
-                          className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20"
-                          data-testid="modal-cart-minus"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="text-lg font-bold text-white w-6 text-center">{inCart.quantity}</span>
-                        <button
-                          onClick={() => addToCart(selectedItem)}
-                          className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black hover:bg-amber-400"
-                          data-testid="modal-cart-plus"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <Button
+                        onClick={() => { setSelectedItem(null); setShowCart(true); }}
+                        className="w-full h-12 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white rounded-2xl text-sm font-bold shadow-lg shadow-rose-500/30"
+                        data-testid="modal-go-to-cart"
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Səbətə keç ({cart.reduce((s, i) => s + i.quantity, 0)} məhsul)
+                      </Button>
                     )}
-                    <Button
-                      onClick={() => { addToCart(selectedItem); }}
-                      className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black rounded-2xl text-sm font-bold shadow-lg shadow-amber-500/30"
-                      data-testid="modal-add-to-cart"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {inCart ? 'Daha elave et' : 'Sebete elave et'}
-                    </Button>
                   </div>
                 );
               })()}
@@ -705,6 +718,15 @@ export default function CustomerPage() {
                         {serviceChargePercentage}% servis haqqi masa baglananda elave olunacaq
                       </p>
                     )}
+                    {/* Place Order Button inside Cart */}
+                    <Button
+                      onClick={() => { setShowCart(false); placeOrder(); }}
+                      className="w-full h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-2xl text-base font-bold shadow-lg shadow-emerald-500/30 mt-4"
+                      data-testid="cart-place-order-btn"
+                    >
+                      <Receipt className="w-5 h-5 mr-2" />
+                      Sifariş Ver • {calc.total.toFixed(2)} AZN
+                    </Button>
                   </div>
                 );
               })()}
