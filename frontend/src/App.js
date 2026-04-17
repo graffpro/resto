@@ -71,7 +71,7 @@ function AppRoutes() {
       <Route
         path="/kitchen"
         element={
-          <ProtectedRoute allowedRoles={['kitchen']}>
+          <ProtectedRoute allowedRoles={['kitchen', 'bar']}>
             <Suspense fallback={<PageLoader />}><KitchenDashboard /></Suspense>
           </ProtectedRoute>
         }
@@ -93,6 +93,7 @@ function AppRoutes() {
             user.role === 'owner' ? <Navigate to="/owner" replace /> :
             user.role === 'admin' ? <Navigate to="/admin" replace /> :
             user.role === 'kitchen' ? <Navigate to="/kitchen" replace /> :
+            user.role === 'bar' ? <Navigate to="/kitchen" replace /> :
             user.role === 'waiter' ? <Navigate to="/waiter" replace /> :
             <Navigate to="/login" replace />
           ) : (

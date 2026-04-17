@@ -1,115 +1,148 @@
 {
   "theme": "light",
-  "archetype": "Organic & Earthy (Luxury Variant)",
-  "typography": {
-    "fonts": {
-      "heading": "Outfit, sans-serif",
-      "body": "Manrope, sans-serif"
-    },
-    "scale": {
-      "h1": "text-4xl sm:text-5xl font-light tracking-tight text-neutral-900",
-      "h2": "text-2xl sm:text-3xl font-medium tracking-tight text-neutral-900",
-      "h3": "text-xl sm:text-2xl font-medium tracking-tight text-neutral-900",
-      "h4": "text-lg font-medium text-neutral-800",
-      "body": "text-base leading-relaxed text-neutral-600 font-normal",
-      "small": "text-sm text-neutral-500",
-      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-[#C05C3D]"
-    }
-  },
+  "archetype": "4 (Swiss & High-Contrast)",
+  "language": "Azerbaijani",
+  "core_principles": [
+    "Fusion over Imitation: B2B SaaS structure combined with high-end hospitality elegance.",
+    "Emotion First: The landing page must evoke 'relief from chaos'—shifting from messy restaurant management to a crisp, controlled command center.",
+    "Contrast: Stark white base with near-black typography and one vibrant, appetizing accent (Tomato/Orange-Red).",
+    "Negative Space: Massive padding for a premium, uncrowded feel.",
+    "The Anti-Default: Avoid generic SaaS illustrations. Use real photos of modern POS or restaurant interiors, layered with sharp geometric UI components."
+  ],
   "colors": {
     "background": {
-      "main": "#F9F9F7",
-      "surface": "#FFFFFF",
-      "sidebar": "#1A251E"
-    },
-    "primary": {
-      "DEFAULT": "#C05C3D",
-      "hover": "#A64D31",
-      "foreground": "#FFFFFF"
-    },
-    "secondary": {
-      "DEFAULT": "#2A3A2C",
-      "hover": "#1A251E",
-      "foreground": "#FFFFFF"
+      "primary": "#FAFAFA",
+      "secondary": "#FFFFFF",
+      "glass": "bg-white/70 backdrop-blur-xl backdrop-saturate-150"
     },
     "text": {
-      "primary": "#181C1A",
-      "secondary": "#5C665F",
-      "muted": "#8A948D"
+      "primary": "#0A0A0A",
+      "secondary": "#525252",
+      "inverse": "#FFFFFF",
+      "accent": "#E0402A"
     },
-    "border": {
-      "DEFAULT": "#E6E5DF",
-      "strong": "#D1D0C8"
+    "brand": {
+      "primary": "#E0402A",
+      "primary_hover": "#C93622",
+      "border": "#E5E5E5"
     },
     "status": {
-      "success": "#3E6A4B",
-      "warning": "#D48B30",
-      "error": "#B74134",
-      "info": "#4A6B8C"
+      "success": "#10B981",
+      "warning": "#F59E0B"
+    }
+  },
+  "typography": {
+    "headings": {
+      "family": "Cabinet Grotesk",
+      "weight": "font-bold to font-black",
+      "tracking": "tracking-tighter",
+      "sizes": {
+        "h1": "text-4xl sm:text-5xl lg:text-6xl leading-[1.05]",
+        "h2": "text-3xl sm:text-4xl lg:text-5xl leading-tight",
+        "h3": "text-xl sm:text-2xl"
+      }
+    },
+    "body": {
+      "family": "Satoshi, sans-serif",
+      "weight": "font-normal",
+      "sizes": {
+        "large": "text-lg",
+        "base": "text-base",
+        "small": "text-sm"
+      }
+    },
+    "labels": {
+      "style": "uppercase tracking-[0.2em] text-xs font-semibold text-gray-500"
     }
   },
   "spacing_and_layout": {
-    "philosophy": "Generous Spacing Philosophy. Use 2-3x more spacing. Containers with borders must have internal padding (p-6 or p-8).",
-    "dashboard_grid": "MODE B: THE 'CONTROL ROOM' GRID. Tight gaps (gap-6). Every pixel utilized. h-full on children.",
-    "marketing_grid": "MODE A: THE 'TETRIS' GRID for the Customer QR ordering landing page. Asymmetry, visual tension.",
-    "border_radius": "rounded-2xl for main cards, rounded-xl for inner widgets. Organic, smooth edges.",
-    "shadows": "shadow-[0_8px_30px_rgba(42,58,44,0.04)] for hovering cards, flat default with 1px border."
-  },
-  "motion_and_interactions": {
-    "hover_states": "Slight lift (-translate-y-1) and enhanced shadow. Buttons must explicitly set text color on hover (hover:text-white).",
-    "transitions": "transition-all duration-300 ease-out",
-    "page_load": "framer-motion for staggered entrance of dashboard cards and menu items."
+    "padding": "Generous. Use p-8 to p-12 for bento grid cards. Use py-24 to py-32 for section spacing.",
+    "grid_strategy": {
+      "features": "MODE A: The 'Tetris' Grid. Base grid-cols-1 md:grid-cols-12 gap-8. Mix tall (col-span-4 row-span-2), wide (col-span-8), and square blocks.",
+      "how_it_works": "Vertical timeline or staggered alternating grid with connecting lines.",
+      "dashboard_preview": "MODE B: 'Control Room' grid for the UI mockups within the features."
+    },
+    "borders": "1px solid border-gray-200. No soft drop shadows for cards—use sharp 1px borders to ground them (Grid Borders variant)."
   },
   "components": {
-    "buttons": "Rounded-full or rounded-xl. High contrast. Primary uses Terracotta (#C05C3D), Secondary uses Forest Green (#2A3A2C).",
-    "cards": "Flat background (#FFFFFF), 1px subtle border (#E6E5DF), no shadow by default. Hover adds slight lift and shadow.",
-    "sidebar": "Dark mode sidebar (#1A251E) with white/muted text for contrast against the light dashboard (#F9F9F7). Glassmorphism on mobile.",
-    "tables": "Shadcn tables. Minimalist, no vertical borders, generous row padding (py-4).",
-    "modals": "Glassmorphism overlays (backdrop-blur-xl bg-black/40). Modal body is solid #FFFFFF, rounded-2xl.",
-    "qr_ordering_page": "Mobile-first, masonry or bento layout for categories. High quality images with subtle gradient overlays for text readability. Bottom sticky cart bar."
+    "buttons": {
+      "primary": "bg-[#E0402A] text-white hover:bg-[#C93622] rounded-none px-6 py-3 font-medium transition-colors",
+      "secondary": "bg-transparent border border-[#0A0A0A] text-[#0A0A0A] hover:bg-gray-50 rounded-none px-6 py-3 transition-colors"
+    },
+    "cards": {
+      "bento_item": "bg-white border border-gray-200 p-8 flex flex-col justify-between overflow-hidden relative group hover:border-[#0A0A0A] transition-colors duration-300"
+    },
+    "forms": {
+      "inputs": "Shadcn components heavily customized: rounded-none, border-gray-300 focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A]"
+    },
+    "navigation": "Sticky crystal glass header (z-50) over content. Includes Logo (QR Restoran), feature links, and 'Pulsuz Qeydiyyat' CTA.",
+    "icons": "Use Phosphor Icons (@phosphor-icons/react) with Duotone weight for a premium, layered tech look."
   },
-  "accessibility_and_testing": {
-    "data_testid": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case, role-based.",
-    "contrast": "Text over images must use gradient overlay. Hover and focus states must have higher contrast."
-  },
+  "pages_and_sections": [
+    {
+      "name": "Header",
+      "content": "Logo (QR Restoran), Links: Xüsusiyyətlər, Necə İşləyir, FAQ. Button: Pulsuz Qeydiyyat. Style: Crystal Glass over content."
+    },
+    {
+      "name": "Hero Section",
+      "content": "H1: 'Restoranınızı Rəqəmsallaşdırın. Xaosu İdarə Edin.' (Digitize your restaurant. Manage the chaos.) Subheadline explaining the all-in-one POS, QR Menu, and KDS system. CTA: 'İndi Başlayın' (Start Now). Split layout with high-quality restaurant interior image on the right or background."
+    },
+    {
+      "name": "Features Bento Grid",
+      "content": "Highlight: QR Menu, Kitchen Display (KDS), Multi-Kitchen Routing, Live WebSocket Orders, Inventory Management, Staff Management. Use the Tetris grid. E.g., large card for KDS, tall card for QR Menu preview."
+    },
+    {
+      "name": "How It Works",
+      "content": "3-step process. 1. Qeydiyyatdan Keçin (Register). 2. Menyunu Yaradın (Create Menu). 3. Sifarişləri Qəbul Edin (Receive Orders). Use large typography numbers."
+    },
+    {
+      "name": "FAQ",
+      "content": "Accordion section (Shadcn Accordion) with questions about setup time, pricing, hardware support."
+    },
+    {
+      "name": "Footer",
+      "content": "Massive typography for 'QR Restoran' at the bottom. Links, contact info, dark section (bg-black text-white) to contrast the rest of the light page."
+    },
+    {
+      "name": "Registration Modal/Flow",
+      "content": "Clean, minimal Shadcn dialog or split-page for new restaurant owners. Fields: Restaurant Name, Owner Name, Phone, Email, Password. Submit CTA."
+    }
+  ],
   "media": {
-    "image_urls": [
-      {
-        "url": "https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/bd5f07138fc166454b3ad2256f020efc946ad91278e4bdfaa5d7d9cc1f3707ab.png",
-        "description": "Wide-angle photograph of a modern high-end restaurant interior at golden hour, warm ambient lighting reflecting off polished wood tables and stone walls.",
-        "category": "login_background"
-      },
-      {
-        "url": "https://images.pexels.com/photos/262047/pexels-photo-262047.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "description": "Sophisticated luxury restaurant interior featuring elegant chandeliers.",
-        "category": "hero_background"
-      },
-      {
-        "url": "https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/51e072b5ec80fc46021df0d71dbee36c21f565c5904af6647ff4730065da4795.png",
-        "description": "Minimalist modern restaurant logo featuring an abstract geometric cloche and fork, terracotta and dark forest green colors.",
-        "category": "logo"
-      },
-      {
-        "url": "https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/8ad70649c19e6552a1bcfb790d61a0925631d869c601c5e0b7acb6d50d17fcff.png",
-        "description": "Gourmet beautifully plated dish top down view.",
-        "category": "food_item_1"
-      },
-      {
-        "url": "https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/2d6abe1e36cf96b04fde5e6a9a916b2d81c865512a90260afee04b2b5cffe4d6.png",
-        "description": "Elegant cocktail in a crystal glass on a polished walnut bar counter.",
-        "category": "drink_item_1"
-      }
-    ],
-    "icons_library": "lucide-react"
+    "hero_image": {
+      "url": "https://images.unsplash.com/photo-1758648207365-df458d3e83f4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZGluZXJzJTIwZGluaW5nJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzc2NDQ4Mjc2fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Lush modern indoor restaurant dining, used for hero background or split layout. Ensure max bg-black/40 overlay if text is on top."
+    },
+    "feature_pos": {
+      "url": "https://images.unsplash.com/photo-1556742517-fde6c2abbe11?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjByZXN0YXVyYW50JTIwdGFibGV0JTIwUE9TfGVufDB8fHx8MTc3NjQ0ODI3Nnww&ixlib=rb-4.1.0&q=85",
+      "description": "Close up of screen displaying food/POS interface. Use in the KDS / Management feature bento card."
+    },
+    "feature_qr": {
+      "url": "https://images.unsplash.com/photo-1625038624658-01a222d8fb8e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDZ8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwUVIlMjBjb2RlJTIwbWVudXxlbnwwfHx8fDE3NzY0NDgyOTB8MA&ixlib=rb-4.1.0&q=85",
+      "description": "QR code on a restaurant table. Use in the QR Menu feature card."
+    },
+    "general_dining": {
+      "url": "https://images.unsplash.com/photo-1768982417880-d56e36c34d58?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwzfHxyZXN0YXVyYW50JTIwZGluZXJzJTIwZGluaW5nJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzc2NDQ4Mjc2fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Modern cafe/restaurant interior. Use in 'How it Works' or Registration sections."
+    }
+  },
+  "testing_attributes": {
+    "rules": "All interactive elements MUST have data-testid attributes.",
+    "examples": [
+      "data-testid='hero-register-cta'",
+      "data-testid='nav-login-link'",
+      "data-testid='registration-form-submit'",
+      "data-testid='faq-accordion-item-1'"
+    ]
   },
   "instructions_to_main_agent": [
-    "Ensure all text is in Azerbaijani as explicitly requested by the user.",
-    "Do not use generic fonts for headings (like Inter or Roboto). Apply Google Fonts 'Outfit' for headings and 'Manrope' for body.",
-    "Make the fonts smaller and better proportioned compared to the previous chaotic design. Follow the scale rules strictly. Never use text-7xl or above.",
-    "The UI should feel modern, clean, and era-reflecting (müasir, səliqəli, dövrümüzü əks etdirən) with high-end luxury hospitality vibes.",
-    "For the Customer QR ordering page, focus on a mobile-first, visual-heavy design using the food images and bento/masonry grid. Add a sticky cart bar at the bottom.",
-    "Implement the Sidebars for the Owner, Admin, Waiter, and Kitchen dashboards using the dark #1A251E background to contrast heavily with the light main area #F9F9F7.",
-    "Avoid card-heavy designs everywhere. Use pure HTML/Tailwind to create neat bento grids with 1px soft borders rather than massive drop shadows.",
-    "Always add data-testid to interactive elements."
+    "CRITICAL: The content on the page MUST be written in Azerbaijani, as requested by the user.",
+    "DO NOT use Inter for headings. Use 'Cabinet Grotesk' or fallback to a bold geometric sans if unavailable.",
+    "DO NOT use generic Shadcn cards with soft drop shadows. Use the bento grid classes described: flat backgrounds, sharp 1px borders, generous p-8 padding.",
+    "Ensure all buttons have hover state color shifts.",
+    "Implement the registration flow as a Shadcn Dialog (Modal) triggered by the 'Pulsuz Qeydiyyat' buttons.",
+    "Include 'lucide-react' or 'phosphor-icons' for iconography.",
+    "Use 'framer-motion' for subtle scroll entrance animations on the bento cards.",
+    "NEVER use placeholder domains (via.placeholder.com). ONLY use the URLs provided in the media section of this JSON."
   ]
 }

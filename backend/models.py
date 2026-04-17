@@ -10,6 +10,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     KITCHEN = "kitchen"
     WAITER = "waiter"
+    BAR = "bar"
 
 class OrderStatus(str, Enum):
     PENDING = "pending"

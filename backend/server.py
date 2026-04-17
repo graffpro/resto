@@ -124,6 +124,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     KITCHEN = "kitchen"
     WAITER = "waiter"
+    BAR = "bar"
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -410,7 +411,7 @@ async def get_restaurants(current_user: dict = Depends(get_current_user)):
     # Add admin count and status for each restaurant
     for rest in restaurants:
         admin_count = await db.users.count_documents({"restaurant_id": rest['id'], "role": "admin"})
-        staff_count = await db.users.count_documents({"restaurant_id": rest['id'], "role": {"$in": ["kitchen", "waiter"]}})
+        staff_count = await db.users.count_documents({"restaurant_id": rest['id'], "role": {"$in": ["kitchen", "waiter", "bar"]}})
         rest['admin_count'] = admin_count
         rest['staff_count'] = staff_count
         if isinstance(rest['created_at'], str):
@@ -484,13 +485,11 @@ async def delete_restaurant(restaurant_id: str, current_user: dict = Depends(get
 @api_router.post("/users", response_model=User)
 async def create_user(user: UserCreate, current_user: dict = Depends(get_current_user)):
     if current_user['role'] == UserRole.OWNER:
-        if user.role != UserRole.ADMIN:
-            raise HTTPException(status_code=403, detail="Owner can only create admins")
-        if not user.restaurant_id:
-            raise HTTPException(status_code=400, detail="Restaurant ID required for admin")
+        # Owner can create any role
+        pass
     elif current_user['role'] == UserRole.ADMIN:
-        if user.role not in [UserRole.KITCHEN, UserRole.WAITER]:
-            raise HTTPException(status_code=403, detail="Admin can only create kitchen/waiter users")
+        if user.role not in [UserRole.KITCHEN, UserRole.WAITER, UserRole.BAR]:
+            raise HTTPException(status_code=403, detail="Admin can only create kitchen/waiter/bar users")
         user.restaurant_id = current_user.get('restaurant_id')
     else:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -530,7 +529,7 @@ async def get_users(current_user: dict = Depends(get_current_user)):
         # Admin sees staff of their restaurant
         users = await db.users.find({
             "restaurant_id": current_user.get('restaurant_id'),
-            "role": {"$in": ["kitchen", "waiter"]}
+            "role": {"$in": ["kitchen", "waiter", "bar"]}
         }, {"_id": 0, "password": 0}).to_list(1000)
     else:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -1587,7 +1586,7 @@ async def get_session_orders(session_token: str):
 
 @api_router.get("/orders/kitchen")
 async def get_kitchen_orders(current_user: dict = Depends(get_current_user), station: Optional[str] = None):
-    if current_user['role'] not in [UserRole.KITCHEN, UserRole.ADMIN, UserRole.OWNER]:
+    if current_user['role'] not in [UserRole.KITCHEN, UserRole.BAR, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     orders = await db.orders.find({
@@ -1626,9 +1625,9 @@ async def update_order_status(order_id: str, status: OrderStatus, current_user: 
     
     update_data = {"status": status}
     
-    if status == OrderStatus.PREPARING and current_user['role'] == UserRole.KITCHEN:
+    if status == OrderStatus.PREPARING and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR]:
         update_data['preparing_started_at'] = datetime.now(timezone.utc).isoformat()
-    elif status == OrderStatus.READY and current_user['role'] == UserRole.KITCHEN:
+    elif status == OrderStatus.READY and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR]:
         update_data['ready_at'] = datetime.now(timezone.utc).isoformat()
     elif status == OrderStatus.DELIVERED and current_user['role'] == UserRole.WAITER:
         update_data['delivered_at'] = datetime.now(timezone.utc).isoformat()

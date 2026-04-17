@@ -28,6 +28,7 @@ export const az = {
   admin: "Administrator",
   kitchen: "Mətbəx",
   waiter: "Ofisiant",
+  bar: "Bar",
   
   // Venues
   venues: "Məkanlar",

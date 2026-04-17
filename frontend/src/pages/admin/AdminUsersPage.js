@@ -63,7 +63,7 @@ export default function AdminUsersPage() {
   };
 
   const getRoleBadge = (role) => {
-    const colors = { admin: 'bg-[#C05C3D]/10 text-[#C05C3D]', kitchen: 'bg-[#D48B30]/10 text-[#D48B30]', waiter: 'bg-[#3E6A4B]/10 text-[#3E6A4B]' };
+    const colors = { admin: 'bg-[#C05C3D]/10 text-[#C05C3D]', kitchen: 'bg-[#D48B30]/10 text-[#D48B30]', waiter: 'bg-[#3E6A4B]/10 text-[#3E6A4B]', bar: 'bg-[#7C3AED]/10 text-[#7C3AED]' };
     return <Badge className={`text-[10px] rounded-full ${colors[role] || 'bg-[#8A948D]/10 text-[#8A948D]'}`}>{az[role] || role}</Badge>;
   };
 

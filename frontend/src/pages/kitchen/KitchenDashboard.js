@@ -22,7 +22,8 @@ function KitchenContent() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stations, setStations] = useState([]);
-  const [selectedStation, setSelectedStation] = useState('');
+  // Auto-select station based on user role (bar user → bar station)
+  const [selectedStation, setSelectedStation] = useState(user?.role === 'bar' ? 'bar' : '');
   const prevOrderIds = useRef(new Set());
   const alarmRef = useRef(null);
   const [alarmActive, setAlarmActive] = useState(false);
