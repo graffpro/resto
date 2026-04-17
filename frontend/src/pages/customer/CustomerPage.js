@@ -327,23 +327,23 @@ export default function CustomerPage() {
         </div>
 
         {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide" role="tablist" aria-label="Kateqoriyalar">
+        <div className="flex gap-3 overflow-x-auto pb-4 mb-5 scrollbar-hide" role="tablist" aria-label="Kateqoriyalar">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`shrink-0 px-4 py-2 rounded-full text-[12px] font-semibold transition-all ${
+            className={`shrink-0 px-6 py-3 rounded-full text-sm font-bold transition-all shadow-md ${
               selectedCategory === 'all'
-                ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
-                : 'bg-white/10 text-white/70 border border-white/10 hover:bg-white/20'
+                ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-rose-500/40'
+                : 'bg-transparent text-rose-400 border-2 border-rose-400/60 hover:bg-rose-500/10'
             }`}
-          >Hamisi</button>
+          >Hamısı</button>
           {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`shrink-0 px-4 py-2 rounded-full text-[12px] font-semibold transition-all ${
+              className={`shrink-0 px-6 py-3 rounded-full text-sm font-bold transition-all shadow-md ${
                 selectedCategory === cat.id
-                  ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
-                  : 'bg-white/10 text-white/70 border border-white/10 hover:bg-white/20'
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-rose-500/40'
+                  : 'bg-transparent text-rose-400 border-2 border-rose-400/60 hover:bg-rose-500/10'
               }`}
             >{cat.name}</button>
           ))}
