@@ -47,8 +47,8 @@ function WaiterContent() {
     initAudio();
     fetchOrders();
     fetchWaiterCalls();
-    // Poll every 4 seconds for fast updates
-    const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, isNativeApp ? 4000 : 15000);
+    // Poll every 3 seconds for fast updates (both native and web)
+    const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, 3000);
     return () => {
       clearInterval(interval);
       if (alarmRef.current) alarmRef.current.stop();

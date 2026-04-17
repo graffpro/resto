@@ -63,7 +63,7 @@ export function WebSocketProvider({ children, role }) {
         console.log('[WS] Disconnected, reconnecting...');
         setIsConnected(false);
         if (pingInterval.current) clearInterval(pingInterval.current);
-        reconnectTimeout.current = setTimeout(connect, 1500);
+        reconnectTimeout.current = setTimeout(connect, 500);
       };
 
       ws.current.onerror = (err) => {
@@ -72,7 +72,7 @@ export function WebSocketProvider({ children, role }) {
       };
     } catch (error) {
       console.error('[WS] Connection failed:', error);
-      reconnectTimeout.current = setTimeout(connect, 2000);
+      reconnectTimeout.current = setTimeout(connect, 1000);
     }
   }, [role]);
 

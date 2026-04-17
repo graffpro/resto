@@ -50,8 +50,8 @@ function KitchenContent() {
     initAudio();
     fetchOrders();
     fetchStations();
-    // Poll every 4 seconds for fast order updates
-    const interval = setInterval(fetchOrders, isNativeApp ? 4000 : 15000);
+    // Poll every 3 seconds for fast order updates (both native and web)
+    const interval = setInterval(fetchOrders, 3000);
     return () => {
       clearInterval(interval);
       if (alarmRef.current) alarmRef.current.stop();

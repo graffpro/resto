@@ -35,9 +35,18 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not user.get('is_active', True):
         raise HTTPException(status_code=403, detail="Account deactivated")
     if user.get('expires_at'):
-        exp = datetime.fromisoformat(user['expires_at'])
-        if exp < datetime.now(timezone.utc):
-            raise HTTPException(status_code=403, detail="Account expired")
+        exp_str = user['expires_at']
+        if isinstance(exp_str, str) and len(exp_str) == 10:
+            # Date only format like 2026-12-31
+            today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+            if today > exp_str:
+                raise HTTPException(status_code=403, detail="Account expired")
+        else:
+            exp = datetime.fromisoformat(str(exp_str))
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp < datetime.now(timezone.utc):
+                raise HTTPException(status_code=403, detail="Account expired")
     return user
 
 
