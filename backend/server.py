@@ -331,11 +331,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 def generate_qr_code(table_id: str, base_url: str = None) -> str:
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    if not base_url or base_url.strip() == '':
-        base_url = os.environ.get('FRONTEND_URL', '')
-    base_url = base_url.rstrip('/')
-    if not base_url:
-        base_url = 'http://localhost:3000'
+    # Always use resto.az
+    base_url = "https://resto.az"
     qr_data = f"{base_url}/table/{table_id}"
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -1053,9 +1050,7 @@ async def create_table(table: TableCreate, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=403, detail="Not authorized")
     
     table_id = str(uuid.uuid4())
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    base_url = settings.get("base_url") if settings else None
-    qr_code = generate_qr_code(table_id, base_url)
+    qr_code = generate_qr_code(table_id)
     
     table_obj = Table(
         id=table_id,
@@ -1861,6 +1856,60 @@ async def startup_event():
             logger.info("Owner created: graff")
     except Exception as e:
         logger.error(f"Owner auto-create: {e}")
+    
+    # Start background task for timed service expiry notifications
+    asyncio.create_task(check_timed_services_loop())
+
+async def check_timed_services_loop():
+    """Background task: check timed services every 30 seconds and notify waiters when time is up"""
+    while True:
+        try:
+            await asyncio.sleep(30)
+            now = datetime.now(timezone.utc)
+            active_services = await db.timed_services.find({"is_active": True}, {"_id": 0}).to_list(1000)
+            
+            for svc in active_services:
+                next_serve = svc.get("next_serve_at")
+                if not next_serve:
+                    continue
+                
+                if isinstance(next_serve, str):
+                    next_serve_dt = datetime.fromisoformat(next_serve.replace('Z', '+00:00'))
+                else:
+                    next_serve_dt = next_serve
+                
+                # Make sure we compare timezone-aware datetimes
+                if next_serve_dt.tzinfo is None:
+                    next_serve_dt = next_serve_dt.replace(tzinfo=timezone.utc)
+                
+                if now >= next_serve_dt:
+                    # Time is up! Notify waiter
+                    table = await db.tables.find_one({"id": svc["table_id"]}, {"_id": 0})
+                    table_number = table.get("table_number", "?") if table else "?"
+                    
+                    alert_msg = {
+                        "type": "timed_service_expired",
+                        "data": {
+                            "service_id": svc["id"],
+                            "table_id": svc["table_id"],
+                            "table_number": table_number,
+                            "menu_item_name": svc.get("menu_item_name", ""),
+                            "interval_minutes": svc.get("interval_minutes", 0),
+                            "serve_count": svc.get("serve_count", 0),
+                            "notes": svc.get("notes", ""),
+                        },
+                        "timestamp": now.isoformat()
+                    }
+                    # Alert waiter with alarm
+                    await manager.broadcast_to_role(alert_msg, "waiter")
+                    # Also alert admin
+                    await manager.broadcast_to_role(alert_msg, "admin")
+                    # Also alert kitchen
+                    await manager.broadcast_to_role(alert_msg, "kitchen")
+                    
+                    logger.info(f"Timed service expired: {svc['id']} - Table {table_number} - {svc.get('menu_item_name')}")
+        except Exception as e:
+            logger.error(f"Timed services check error: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -1926,17 +1975,13 @@ async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_
 async def regenerate_all_qr(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
-    base_url = settings.get("base_url", "").strip() if settings else ""
-    if not base_url:
-        raise HTTPException(status_code=400, detail="Əvvəlcə Ayarlarda sayt ünvanını daxil edin")
     tables = await db.tables.find({}, {"_id": 0}).to_list(1000)
     count = 0
     for t in tables:
-        new_qr = generate_qr_code(t["id"], base_url)
+        new_qr = generate_qr_code(t["id"])
         await db.tables.update_one({"id": t["id"]}, {"$set": {"qr_code": new_qr}})
         count += 1
-    return {"message": f"{count} masanın QR kodu yeniləndi"}
+    return {"message": f"{count} masanın QR kodu yeniləndi (resto.az)"}
 
 # ==================== WAITER CALL ====================
 @api_router.post("/waiter-call/{table_id}")

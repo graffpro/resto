@@ -25,6 +25,8 @@ function WaiterContent() {
   const [alarmActive, setAlarmActive] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
+  const [timedAlerts, setTimedAlerts] = useState([]);
+
   const handleUserInteraction = useCallback(() => {
     if (!hasInteracted) {
       initAudio();
@@ -87,6 +89,14 @@ function WaiterContent() {
       toast.error(`Masa ${lastMessage.table_number} ofisiant cagırir!`, { duration: 10000 });
     } else if (lastMessage?.type === 'waiter_call_ack') {
       setWaiterCalls(prev => prev.filter(c => c.id !== lastMessage.call_id));
+    } else if (lastMessage?.type === 'timed_service_expired') {
+      const d = lastMessage.data;
+      setTimedAlerts(prev => {
+        if (prev.some(a => a.service_id === d.service_id)) return prev;
+        return [...prev, d];
+      });
+      triggerAlarm();
+      toast.error(`Masa ${d.table_number} — ${d.menu_item_name} vaxtı bitdi!`, { duration: 15000 });
     }
   }, [lastMessage]);
 
@@ -232,6 +242,41 @@ function WaiterContent() {
                   onClick={() => acknowledgeCall(call.id)}
                   className="bg-red-600 hover:bg-red-700 text-white"
                   data-testid={`ack-call-${call.id}`}
+                >
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Qebul et
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Timed Service Expired Alerts - Orange Flashing */}
+        {timedAlerts.length > 0 && (
+          <div className="mb-6 space-y-3" data-testid="timed-alerts-section">
+            <h2 className="text-lg font-bold text-orange-600 flex items-center gap-2">
+              <Clock className="w-5 h-5 animate-spin" />
+              Vaxt bitdi! ({timedAlerts.length})
+            </h2>
+            {timedAlerts.map(alert => (
+              <div
+                key={alert.service_id}
+                className="bg-orange-50 border-2 border-orange-500 rounded-xl p-4 flex items-center justify-between"
+                style={{ animation: 'pulse 0.6s ease-in-out infinite alternate' }}
+                data-testid={`timed-alert-${alert.service_id}`}
+              >
+                <div>
+                  <p className="text-lg font-bold text-orange-700">Masa {alert.table_number}</p>
+                  <p className="text-sm font-semibold text-orange-600">{alert.menu_item_name}</p>
+                  <p className="text-xs text-orange-500">
+                    {alert.interval_minutes} deq. - {alert.serve_count + 1}-ci servis
+                    {alert.notes && <span className="ml-1">({alert.notes})</span>}
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setTimedAlerts(prev => prev.filter(a => a.service_id !== alert.service_id))}
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  data-testid={`ack-timed-${alert.service_id}`}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Qebul et

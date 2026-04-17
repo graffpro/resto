@@ -70,6 +70,10 @@ function KitchenContent() {
       toast.success('Yeni sifaris daxil oldu!', { duration: 5000 });
     } else if (lastMessage?.type === 'order_update') {
       fetchOrders();
+    } else if (lastMessage?.type === 'timed_service_expired') {
+      const d = lastMessage.data;
+      triggerAlarm();
+      toast.error(`Masa ${d.table_number} — ${d.menu_item_name} vaxtı bitdi!`, { duration: 15000 });
     }
   }, [lastMessage]);
 
