@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'QR Restoran',
   webDir: 'build',
   server: {
-    // This will be overridden by the user's actual server URL
-    url: 'https://table-sync-pro.preview.emergentagent.com',
+    url: 'https://resto.az',
     cleartext: true,
   },
   plugins: {
