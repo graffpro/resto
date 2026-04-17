@@ -1757,9 +1757,10 @@ async def get_waiter_orders(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.WAITER, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    # Show ALL active orders (pending, preparing, ready) to waiter
     orders = await db.orders.find({
-        "status": OrderStatus.READY
-    }, {"_id": 0}).sort("ready_at", 1).to_list(1000)
+        "status": {"$in": [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY]}
+    }, {"_id": 0}).sort("ordered_at", 1).to_list(1000)
     
     result = []
     for order in orders:
@@ -2705,23 +2706,17 @@ async def notify_order_update(order_data: dict, event_type: str):
         "data": order_data,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-    # Notify kitchen for new orders
-    if event_type in ["new_order", "order_update"]:
-        await manager.broadcast_to_role(message, "kitchen")
-    # Notify waiters for ready orders AND new orders with waiter-targeted items
-    if event_type in ["order_ready", "order_update"]:
-        await manager.broadcast_to_role(message, "waiter")
-    # For new orders, check if any items target waiter/bar station
+    # NEW ORDER → notify BOTH kitchen AND waiter immediately
     if event_type == "new_order":
-        order = order_data.get("order", {})
-        items = order.get("items", [])
-        has_waiter_items = any(
-            item.get("target_station") in ("waiter", "bar")
-            for item in items
-        )
-        if has_waiter_items:
-            waiter_msg = {**message, "type": "new_order_waiter_items"}
-            await manager.broadcast_to_role(waiter_msg, "waiter")
+        await manager.broadcast_to_role(message, "kitchen")
+        await manager.broadcast_to_role(message, "waiter")
+    # Order status updates
+    elif event_type in ["order_update"]:
+        await manager.broadcast_to_role(message, "kitchen")
+        await manager.broadcast_to_role(message, "waiter")
+    # Order ready
+    elif event_type == "order_ready":
+        await manager.broadcast_to_role(message, "waiter")
     # Notify admin about all order events
     await manager.broadcast_to_role(message, "admin")
 

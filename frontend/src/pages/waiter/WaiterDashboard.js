@@ -77,10 +77,10 @@ function WaiterContent() {
       fetchOrders();
       triggerAlarm();
       toast.success('Sifaris hazirdir!', { duration: 5000 });
-    } else if (lastMessage?.type === 'new_order_waiter_items') {
+    } else if (lastMessage?.type === 'new_order') {
       fetchOrders();
       triggerAlarm();
-      toast.success('Yeni sifaris (ofisiant/bar)!', { duration: 5000 });
+      toast.success('YENI SIFARIS geldi!', { duration: 5000 });
     } else if (lastMessage?.type === 'order_update') {
       fetchOrders();
     } else if (lastMessage?.type === 'waiter_call') {
@@ -288,54 +288,64 @@ function WaiterContent() {
 
         {orders.length === 0 ? (
           <div className="bg-white border border-[#E6E5DF] rounded-xl p-12 text-center">
-            <p className="text-[#5C665F] text-lg">Hazirda hazir sifaris yoxdur</p>
+            <p className="text-[#5C665F] text-lg">Hazirda sifaris yoxdur</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders.map(({ order, table, venue }) => (
-              <Card key={order.id} className="bg-white ring-2 ring-green-400 ring-offset-2" data-testid={`waiter-order-${order.id}`}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-[#181C1A]">
-                    <span>Masa {table?.table_number}</span>
-                    <Badge className="bg-green-100 text-green-800">{az.ready}</Badge>
-                  </CardTitle>
-                  <p className="text-sm text-[#5C665F]">{venue?.name}</p>
-                  <p className="text-xs text-[#5C665F] mt-2">
-                    Sifaris #{order.order_number}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4">
-                    <p className="text-xs text-[#5C665F] mb-2">Yemekler:</p>
-                    <div className="space-y-1">
-                      {order.items.map((item, idx) => (
-                        <p key={idx} className="text-sm font-semibold">
-                          {item.name} x{item.quantity}
-                        </p>
-                      ))}
+            {orders.map(({ order, table, venue }) => {
+              const statusConfig = {
+                pending: { ring: 'ring-yellow-400', badge: 'bg-yellow-100 text-yellow-800', label: az.pending, timeField: 'ordered_at', timeLabel: 'Sifaris' },
+                preparing: { ring: 'ring-orange-400', badge: 'bg-orange-100 text-orange-800', label: az.preparing, timeField: 'preparing_started_at', timeLabel: 'Hazirliq' },
+                ready: { ring: 'ring-green-400', badge: 'bg-green-100 text-green-800', label: az.ready, timeField: 'ready_at', timeLabel: 'Hazir' },
+              };
+              const cfg = statusConfig[order.status] || statusConfig.pending;
+              return (
+                <Card key={order.id} className={`bg-white ring-2 ${cfg.ring} ring-offset-2`} data-testid={`waiter-order-${order.id}`}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-[#181C1A]">
+                      <span>Masa {table?.table_number}</span>
+                      <Badge className={cfg.badge}>{cfg.label}</Badge>
+                    </CardTitle>
+                    <p className="text-sm text-[#5C665F]">{venue?.name}</p>
+                    <p className="text-xs text-[#5C665F] mt-2">
+                      Sifaris #{order.order_number}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <p className="text-xs text-[#5C665F] mb-2">Yemekler:</p>
+                      <div className="space-y-1">
+                        {order.items.map((item, idx) => (
+                          <p key={idx} className="text-sm font-semibold">
+                            {item.name} x{item.quantity}
+                          </p>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mb-4 p-3 bg-[#F9F9F7] rounded-lg">
-                    <div className="flex items-center gap-2 text-[#181C1A]">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm font-semibold">
-                        Hazir: {getTimeSince(order.ready_at)}
-                      </span>
+                    <div className="mb-4 p-3 bg-[#F9F9F7] rounded-lg">
+                      <div className="flex items-center gap-2 text-[#181C1A]">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm font-semibold">
+                          {cfg.timeLabel}: {order[cfg.timeField] ? getTimeSince(order[cfg.timeField]) : '-'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <Button
-                    onClick={() => markDelivered(order.id)}
-                    className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white"
-                    data-testid={`mark-delivered-${order.id}`}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {az.markAsDelivered}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    {order.status === 'ready' && (
+                      <Button
+                        onClick={() => markDelivered(order.id)}
+                        className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white"
+                        data-testid={`mark-delivered-${order.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {az.markAsDelivered}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
