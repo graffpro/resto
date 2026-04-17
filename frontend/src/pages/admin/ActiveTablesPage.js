@@ -562,6 +562,31 @@ export default function ActiveTablesPage() {
                 </div>
               </div>
 
+              {/* Device Lock Control */}
+              {selectedSession?.is_active && selectedSession?.device_id && (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-3">
+                  <div>
+                    <p className="text-xs font-medium text-amber-800">Cihaz kilidi aktiv</p>
+                    <p className="text-[10px] text-amber-600">Masa bir cihaza bağlıdır</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await axios.post(`${API}/sessions/${selectedSession.id}/unlock-device`);
+                        toast.success('Cihaz kilidi açıldı');
+                        fetchSessionDetails(selectedSession.id);
+                      } catch { toast.error('Xəta'); }
+                    }}
+                    className="h-7 text-[10px] rounded-lg border-amber-500 text-amber-700"
+                    data-testid="unlock-device-btn"
+                  >
+                    Kilidi Aç
+                  </Button>
+                </div>
+              )}
+
               {/* Orders */}
               {sessionDetails.orders && sessionDetails.orders.length > 0 ? (
                 <div className="space-y-3">

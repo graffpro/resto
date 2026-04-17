@@ -113,6 +113,8 @@ async def delete_table(table_id: str, current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Table not found")
     return {"message": "Table deleted"}
 
+DEVICE_LOCK_TIMEOUT_MINUTES = 10
+
 @router.post("/sessions/start/{table_id}")
 async def start_session(table_id: str, request: Request = None):
     table = await db.tables.find_one({"id": table_id}, {"_id": 0})
@@ -120,9 +122,11 @@ async def start_session(table_id: str, request: Request = None):
         raise HTTPException(status_code=404, detail="Table not found")
     
     device_id = None
+    force_takeover = False
     try:
         body = await request.json()
         device_id = body.get("device_id")
+        force_takeover = body.get("force_takeover", False)
     except:
         pass
     
@@ -142,9 +146,57 @@ async def start_session(table_id: str, request: Request = None):
         if not stored_device and device_id:
             await db.table_sessions.update_one(
                 {"id": active_session["id"]},
-                {"$set": {"device_id": device_id}}
+                {"$set": {"device_id": device_id, "device_last_active": datetime.now(timezone.utc).isoformat()}}
             )
             is_owner = True
+        
+        # Check if device lock has expired (inactivity timeout)
+        if stored_device and stored_device != device_id and not is_owner:
+            last_active = active_session.get("device_last_active")
+            lock_expired = False
+            if last_active:
+                if isinstance(last_active, str):
+                    last_active_dt = datetime.fromisoformat(last_active.replace('Z', '+00:00'))
+                else:
+                    last_active_dt = last_active
+                if last_active_dt.tzinfo is None:
+                    last_active_dt = last_active_dt.replace(tzinfo=timezone.utc)
+                elapsed = (datetime.now(timezone.utc) - last_active_dt).total_seconds() / 60
+                if elapsed >= DEVICE_LOCK_TIMEOUT_MINUTES:
+                    lock_expired = True
+            else:
+                # No last_active recorded — check session start time
+                started = active_session['started_at']
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                elapsed = (datetime.now(timezone.utc) - started).total_seconds() / 60
+                if elapsed >= DEVICE_LOCK_TIMEOUT_MINUTES:
+                    lock_expired = True
+            
+            # Auto-unlock if expired OR force takeover requested
+            if lock_expired or force_takeover:
+                await db.table_sessions.update_one(
+                    {"id": active_session["id"]},
+                    {"$set": {"device_id": device_id, "device_last_active": datetime.now(timezone.utc).isoformat()}}
+                )
+                is_owner = True
+                active_session['device_id'] = device_id
+            else:
+                # Still locked — return remaining time
+                remaining = DEVICE_LOCK_TIMEOUT_MINUTES - elapsed if 'elapsed' in dir() else DEVICE_LOCK_TIMEOUT_MINUTES
+                return {
+                    "session": active_session,
+                    "table": table,
+                    "is_session_owner": False,
+                    "lock_expires_in_minutes": round(max(0, remaining), 1)
+                }
+        
+        # Update last active for the owner
+        if is_owner and device_id:
+            await db.table_sessions.update_one(
+                {"id": active_session["id"]},
+                {"$set": {"device_last_active": datetime.now(timezone.utc).isoformat()}}
+            )
         
         return {
             "session": active_session,
@@ -162,6 +214,7 @@ async def start_session(table_id: str, request: Request = None):
     doc['started_at'] = doc['started_at'].isoformat()
     if device_id:
         doc['device_id'] = device_id
+        doc['device_last_active'] = datetime.now(timezone.utc).isoformat()
     await db.table_sessions.insert_one(doc)
     
     return {
@@ -169,6 +222,19 @@ async def start_session(table_id: str, request: Request = None):
         "table": table,
         "is_session_owner": True
     }
+
+# Admin unlock session device
+@router.post("/sessions/{session_id}/unlock-device")
+async def unlock_session_device(session_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    result = await db.table_sessions.update_one(
+        {"id": session_id, "is_active": True},
+        {"$unset": {"device_id": "", "device_last_active": ""}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"message": "Cihaz kilidi açıldı"}
 
 @router.get("/sessions/active")
 async def get_active_sessions():

@@ -31,6 +31,7 @@ export default function CustomerPage() {
   const [isSessionOwner, setIsSessionOwner] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [restaurantSettings, setRestaurantSettings] = useState({});
+  const [lockExpiresIn, setLockExpiresIn] = useState(null);
 
   const getDeviceId = () => {
     let id = localStorage.getItem('qr_device_id');
@@ -93,18 +94,26 @@ export default function CustomerPage() {
     return Math.round((totalBill + estimatedServiceCharge) * 100) / 100;
   }, [totalBill, estimatedServiceCharge]);
 
-  const initSession = async () => {
+  const initSession = async (forceTakeover = false) => {
     try {
       const deviceId = getDeviceId();
-      const response = await axios.post(`${API}/sessions/start/${tableId}`, { device_id: deviceId });
+      const response = await axios.post(`${API}/sessions/start/${tableId}`, { device_id: deviceId, force_takeover: forceTakeover });
       setSession(response.data.session);
       setTable(response.data.table);
       setIsSessionOwner(response.data.is_session_owner !== false);
+      setLockExpiresIn(response.data.lock_expires_in_minutes || null);
       if (response.data.table?.venue_id) {
         fetchVenueRules(response.data.table.venue_id);
       }
+      if (forceTakeover && response.data.is_session_owner) {
+        toast.success('Masa sizə təhvil verildi!');
+      }
     } catch { toast.error('Xeta bas verdi'); }
     finally { setLoading(false); }
+  };
+
+  const takeoverTable = () => {
+    initSession(true);
   };
 
   const fetchMenu = async () => {
@@ -299,10 +308,21 @@ export default function CustomerPage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-4 pb-32">
-        {/* Non-owner warning */}
+        {/* Non-owner: takeover option */}
         {!isSessionOwner && (
-          <div className="bg-red-500/20 border border-red-500/40 rounded-2xl p-3 mb-4 text-center backdrop-blur" data-testid="non-owner-warning">
-            <p className="text-xs text-red-300 font-medium">Bu masa artiq basqa cihazdan idare olunur. Yalniz sifarislere baxa bilersiz.</p>
+          <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/40 rounded-2xl p-4 mb-4 backdrop-blur" data-testid="non-owner-warning">
+            <p className="text-sm text-amber-200 font-medium mb-1">Bu masa başqa cihazdan idarə olunur</p>
+            {lockExpiresIn !== null && (
+              <p className="text-xs text-amber-300/60 mb-3">Kilid {Math.ceil(lockExpiresIn)} dəqiqəyə avtomatik açılacaq</p>
+            )}
+            <p className="text-xs text-white/50 mb-3">Əgər masada oturursunuzsa, idarəni götürə bilərsiniz:</p>
+            <button
+              onClick={takeoverTable}
+              className="w-full py-3 bg-amber-500 text-black rounded-xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-amber-500/30"
+              data-testid="takeover-table-btn"
+            >
+              Masanı mən idarə edirəm
+            </button>
           </div>
         )}
 
