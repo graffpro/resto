@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, WebSocket, WebSocketDisconnect, UploadFile, File, Query, Response, Request
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -49,6 +50,14 @@ APP_NAME = "qr-restaurant"
 storage_key = None
 LOCAL_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(LOCAL_UPLOAD_DIR, exist_ok=True)
+
+# APK download endpoint
+@api_router.get("/download/apk")
+async def download_apk():
+    apk_path = os.path.join(LOCAL_UPLOAD_DIR, "qr-restoran.apk")
+    if not os.path.exists(apk_path):
+        raise HTTPException(status_code=404, detail="APK fayl tapılmadı")
+    return FileResponse(apk_path, media_type="application/vnd.android.package-archive", filename="qr-restoran.apk")
 
 def init_storage():
     global storage_key

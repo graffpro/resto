@@ -58,12 +58,23 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 - [x] Admin PIN verification fixed for Owner role
 - [x] Settings page: added menu_background_url and logo_url fields
 
+### Phase 3 (Current Session - Capacitor Android App)
+- [x] **Android APK Build** - Capacitor 6 integration with native Android project
+- [x] **Foreground Service** - OrderNotificationService keeps app alive in background
+- [x] **Local Notifications** - Native Android notifications when new orders arrive
+- [x] **Keep Screen On** - WindowManager.FLAG_KEEP_SCREEN_ON for kitchen/waiter devices
+- [x] **Aggressive Polling** - 4-second polling interval in native app (vs 15s in web)
+- [x] **Vibration** - Device vibrates on new order alerts
+- [x] **APK Download** - GET /api/download/apk endpoint serves the built APK
+- [x] **Build Script** - scripts/build-apk.sh for rebuilding with custom server URL
+
 ## Pending / Upcoming Tasks
 - P1: WhatsApp/Twilio Integration (daily sales reports)
+- P1: iOS build (requires Mac + Apple Developer account)
 - P2: server.py Refactoring (2900+ lines → routes/)
 - P3: Multi-language support
 - P3: Domain + SSL configuration
-- P3: PWA/Native app wrapping
+- P3: Play Store publication
 
 ## Key API Endpoints
 - `GET /api/stations` - List kitchen stations
@@ -71,6 +82,7 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 - `GET /api/orders/kitchen?station=X` - Filter orders by station
 - `POST /api/orders` - Create order (auto-populates target_station)
 - `GET /api/settings` - Includes menu_background_url, logo_url
+- `GET /api/download/apk` - Download Android APK file
 
 ## Key Data Models
 - MenuItem: includes `target_station` (kitchen/bar/waiter)

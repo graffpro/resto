@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 import { initAudio, startContinuousAlarm } from '@/utils/notifications';
+import { sendLocalNotification, vibrateDevice, isNativeApp } from '@/utils/capacitor';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
 import { VoiceCallButton, VoiceCallOverlay } from '@/components/VoiceCallUI';
 
@@ -48,7 +49,8 @@ function KitchenContent() {
     initAudio();
     fetchOrders();
     fetchStations();
-    const interval = setInterval(fetchOrders, 15000);
+    // Poll every 4 seconds for fast order updates
+    const interval = setInterval(fetchOrders, isNativeApp ? 4000 : 15000);
     return () => {
       clearInterval(interval);
       if (alarmRef.current) alarmRef.current.stop();
@@ -75,6 +77,9 @@ function KitchenContent() {
     if (alarmRef.current) alarmRef.current.stop();
     alarmRef.current = startContinuousAlarm(3000);
     setAlarmActive(true);
+    // Native notification for background
+    sendLocalNotification('YENI SIFARIS!', 'Metbexe yeni sifaris geldi!');
+    vibrateDevice();
   };
 
   const stopAlarm = () => {

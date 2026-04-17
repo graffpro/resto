@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
 import { initAudio, startContinuousAlarm } from '@/utils/notifications';
+import { sendLocalNotification, vibrateDevice, isNativeApp } from '@/utils/capacitor';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -44,7 +45,8 @@ function WaiterContent() {
     initAudio();
     fetchOrders();
     fetchWaiterCalls();
-    const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, 15000);
+    // Poll every 4 seconds for fast updates
+    const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, isNativeApp ? 4000 : 15000);
     return () => {
       clearInterval(interval);
       if (alarmRef.current) alarmRef.current.stop();
@@ -55,6 +57,8 @@ function WaiterContent() {
     if (alarmRef.current) alarmRef.current.stop();
     alarmRef.current = startContinuousAlarm(3000);
     setAlarmActive(true);
+    sendLocalNotification('DIQQET!', 'Yeni tapsirig var - ofisiant!');
+    vibrateDevice();
   };
 
   const stopAlarm = () => {
