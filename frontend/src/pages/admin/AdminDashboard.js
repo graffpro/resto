@@ -106,7 +106,7 @@ export default function AdminDashboard() {
 
             {/* APK Download */}
             <a
-              href={`${process.env.REACT_APP_BACKEND_URL || ''}/api/download/apk`}
+              href="/qr-restoran.apk"
               download="qr-restoran.apk"
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 text-emerald-400 hover:from-emerald-600/30 hover:to-teal-600/30 transition-all mt-2"
               data-testid="download-apk-btn"
