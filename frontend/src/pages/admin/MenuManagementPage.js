@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent, Package, X, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FolderPlus, Image, Percent, Package, X, Upload, Loader2, ChefHat, Wine, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,7 @@ export default function MenuManagementPage() {
   // Recipe items for the current menu item being added/edited
   const [recipeItems, setRecipeItems] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [stations, setStations] = useState([]);
   
   // Form states
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
@@ -42,7 +43,8 @@ export default function MenuManagementPage() {
     category_id: '',
     image_url: '',
     discount_percentage: 0,
-    is_available: true
+    is_available: true,
+    target_station: 'kitchen'
   });
 
   useEffect(() => {
@@ -52,16 +54,18 @@ export default function MenuManagementPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [catRes, itemRes, ingRes, recRes] = await Promise.all([
+      const [catRes, itemRes, ingRes, recRes, stationsRes] = await Promise.all([
         axios.get(`${API}/categories`),
         axios.get(`${API}/menu-items`),
         axios.get(`${API}/ingredients`),
-        axios.get(`${API}/recipes`)
+        axios.get(`${API}/recipes`),
+        axios.get(`${API}/stations`)
       ]);
       setCategories(catRes.data);
       setMenuItems(itemRes.data);
       setIngredients(ingRes.data);
       setRecipes(recRes.data);
+      setStations(stationsRes.data);
       
       // Expand all categories by default
       const expanded = {};
@@ -122,7 +126,8 @@ export default function MenuManagementPage() {
       const data = {
         ...itemForm,
         price: parseFloat(itemForm.price),
-        discount_percentage: parseFloat(itemForm.discount_percentage) || 0
+        discount_percentage: parseFloat(itemForm.discount_percentage) || 0,
+        target_station: itemForm.target_station || 'kitchen'
       };
       let savedItemId;
       if (editingItem) {
@@ -173,7 +178,8 @@ export default function MenuManagementPage() {
       category_id: item.category_id,
       image_url: item.image_url || '',
       discount_percentage: item.discount_percentage || 0,
-      is_available: item.is_available !== false
+      is_available: item.is_available !== false,
+      target_station: item.target_station || 'kitchen'
     });
     // Load existing recipe for this item
     const existingRecipe = recipes.find(r => r.menu_item_id === item.id);
@@ -198,7 +204,8 @@ export default function MenuManagementPage() {
       category_id: '',
       image_url: '',
       discount_percentage: 0,
-      is_available: true
+      is_available: true,
+      target_station: 'kitchen'
     });
   };
 
@@ -404,6 +411,24 @@ export default function MenuManagementPage() {
                     placeholder="Yeməyin təsviri..."
                   />
                 </div>
+                {/* Target Station */}
+                <div>
+                  <Label className="flex items-center gap-1.5 mb-1">
+                    <ChefHat className="w-3.5 h-3.5" />
+                    Hədəf Stansiya
+                  </Label>
+                  <Select value={itemForm.target_station} onValueChange={(v) => setItemForm(p => ({ ...p, target_station: v }))}>
+                    <SelectTrigger data-testid="item-station-select">
+                      <SelectValue placeholder="Stansiya seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stations.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-[#5C665F] mt-1">Sifariş hansı stansiyaya göndərilsin?</p>
+                </div>
                 {/* Recipe / Ingredient Mapping */}
                 {ingredients.length > 0 && (
                   <div className="border border-[#E6E5DF] rounded-lg p-3 bg-[#F9F9F7]">
@@ -585,6 +610,23 @@ export default function MenuManagementPage() {
                                   </Badge>
                                 </div>
                               )}
+                              {/* Station Badge */}
+                              {(() => {
+                                const stationId = item.target_station || 'kitchen';
+                                const stationColors = {
+                                  kitchen: 'bg-orange-100 text-orange-700 border-orange-200',
+                                  bar: 'bg-purple-100 text-purple-700 border-purple-200',
+                                  waiter: 'bg-blue-100 text-blue-700 border-blue-200',
+                                };
+                                const stationIcons = { kitchen: ChefHat, bar: Wine, waiter: User };
+                                const Icon = stationIcons[stationId] || ChefHat;
+                                const stName = stations.find(s => s.id === stationId)?.name || stationId;
+                                return (
+                                  <Badge variant="outline" className={`text-[10px] mb-2 ${stationColors[stationId] || 'bg-gray-100 text-gray-700'}`}>
+                                    <Icon className="w-2.5 h-2.5 mr-1" />{stName}
+                                  </Badge>
+                                );
+                              })()}
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={() => editItem(item)} className="flex-1">
                                   <Edit className="w-3 h-3 mr-1" />
