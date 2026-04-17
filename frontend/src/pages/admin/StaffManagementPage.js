@@ -262,7 +262,7 @@ export default function StaffManagementPage() {
               <Label className="text-xs text-[#5C665F]">Xal (mənfi = çıx)</Label>
               <div className="flex gap-2 mt-1">
                 <Button type="button" variant="outline" size="sm" onClick={() => setPointsForm(p => ({...p, points: p.points - 1}))} className="h-9 w-9 p-0 rounded-xl"><Minus className="w-3 h-3" /></Button>
-                <Input type="number" value={pointsForm.points} onChange={e => setPointsForm(p => ({...p, points: parseInt(e.target.value) || 0}))} className="h-9 text-sm text-center rounded-xl" />
+                <Input type="number" value={pointsForm.points} onChange={e => setPointsForm(p => ({...p, points: e.target.value === '' ? '' : parseInt(e.target.value)}))} className="h-9 text-sm text-center rounded-xl" />
                 <Button type="button" variant="outline" size="sm" onClick={() => setPointsForm(p => ({...p, points: p.points + 1}))} className="h-9 w-9 p-0 rounded-xl"><Plus className="w-3 h-3" /></Button>
               </div>
               <div className="flex gap-1 mt-2">

@@ -111,7 +111,7 @@ export default function SettingsPage() {
                   min="0"
                   max="100"
                   value={settings?.service_charge_percentage ?? 0}
-                  onChange={(e) => setSettings(s => ({ ...s, service_charge_percentage: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) => setSettings(s => ({ ...s, service_charge_percentage: e.target.value === '' ? '' : parseFloat(e.target.value) }))}
                   data-testid="settings-service-charge"
                   className="text-lg font-semibold"
                 />
@@ -128,7 +128,7 @@ export default function SettingsPage() {
                   min="0"
                   max="100"
                   value={settings?.tax_percentage ?? 18}
-                  onChange={(e) => setSettings(s => ({ ...s, tax_percentage: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) => setSettings(s => ({ ...s, tax_percentage: e.target.value === '' ? '' : parseFloat(e.target.value) }))}
                   data-testid="settings-tax"
                   className="text-lg font-semibold"
                 />

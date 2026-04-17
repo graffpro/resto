@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone } from 'lucide-react';
+import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone, Smartphone, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
@@ -103,6 +103,21 @@ export default function AdminDashboard() {
                 </Link>
               ))}
             </nav>
+
+            {/* APK Download */}
+            <a
+              href={`${process.env.REACT_APP_BACKEND_URL || ''}/api/download/apk`}
+              download="qr-restoran.apk"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 text-emerald-400 hover:from-emerald-600/30 hover:to-teal-600/30 transition-all mt-2"
+              data-testid="download-apk-btn"
+            >
+              <Smartphone className="w-4 h-4 shrink-0" />
+              <div>
+                <span className="font-semibold block">Android APK</span>
+                <span className="text-[9px] text-emerald-500/70">Mətbəx / Ofisiant üçün</span>
+              </div>
+              <Download className="w-3.5 h-3.5 ml-auto" />
+            </a>
 
             {/* Logout */}
             <Button onClick={logout} variant="ghost" className="w-full justify-start text-[#8A948D] hover:text-white hover:bg-white/5 rounded-lg h-9 text-xs mt-2" data-testid="admin-logout-button">

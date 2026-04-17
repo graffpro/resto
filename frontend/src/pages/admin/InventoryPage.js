@@ -349,9 +349,9 @@ export default function InventoryPage() {
               </select>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div><Label className="text-xs text-[#5C665F]">Mövcud</Label><Input type="number" step="0.01" value={ingForm.current_stock} onChange={e => setIngForm(p => ({...p, current_stock: parseFloat(e.target.value) || 0}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">Min. stok</Label><Input type="number" step="0.01" value={ingForm.min_stock} onChange={e => setIngForm(p => ({...p, min_stock: parseFloat(e.target.value) || 0}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">Qiymət</Label><Input type="number" step="0.01" value={ingForm.cost_per_unit} onChange={e => setIngForm(p => ({...p, cost_per_unit: parseFloat(e.target.value) || 0}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">Mövcud</Label><Input type="number" step="0.01" value={ingForm.current_stock} onChange={e => setIngForm(p => ({...p, current_stock: e.target.value === '' ? '' : parseFloat(e.target.value)}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">Min. stok</Label><Input type="number" step="0.01" value={ingForm.min_stock} onChange={e => setIngForm(p => ({...p, min_stock: e.target.value === '' ? '' : parseFloat(e.target.value)}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">Qiymət</Label><Input type="number" step="0.01" value={ingForm.cost_per_unit} onChange={e => setIngForm(p => ({...p, cost_per_unit: e.target.value === '' ? '' : parseFloat(e.target.value)}))} className="h-9 text-sm mt-1 rounded-xl" /></div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setShowIngDialog(false)} className="rounded-xl">Ləğv et</Button>
