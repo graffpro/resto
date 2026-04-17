@@ -51,22 +51,28 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 - [x] Oracle Cloud deployment files
 - [x] Local image storage fallback
 
-### Phase 2 (Current Session - Feb 2026)
-- [x] **Multi-Kitchen Routing** - MenuItem has `target_station` field (kitchen/bar/waiter). Orders automatically route items to correct stations. Kitchen dashboard has station filter dropdown. WebSocket notifications route by station.
-- [x] **Continuous Audio Alarms** - Kitchen and Waiter dashboards play persistent alarm sounds (via Web Audio API `startContinuousAlarm`) when new orders/calls arrive. Red alarm banner with "Sesi dayandır" (Stop Sound) button. Auto-stops when no pending items remain.
-- [x] **Customer Menu Redesign** - Dark navy/amber themed UI. 2-column grid layout. Item detail modal popup with full image, description, price, prep time. Custom background image from settings. Restaurant name + logo display.
-- [x] Admin PIN verification fixed for Owner role
-- [x] Settings page: added menu_background_url and logo_url fields
+### Phase 2 (Session - Feb 2026)
+- [x] Multi-Kitchen Routing (target_station field)
+- [x] Continuous Audio Alarms (Web Audio API)
+- [x] Customer Menu Redesign (dark theme, modal)
+- [x] Admin PIN verification for Owner role
+- [x] Settings: menu_background_url, logo_url
 
-### Phase 3 (Current Session - Capacitor Android App)
-- [x] **Android APK Build** - Capacitor 6 integration with native Android project
-- [x] **Foreground Service** - OrderNotificationService keeps app alive in background
-- [x] **Local Notifications** - Native Android notifications when new orders arrive
-- [x] **Keep Screen On** - WindowManager.FLAG_KEEP_SCREEN_ON for kitchen/waiter devices
-- [x] **Aggressive Polling** - 4-second polling interval in native app (vs 15s in web)
-- [x] **Vibration** - Device vibrates on new order alerts
-- [x] **APK Download** - GET /api/download/apk endpoint serves the built APK
-- [x] **Build Script** - scripts/build-apk.sh for rebuilding with custom server URL
+### Phase 3 (Session - Feb 2026)
+- [x] Android APK (Capacitor 6)
+- [x] Foreground Service for background notifications
+- [x] 4-second polling for native apps
+- [x] APK download from admin panel
+
+### Phase 4 (Current Session - Feb 2026)
+- [x] **Bar role** added — full UserRole enum, dashboard redirect, kitchen endpoint access, user creation form
+- [x] **Owner can create any role** (not just admin)
+- [x] **QR codes hardcoded to resto.az** — settings removed, auto-generates
+- [x] **Timed service expiry notifications** — background task checks every 30s, WebSocket alert to waiter/kitchen
+- [x] **Landing page** (tabres.com style) — Hero, Features bento grid, How It Works, FAQ, Footer
+- [x] **Public registration** — POST /api/auth/register creates restaurant + admin user
+- [x] **Number input bug fixed** — empty string allowed in all number fields
+- [x] **entrypoint.sh safe** — no longer deletes existing DB data on restart
 
 ## Pending / Upcoming Tasks
 - P1: WhatsApp/Twilio Integration (daily sales reports)

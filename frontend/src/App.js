@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { lazy, Suspense } from 'react';
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const OwnerDashboard = lazy(() => import('@/pages/owner/OwnerDashboard'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const KitchenDashboard = lazy(() => import('@/pages/kitchen/KitchenDashboard'));
@@ -95,9 +96,9 @@ function AppRoutes() {
             user.role === 'kitchen' ? <Navigate to="/kitchen" replace /> :
             user.role === 'bar' ? <Navigate to="/kitchen" replace /> :
             user.role === 'waiter' ? <Navigate to="/waiter" replace /> :
-            <Navigate to="/login" replace />
+            <Navigate to="/admin" replace />
           ) : (
-            <Navigate to="/login" replace />
+            <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>
           )
         }
       />

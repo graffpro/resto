@@ -384,6 +384,67 @@ async def login(request: LoginRequest):
         }
     }
 
+# Public registration for new restaurant owners
+class RegisterRequest(BaseModel):
+    restaurant_name: str
+    owner_name: str
+    username: str
+    password: str
+    phone: Optional[str] = None
+
+@api_router.post("/auth/register")
+async def register(request: RegisterRequest):
+    # Check if username exists
+    existing = await db.users.find_one({"username": request.username})
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu istifadəçi adı artıq mövcuddur")
+    
+    # Create owner user
+    user_id = str(uuid.uuid4())
+    hashed_pw = bcrypt.hashpw(request.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    user_doc = {
+        "id": user_id,
+        "username": request.username,
+        "password": hashed_pw,
+        "full_name": request.owner_name,
+        "role": "admin",
+        "is_active": True,
+        "phone": request.phone,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Create restaurant
+    restaurant_id = str(uuid.uuid4())
+    restaurant_doc = {
+        "id": restaurant_id,
+        "name": request.restaurant_name,
+        "is_active": True,
+        "created_by": user_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    user_doc["restaurant_id"] = restaurant_id
+    
+    await db.users.insert_one(user_doc)
+    await db.restaurants.insert_one(restaurant_doc)
+    
+    token = create_token(user_id, "admin")
+    return {
+        "token": token,
+        "user": {
+            "id": user_id,
+            "username": request.username,
+            "role": "admin",
+            "full_name": request.owner_name,
+            "restaurant_id": restaurant_id
+        },
+        "restaurant": {
+            "id": restaurant_id,
+            "name": request.restaurant_name
+        }
+    }
+
 # ==================== RESTAURANTS ====================
 
 @api_router.post("/restaurants", response_model=Restaurant)
