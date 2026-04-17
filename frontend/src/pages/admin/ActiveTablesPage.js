@@ -33,6 +33,8 @@ export default function ActiveTablesPage() {
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [allTables, setAllTables] = useState([]);
   const [transferTargetId, setTransferTargetId] = useState('');
+  const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
+  const [newOrderItems, setNewOrderItems] = useState([]);
   
   // Global timed services alert state
   const [allActiveTimedServices, setAllActiveTimedServices] = useState([]);
@@ -253,6 +255,36 @@ export default function ActiveTablesPage() {
       await axios.put(`${API}/orders/${editingOrder.id}`, { items: editItems, total_amount: totalAmount });
       toast.success('Sifariş yeniləndi');
       setEditingOrder(null);
+      fetchSessionDetails(selectedSession.id);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Xəta baş verdi');
+    }
+  };
+
+  const addNewOrderItem = (menuItem) => {
+    const existing = newOrderItems.findIndex(i => i.menu_item_id === menuItem.id);
+    if (existing >= 0) {
+      setNewOrderItems(prev => prev.map((item, i) => i === existing ? { ...item, quantity: item.quantity + 1 } : item));
+    } else {
+      setNewOrderItems(prev => [...prev, { menu_item_id: menuItem.id, name: menuItem.name, price: menuItem.price, quantity: 1 }]);
+    }
+  };
+
+  const submitNewOrder = async () => {
+    if (newOrderItems.length === 0) {
+      toast.error('Ən azı 1 məhsul seçin');
+      return;
+    }
+    try {
+      const totalAmount = newOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      await axios.post(`${API}/orders`, {
+        session_token: selectedSession.session_token,
+        items: newOrderItems,
+        total_amount: totalAmount
+      });
+      toast.success('Sifariş yaradıldı!');
+      setShowNewOrderDialog(false);
+      setNewOrderItems([]);
       fetchSessionDetails(selectedSession.id);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Xəta baş verdi');
@@ -533,10 +565,17 @@ export default function ActiveTablesPage() {
               {/* Orders */}
               {sessionDetails.orders && sessionDetails.orders.length > 0 ? (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-[#181C1A] flex items-center gap-2">
-                    <ShoppingBag className="w-4 h-4 text-[#C05C3D]" />
-                    Sifarişlər ({sessionDetails.orders.length})
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-[#181C1A] flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-[#C05C3D]" />
+                      Sifarişlər ({sessionDetails.orders.length})
+                    </h3>
+                    {selectedSession?.is_active && (
+                      <Button variant="outline" size="sm" onClick={() => { setShowNewOrderDialog(true); setNewOrderItems([]); }} className="h-7 text-[10px] rounded-lg border-[#C05C3D] text-[#C05C3D]" data-testid="add-new-order-btn">
+                        <Plus className="w-3 h-3 mr-1" /> Yeni Sifariş
+                      </Button>
+                    )}
+                  </div>
                   {sessionDetails.orders.map((order) => (
                     <div key={order.id} className="border border-[#E6E5DF] rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
@@ -610,7 +649,14 @@ export default function ActiveTablesPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-sm text-[#8A948D] py-4">Bu masada hələ sifariş yoxdur</p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-[#8A948D] mb-3">Bu masada hələ sifariş yoxdur</p>
+                  {selectedSession?.is_active && (
+                    <Button onClick={() => { setShowNewOrderDialog(true); setNewOrderItems([]); }} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs rounded-xl" data-testid="add-first-order-btn">
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Sifariş Əlavə Et
+                    </Button>
+                  )}
+                </div>
               )}
 
               {/* Timed Services */}
@@ -907,6 +953,69 @@ export default function ActiveTablesPage() {
                 <Button size="sm" onClick={saveOrderEdit} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl text-xs" data-testid="save-order-edit">Yadda saxla</Button>
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Order Dialog */}
+      <Dialog open={showNewOrderDialog} onOpenChange={setShowNewOrderDialog}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="heading-font text-base font-medium flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-[#C05C3D]" />
+              Masaya Sifariş Əlavə Et
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {newOrderItems.length > 0 && (
+              <div className="space-y-2">
+                {newOrderItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-[#F9F9F7] rounded-xl p-2.5 border border-[#E6E5DF]">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#181C1A] truncate">{item.name}</p>
+                      <p className="text-[10px] text-[#8A948D]">{item.price?.toFixed(2)} AZN / ədəd</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="outline" size="sm" onClick={() => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: Math.max(1, it.quantity - 1) } : it))} className="h-7 w-7 p-0 rounded-lg">
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="text-xs font-medium w-6 text-center">{item.quantity}</span>
+                      <Button variant="outline" size="sm" onClick={() => setNewOrderItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: it.quantity + 1 } : it))} className="h-7 w-7 p-0 rounded-lg">
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setNewOrderItems(prev => prev.filter((_, i) => i !== idx))} className="h-7 w-7 p-0 text-[#B74134]">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-medium text-[#181C1A] mb-2">Menyudan seçin:</p>
+              <div className="bg-white border border-[#E6E5DF] rounded-xl p-1 max-h-48 overflow-y-auto">
+                {menuItems.length === 0 ? (
+                  <p className="text-xs text-[#8A948D] text-center py-4">Menyu yüklənir...</p>
+                ) : (
+                  menuItems.map(mi => (
+                    <button key={mi.id} onClick={() => addNewOrderItem(mi)} className="w-full flex justify-between items-center p-2.5 hover:bg-[#F9F9F7] rounded-lg transition-colors text-left" data-testid={`new-order-item-${mi.id}`}>
+                      <span className="text-xs text-[#181C1A] font-medium">{mi.name}</span>
+                      <span className="text-[11px] text-[#C05C3D] font-semibold">{mi.price?.toFixed(2)} AZN</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            {newOrderItems.length > 0 && (
+              <div className="flex justify-between items-center pt-3 border-t border-[#E6E5DF]">
+                <span className="text-sm font-bold text-[#181C1A]">
+                  Cəmi: {newOrderItems.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)} AZN
+                </span>
+                <Button onClick={submitNewOrder} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl text-xs" data-testid="submit-new-order">
+                  <ShoppingBag className="w-3.5 h-3.5 mr-1" /> Sifariş Ver
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
