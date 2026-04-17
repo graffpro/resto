@@ -14,7 +14,7 @@ print('MongoDB ready!')
     sleep 2
 done
 
-echo "Creating owner account..."
+echo "Checking owner account..."
 python3 -c "
 import bcrypt, uuid, os
 from pymongo import MongoClient
@@ -23,23 +23,46 @@ from datetime import datetime, timezone
 client = MongoClient(os.environ.get('MONGO_URL', 'mongodb://mongo:27017'))
 db = client[os.environ.get('DB_NAME', 'restaurant_db')]
 
-db.users.delete_many({'username': 'graff'})
+# Only create if not exists - NEVER delete existing users
+existing = db.users.find_one({'username': 'graff'})
+if existing and 'password' in existing:
+    # Verify password works
+    try:
+        if bcrypt.checkpw('Testforresto123'.encode('utf-8'), existing['password'].encode('utf-8')):
+            print('Owner OK: graff (already exists)')
+        else:
+            print('Owner exists but password different - keeping as is')
+    except:
+        print('Owner exists - keeping as is')
+else:
+    # Create only if doesn't exist
+    if not existing:
+        pw = bcrypt.hashpw('Testforresto123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.users.insert_one({
+            'id': str(uuid.uuid4()),
+            'username': 'graff',
+            'password': pw,
+            'full_name': 'Graff',
+            'role': 'owner',
+            'is_active': True,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+        print('Owner CREATED: graff / Testforresto123')
+    else:
+        # Exists but no password field - fix it
+        pw = bcrypt.hashpw('Testforresto123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.users.update_one({'username': 'graff'}, {'\$set': {'password': pw}})
+        print('Owner FIXED: graff password restored')
 
-pw = bcrypt.hashpw('Testforresto123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-db.users.insert_one({
-    'id': str(uuid.uuid4()),
-    'username': 'graff',
-    'password': pw,
-    'full_name': 'Graff',
-    'role': 'owner',
-    'is_active': True,
-    'created_at': datetime.now(timezone.utc).isoformat()
-})
+# Create default stations if not exists
+if db.stations.count_documents({}) == 0:
+    db.stations.insert_many([
+        {'id': 'kitchen', 'name': 'Metbex', 'icon': 'chef-hat'},
+        {'id': 'bar', 'name': 'Bar', 'icon': 'wine'},
+        {'id': 'waiter', 'name': 'Ofisiant', 'icon': 'user'},
+    ])
+    print('Default stations created')
 
-user = db.users.find_one({'username': 'graff'})
-assert user and 'password' in user
-assert bcrypt.checkpw('Testforresto123'.encode('utf-8'), user['password'].encode('utf-8'))
-print('Owner OK: graff / Testforresto123')
 client.close()
 "
 
