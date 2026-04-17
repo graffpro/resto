@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ChefHat, Wine, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +13,16 @@ import { toast } from 'sonner';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
+const STATION_LABELS = {
+  kitchen: { label: 'Mətbəx', icon: ChefHat, color: 'bg-orange-100 text-orange-700' },
+  bar: { label: 'Bar', icon: Wine, color: 'bg-purple-100 text-purple-700' },
+  waiter: { label: 'Ofisiant', icon: User, color: 'bg-blue-100 text-blue-700' },
+};
+
 export default function MenuManagement() {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -26,7 +33,8 @@ export default function MenuManagement() {
     category_id: '',
     image_url: '',
     is_available: true,
-    preparation_time: 15
+    preparation_time: 15,
+    target_station: 'kitchen'
   });
 
   useEffect(() => {
@@ -36,12 +44,14 @@ export default function MenuManagement() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [itemsRes, categoriesRes] = await Promise.all([
+      const [itemsRes, categoriesRes, stationsRes] = await Promise.all([
         axios.get(`${API}/menu-items`),
-        axios.get(`${API}/categories`)
+        axios.get(`${API}/categories`),
+        axios.get(`${API}/stations`)
       ]);
       setMenuItems(itemsRes.data);
       setCategories(categoriesRes.data);
+      setStations(stationsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -62,7 +72,8 @@ export default function MenuManagement() {
       const data = {
         ...formData,
         price: parseFloat(formData.price),
-        preparation_time: parseInt(formData.preparation_time)
+        preparation_time: parseInt(formData.preparation_time),
+        target_station: formData.target_station || 'kitchen'
       };
 
       if (editingItem) {
@@ -91,7 +102,8 @@ export default function MenuManagement() {
       category_id: item.category_id,
       image_url: item.image_url || '',
       is_available: item.is_available,
-      preparation_time: item.preparation_time
+      preparation_time: item.preparation_time,
+      target_station: item.target_station || 'kitchen'
     });
     setDialogOpen(true);
   };
@@ -117,7 +129,8 @@ export default function MenuManagement() {
       category_id: '',
       image_url: '',
       is_available: true,
-      preparation_time: 15
+      preparation_time: 15,
+      target_station: 'kitchen'
     });
     setEditingItem(null);
   };
@@ -237,6 +250,20 @@ export default function MenuManagement() {
                   data-testid="menu-item-prep-time-input"
                 />
               </div>
+              <div>
+                <Label htmlFor="target_station">Hədəf Stansiya</Label>
+                <Select value={formData.target_station} onValueChange={(value) => setFormData(prev => ({ ...prev, target_station: value }))}>
+                  <SelectTrigger data-testid="menu-item-station-select">
+                    <SelectValue placeholder="Stansiya seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">Sifariş hansı stansiyaya göndərilsin?</p>
+              </div>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="is_available"
@@ -283,7 +310,16 @@ export default function MenuManagement() {
                   </span>
                 </div>
                 <p className="text-[#5C6B61] text-sm mb-2 line-clamp-2">{item.description}</p>
-                <p className="text-sm text-[#5C6B61] mb-2">Category: {getCategoryName(item.category_id)}</p>
+                <p className="text-sm text-[#5C6B61] mb-1">Category: {getCategoryName(item.category_id)}</p>
+                {(() => {
+                  const st = STATION_LABELS[item.target_station] || STATION_LABELS.kitchen;
+                  const Icon = st.icon;
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mb-2 ${st.color}`}>
+                      <Icon className="w-3 h-3" />{st.label}
+                    </span>
+                  );
+                })()}
                 <p className="text-xl font-bold text-[#1A4D2E] mb-4">${item.price.toFixed(2)}</p>
                 <div className="flex gap-2">
                   <Button 

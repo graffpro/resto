@@ -202,6 +202,34 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Customer Menu Appearance */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-[#181C1A]">Müştəri Menyu Görünüşü</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-xs text-[#5C665F]">Menyu arxa fon şəkli (URL)</Label>
+              <Input
+                value={settings?.menu_background_url || ''}
+                onChange={(e) => setSettings(s => ({ ...s, menu_background_url: e.target.value }))}
+                placeholder="https://example.com/background.jpg"
+                data-testid="settings-menu-bg"
+              />
+              <p className="text-[10px] text-[#5C665F] mt-1">Müştəri menyusu üçün arxa fon şəkli</p>
+            </div>
+            <div>
+              <Label className="text-xs text-[#5C665F]">Restoran logosu (URL)</Label>
+              <Input
+                value={settings?.logo_url || ''}
+                onChange={(e) => setSettings(s => ({ ...s, logo_url: e.target.value }))}
+                placeholder="https://example.com/logo.png"
+                data-testid="settings-logo-url"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Button type="submit" disabled={saving} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white" data-testid="save-settings-btn">
           <Save className="w-4 h-4 mr-2" />
           {saving ? 'Saxlanılır...' : 'Yadda Saxla'}

@@ -1,6 +1,5 @@
 // Notification sound utility
 let audioContext = null;
-let notificationSound = null;
 
 export const initAudio = () => {
   if (!audioContext) {
@@ -80,6 +79,49 @@ export const playTimedServiceAlarm = () => {
   } catch (error) {
     console.error('Alarm playback failed:', error);
   }
+};
+
+// Continuous alarm that plays every N seconds until stopped
+// Returns an object with a stop() method
+export const startContinuousAlarm = (intervalMs = 3000) => {
+  if (!audioContext) initAudio();
+  let stopped = false;
+  
+  const playLoudAlarm = () => {
+    if (stopped || !audioContext) return;
+    try {
+      const now = audioContext.currentTime;
+      const playTone = (time, freq, dur) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.setValueAtTime(freq, time);
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.35, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
+        osc.start(time);
+        osc.stop(time + dur);
+      };
+      playTone(now, 1400, 0.15);
+      playTone(now + 0.2, 1600, 0.15);
+      playTone(now + 0.4, 1400, 0.15);
+      playTone(now + 0.6, 1600, 0.15);
+    } catch (e) {
+      console.error('Alarm error:', e);
+    }
+  };
+
+  // Play immediately
+  playLoudAlarm();
+  const id = setInterval(playLoudAlarm, intervalMs);
+
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(id);
+    }
+  };
 };
 
 export const requestNotificationPermission = async () => {

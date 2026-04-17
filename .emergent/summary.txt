@@ -1,122 +1,152 @@
 <analysis>**original_problem_statement**: 
-Multi-Restaurant (Multi-Tenant) Architecture Management System. Features include Owner/Admin/Kitchen/Waiter roles, detailed inventory tracking with auto-deduction, staff points/shifts, WebRTC voice communication, timed table services (with automated billing), table transfers, and real-time WebSockets.
+Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features include Owner/Admin/Kitchen/Waiter roles, detailed inventory tracking, WebRTC voice communication, timed table services, table transfers, real-time WebSockets, and QR-based digital menus. 
+**PRODUCT REQUIREMENTS:** 
+- The system must support complex routing (Multi-Kitchen tracking where different items go to different kitchens/waiters).
+- Waiter/Kitchen dashboards must have continuous, persistent audio alerts for new orders/calls until acknowledged.
+- Customer Menu must be highly dynamic, support custom restaurant background images, and display item details in a popup/modal before adding to the cart.
 
-**User's preferred language**: Azerbaijani. (The user strictly communicates in Azerbaijani). **INSTRUCT NEXT AGENT: You MUST respond to the user in Azerbaijani ONLY.**
+**User's preferred language**: Azerbaijani. (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only)
+**INSTRUCT NEXT AGENT**: You MUST respond to the user in Azerbaijani ONLY.
 
 **what currently exists?** 
-A highly functional Multi-Restaurant React + FastAPI + MongoDB app. It includes full CRUD for all entities, WebRTC Admin-Kitchen voice communication, Timed Table Services (e.g., serving tea every 45 mins with visual/audio alerts and auto-billing), Table Transfers, Image Uploads via Emergent Object Storage, and dynamic service charge/discount calculations. The backend has started modularization (, , etc.), though  still acts as the main orchestrator.
+A fully functional Multi-Restaurant React + FastAPI + MongoDB app deployed on Oracle Cloud via Docker. Features include: Relative path routing for the SPA (fixing all IP/CORS issues), local image storage fallback for production, Venue Order Rules (e.g., forcing a customer to buy Sweets if they order Tea in a specific hall), a Call Waiter feature with WebSocket broadcasting, and QR Session Device Locking (preventing malicious users from hijacking an active table session). 
 
 **Last working item**:
-- **Last item agent was working**: Fixing regressions on the . The user reported that the My Orders (Sifarişlərim) section disappeared, the total bill is hidden, discount reasons are unclear to the customer, and the service charge needs to be shown in the customer's order view. The user also requested a massive architectural shift to PHP for web hosting compatibility, along with performance and accessibility optimizations.
-- **Status**: IN PROGRESS
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: screenshot tool (for UI fixes on Customer Page) followed by frontend testing agent.
-- **User Testing Done**: N
+    - Last item agent was working: The agent just started addressing the user's latest major requests by creating a  script. The actual feature requests (Multi-Kitchen routing, continuous audio alarms, and Customer Menu redesign) are untouched.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? Both (Frontend testing agent for the UI redesign and alarms; backend testing agent / manual curl for the kitchen routing logic).
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: **Customer Page UI Broken & Missing Information (P0)**
-     - Attempted fixes: Agent viewed the file but context ended before making edits.
-     - Next debug checklist: Check  lines 260-456. Ensure the  array mapping is rendering correctly. Add explicit UI badges explaining *why* an item is discounted (e.g., 5% Endirim!). Re-add  calculation/display to the customer's active session view.
-     - Why fix this issue and what will be achieved with the fix? The customer currently cannot see their bill or orders, which breaks the core QR-menu functionality.
-     - Status: IN PROGRESS
-     - Is recurring issue? Y (Customer page logic broke during service charge refactoring).
-     - Should Test frontend/backend/both after fix? Frontend.
-     - Blocked on other issue: None.
-
-  - Issue 2: **User Request to Rewrite Backend in PHP (P0 - NEEDS CLARIFICATION)**
-     - Attempted fixes: None.
-     - Next debug checklist: Inform the user in Azerbaijani that migrating from Python/FastAPI to PHP is a massive, high-risk architectural rewrite. Explain that since the app uses Docker/Kubernetes, it can be easily deployed to modern web hosting (VPS, Render, DigitalOcean, etc.) without needing PHP.
-     - Why fix this issue and what will be achieved with the fix? Prevents the agent from destroying a perfectly working FastAPI backend.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? N/A (Communication only).
+  - Issue 1: None at the moment. All previous bugs (QR localhost issues, login hashes, empty restaurant lists) were successfully resolved and verified by the user (Hər şey işlədi!).
 
 **In progress Task List**:
-  - Task 1: **Performance Optimization & Accessibility**
-     - Where to resume: Audit frontend for memoization (, ), add ,  tags for images, and ensure keyboard navigation works. Optimize MongoDB queries if needed.
-     - What will be achieved with this? Smoother UX and compliance with web standards.
+  - Task 1: **Multi-Kitchen Routing & Waiter Assignment**
+     - Where to resume: Update the  model to include a target destination (e.g., Kitchen 1, Kitchen 2, Bar, Waiter). Modify the backend order creation endpoint () to split or flag items in the order. Update WebSocket broadcasting so specific items only alert the relevant dashboard.
+     - What will be achieved with this? Granular operational control, allowing drinks to go to the bar and food to the kitchen.
      - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix? Both.
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: None
+  - Task 2: **Continuous Audio Alarms for Kitchen/Waiter**
+     - Where to resume: Update  and . Currently, they play a sound once. Change this to a  loop that plays a loud ding-ding continuously until the order/call is acknowledged by the staff.
+     - What will be achieved with this? Ensures staff never miss a customer order or call.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: None
+  - Task 3: **Customer Menu Redesign (Modal UI & Custom Backgrounds)**
+     - Where to resume: Modify . Implement a custom background image feature (fetching from settings). Change the item click behavior so that clicking an item opens a detailed modal/popup (as shown in user's screenshots) before adding it to the cart. Make it colorful and dynamic.
+     - What will be achieved with this? Modern, engaging user experience similar to popular delivery apps.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**:
-- P1: **WhatsApp/Twilio Integration:** Implement automated daily sales reports or customer receipts via WhatsApp (Requires User API Key).
-- P2: **Complete  Refactoring:** Route endpoints are still inside . They need to be moved to  for long-term maintainability. (Models, DB, and Auth are already extracted).
+    Upcoming Tasks:
+    - P1: **WhatsApp/Twilio Integration** - Automated daily sales reports or customer receipts via WhatsApp (Requires User API Key).
+    - P2: ** Refactoring** - Breaking down the monolithic  (2900+ lines) into .
+    
+    Future Tasks:
+    - P3: Multi-language support.
+    - P3: Domain + SSL certificate configuration for Oracle deployment.
+    - P3: Native Application wrapping (PWA/Capacitor) to keep Waiter/Kitchen apps alive in the background.
 
-**Completed work in this session**:
-- Implemented WebRTC Voice Communication between Admin and Kitchen (DONE)
-- Timed Table Service with UI flashing, audio alarms, auto-billing, and Stop (Yetərlidir) button (DONE)
-- Table Transfer functionality (DONE)
-- Menu Item Image Uploads via Emergent Object Storage (DONE)
-- Replaced all instances of Stol with Masa (DONE)
-- Grouped Active Tables by Venue/Room (DONE)
-- Extracted shared backend logic to , , ,  (DONE)
-- Fixed Service charge to apply only to the grand total at session close (DONE)
+**Completed work in this session**
+- Fixed CustomerPage orders UI, service charge, and discount text displays (DONE)
+- Implemented Frontend Performance & Accessibility optimizations (DONE)
+- Generated Oracle Cloud Deployment files (, , ) and a Russian Word Doc Guide (DONE)
+- Created  for auto-seeding the Owner account on Docker startup (DONE)
+- Refactored frontend API calls to use relative paths () instead of absolute  URLs to fix IP mapping (DONE)
+- Removed  dependency and added local image storage fallback for production (DONE)
+- Implemented Venue Order Rules (e.g. required items for specific categories) (DONE)
+- Implemented Call Waiter feature with WS broadcasting (DONE)
+- Fixed QR code Base URL generation via settings (DONE)
+- Implemented Session Device Locking for QR codes (Security feature) (DONE)
 
-**Earlier issues found/mentioned but not fixed**:
-- None. Agent successfully resolved all bugs until the final prompt regarding the  regression.
+**Earlier issues found/mentioned but not fixed**
+   - None.
 
-**Known issue recurrence from previous fork**:
-- Issue recurrence in previous fork: None notable in this specific fork, though UI regressions occur when heavily modifying order arrays.
-- Recurrence count: 0
-- Status: RESOLVED
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0
+  - Status: RESOLVED
 
-**Code Architecture**:
+**Code Architecture**
 
 
-**Key Technical Concepts**:
-React, FastAPI, MongoDB, WebRTC (Native Browser), WebSockets, JWT Authentication, Emergent Object Storage.
+**Key Technical Concepts**
+React, FastAPI, MongoDB, WebSockets, Docker, Nginx, Supervisor. Frontend utilizes relative API routing () for seamless SPA deployment.
 
-**key DB schema**:
-- : {id, session_id, menu_item_id, interval_minutes, next_serve_time, is_active}
-- : {..., discount_amount, service_charge_amount (now 0 per order, applied at session level)}
+**key DB schema**
+  - : {id, name, order_rules: [{trigger_category, required_category, min_quantity}]}
+  - : {id, table_id, device_id (for session locking), is_active}
+  - : {base_url, ...}
+  - : {id, username, password, role}
 
-**changes in tech stack**:
-- Added  for image uploads.
+**changes in tech stack**
+  - Removed  object storage logic. Replaced with a local filesystem fallback () so image uploads work in the user's Oracle Cloud production environment.
 
-**All files of reference**:
--  (Must fix immediately)
--  (Backend routes)
+**All files of reference** 
+  -  (Must be heavily modified for UI redesign)
+  -  (Must add  for continuous alarms)
+  -  (Must add  for continuous alarms)
+  -  (Must add Multi-kitchen item routing logic)
+  -  (Created in this session)
 
-**Areas that need refactoring**:
--  - Still contains ~2700 lines of route definitions.
+**Areas that need refactoring**: 
+  -  is nearly 3000 lines long and handles all endpoints, logic, and file uploads. 
 
-**key api endpoints**:
-- : Now calculates the 10% service charge on the overall bill.
-- : Manages timed table loops.
+**key api endpoints**
+  - : Now handles  generation for security.
+  - : Validates  against the session and checks Venue Order Rules before placing an order.
 
-**Critical Info for New Agent**:
-- **LANGUAGE:** Always speak Azerbaijani.
-- **PHP MIGRATION:** Do **NOT** rewrite the backend to PHP. Gently educate the user that Python/FastAPI apps are containerized and can be hosted on modern VPS/Cloud platforms easily. Rewriting to PHP will destroy the WebSockets and WebRTC architecture.
-- **SERVICE CHARGE:** Per-order service charge was removed. It is now only calculated on the total bill when an admin closes the table. Ensure the Customer Page reflects this overall service charge.
+**Critical Info for New Agent** 
+  - **LANGUAGE**: Always speak **Azerbaijani**.
+  - **RELATIVE ROUTING**: The frontend now uses  instead of . Do NOT revert this back to absolute URLs. This was specifically done so the user's production server (which has dynamic IPs/Domains) routes correctly through Nginx.
+  - **PRODUCTION UPLOADS**: Image uploads now save directly to  because the user is hosting this themselves. Do not use Emergent integrations for object storage.
+  - **USER DEPLOYMENT WORKFLOW**: The user tests your code by doing a  and  on their Oracle server. Before you declare a task finished, ensure you have used the  logic implicitly or instruct the user to save.
+  - **AUDIO ALARMS**: Browser autoplay policies might block continuous audio if the user hasn't interacted with the DOM. Keep this in mind when building the continuous alarm loops for the Waiter/Kitchen.
 
-**documents and test reports created in this job**:
--  (Updated)
--  (Shows 100% pass rate before the final Customer Page bug)
+**documents and test reports created in this job** 
+  - 
+  - 
+  - 
+  - 
+  - 
 
-**Last 10 User Messages and any pending HUMAN messages**:
-1. (User) Requested Timed Services audio alarms and red flashing UI.
-2. (User) Requested Timed Services auto-billing, Stop button, and Table Transfer feature.
-3. (User) Davam elə (Continue).
-4. (User) Requested fixes: Service charge should only apply at session close, customers need to see discount percentages, and customer orders need to show discounts.
-5. (User) *LATEST MESSAGE*: My Orders (Sifarişlərim) disappeared on Customer Page. Total bill is gone. Customers see price drops but don't understand *why* (needs clear discount text). Service charge needs to be shown on the Customer page. User wants to migrate the project to PHP for WebHosting. User wants Performance and Accessibility optimizations.
+**Last 10 User Messages and any pending HUMAN messages** 
+ - (User) Provided screenshots of new UI. Requested 3 major features: Multi-kitchen item routing, continuous audio alarms for staff dashboards, and a complete Customer Menu redesign (modal details, custom background). Also requested to continue with backup/refactoring tasks. (STATUS: PENDING)
+ - (User) Hər şey işlədi! (Everything worked! regarding previous QR and order rule fixes). (STATUS: COMPLETED)
+ - (User) Reported restaurants not loading, QR still acting as localhost, and requested session lock for QRs. (STATUS: COMPLETED)
+ - (User) Asked to add Venue rules, Call Waiter button, and fix QR localhost bug. (STATUS: COMPLETED)
+ - (User) Demanded a root fix for the Invalid credentials error during owner creation. (STATUS: COMPLETED)
+ - (User) Uploaded errors showing password hash mismatch. (STATUS: COMPLETED)
+ - (User) Reported  missing on production. (STATUS: COMPLETED)
+ - (User) Complained about credits burning, demanded 1-click bash fixes for Docker issues. (STATUS: COMPLETED)
+ - (User) Uploaded  and  Docker build errors. (STATUS: COMPLETED)
+ - (User) Asked how to setup  on fresh Oracle clone. (STATUS: COMPLETED)
 
-**Project Health Check**:
-- Backend: Healthy
-- Frontend: Broken (CustomerPage.js UI is failing to render the orders section).
+**Project Health Check:**
+  - Backend: Healthy
+  - Frontend: Healthy (UI Redesign Pending)
 
-**3rd Party Integrations**:
-- Emergent Object Storage (Image Uploads) — uses Emergent LLM Key.
+**3rd Party Integrations** 
+  - None active. Emergent Object Storage was replaced with local disk storage for compatibility with the user's bare-metal server.
 
-**Testing status**:
-- Testing agent used after significant changes: YES (Iterations 5, 6, 7, 8).
-- Troubleshoot agent used after agent stuck in loop: NO.
-- Test files created: Handled by subagent.
-- Known regressions: CustomerPage.js orders section is currently not rendering.
+**Testing status**
+  - Testing agent used after significant changes: YES (iteration 9)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: Handled by testing subagent
+  - Known regressions: None
 
-**Credentials to test flow**:
-- Owner:  / 
-- Admin:  /  (Admin PIN: 5159)
+**Credentials to test flow:**
+  - Owner:  / 
+  - Owner:  / 
 
-**What agent forgot to execute**:
-- Agent did not fix the  regression before the context window ended.
-- Agent did not address the PHP migration request, Performance optimization, or Accessibility fixes requested in the final prompt.</analysis>
+**What agent forgot to execute**
+  - The agent received a massive multi-part prompt at the very end of the context window (Multi-Kitchen routing, Continuous Alarms, Menu Redesign). The agent only had time to create a  script before finishing. You need to immediately plan and execute these 3 core requirements.
+
+**Debugging checklist for current issue**
+    Issue: Implement Continuous Audio Alarms for Waiter/Kitchen
+    Frontend files to check:  and 
+    Next Step: Replace standard  with a  that loops the  object. Add a Səsi dayandır / Qəbul et (Stop sound / Accept) button that runs  when the staff member interacts with the new order. Be mindful of React state closures inside .</analysis>

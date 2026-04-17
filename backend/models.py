@@ -134,6 +134,7 @@ class MenuItem(BaseModel):
     discount_percentage: float = 0
     is_available: bool = True
     preparation_time: int = 15
+    target_station: str = "kitchen"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MenuItemCreate(BaseModel):
@@ -145,6 +146,7 @@ class MenuItemCreate(BaseModel):
     discount_percentage: float = 0
     is_available: bool = True
     preparation_time: int = 15
+    target_station: str = "kitchen"
 
 class OrderItem(BaseModel):
     menu_item_id: str
@@ -153,6 +155,7 @@ class OrderItem(BaseModel):
     quantity: int
     discount_percentage: float = 0
     discounted_price: Optional[float] = None
+    target_station: str = "kitchen"
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")

@@ -2,47 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
-import { RefreshCw, CheckCircle, LogOut, Clock, Wifi, WifiOff, Bell, BellRing } from 'lucide-react';
+import { RefreshCw, CheckCircle, LogOut, Clock, Wifi, WifiOff, Bell, BellRing, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
-import { playNotificationSound, initAudio } from '@/utils/notifications';
+import { initAudio, startContinuousAlarm } from '@/utils/notifications';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
-
-function playDingDing(times = 5) {
-  let count = 0;
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const play = () => {
-    if (count >= times) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(1200, ctx.currentTime);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
-    count++;
-    setTimeout(() => {
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.frequency.setValueAtTime(1500, ctx.currentTime);
-      gain2.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc2.start(ctx.currentTime);
-      osc2.stop(ctx.currentTime + 0.3);
-      setTimeout(play, 600);
-    }, 200);
-  };
-  play();
-}
 
 function WaiterContent() {
   const { user, logout } = useAuth();
@@ -50,28 +19,68 @@ function WaiterContent() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [waiterCalls, setWaiterCalls] = useState([]);
-  const prevOrdersCount = useRef(0);
+  const prevOrderIds = useRef(new Set());
+  const alarmRef = useRef(null);
+  const [alarmActive, setAlarmActive] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const handleUserInteraction = useCallback(() => {
+    if (!hasInteracted) {
+      initAudio();
+      setHasInteracted(true);
+    }
+  }, [hasInteracted]);
+
+  useEffect(() => {
+    document.addEventListener('click', handleUserInteraction, { once: true });
+    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, [handleUserInteraction]);
 
   useEffect(() => {
     initAudio();
     fetchOrders();
     fetchWaiterCalls();
     const interval = setInterval(() => { fetchOrders(); fetchWaiterCalls(); }, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (alarmRef.current) alarmRef.current.stop();
+    };
   }, []);
+
+  const triggerAlarm = () => {
+    if (alarmRef.current) alarmRef.current.stop();
+    alarmRef.current = startContinuousAlarm(3000);
+    setAlarmActive(true);
+  };
+
+  const stopAlarm = () => {
+    if (alarmRef.current) {
+      alarmRef.current.stop();
+      alarmRef.current = null;
+    }
+    setAlarmActive(false);
+  };
 
   // Handle WebSocket messages
   useEffect(() => {
     if (lastMessage?.type === 'order_ready') {
       fetchOrders();
-      playNotificationSound();
-      toast.success('Sifariş hazırdır!', { duration: 5000 });
+      triggerAlarm();
+      toast.success('Sifaris hazirdir!', { duration: 5000 });
+    } else if (lastMessage?.type === 'new_order_waiter_items') {
+      fetchOrders();
+      triggerAlarm();
+      toast.success('Yeni sifaris (ofisiant/bar)!', { duration: 5000 });
     } else if (lastMessage?.type === 'order_update') {
       fetchOrders();
     } else if (lastMessage?.type === 'waiter_call') {
       fetchWaiterCalls();
-      playDingDing(5);
-      toast.error(`Masa ${lastMessage.table_number} ofisiant çağırır!`, { duration: 10000 });
+      triggerAlarm();
+      toast.error(`Masa ${lastMessage.table_number} ofisiant cagırir!`, { duration: 10000 });
     } else if (lastMessage?.type === 'waiter_call_ack') {
       setWaiterCalls(prev => prev.filter(c => c.id !== lastMessage.call_id));
     }
@@ -82,13 +91,20 @@ function WaiterContent() {
       const response = await axios.get(`${API}/orders/waiter`);
       const newOrders = response.data;
       
-      // Only play sound if not from WebSocket
-      if (!isConnected && prevOrdersCount.current > 0 && newOrders.length > prevOrdersCount.current) {
-        playNotificationSound();
-        toast.success('Hazır sifariş var!', { duration: 5000 });
+      const newIds = new Set(newOrders.map(o => o.order.id));
+      const hadNew = [...newIds].some(id => !prevOrderIds.current.has(id));
+      
+      if (hadNew && prevOrderIds.current.size > 0 && !isConnected) {
+        triggerAlarm();
+        toast.success('Hazir sifaris var!', { duration: 5000 });
       }
       
-      prevOrdersCount.current = newOrders.length;
+      // Auto-stop alarm if nothing to attend
+      if (newOrders.length === 0 && waiterCalls.length === 0 && alarmActive) {
+        stopAlarm();
+      }
+      
+      prevOrderIds.current = newIds;
       setOrders(newOrders);
       if (loading) setLoading(false);
     } catch (error) {
@@ -99,10 +115,11 @@ function WaiterContent() {
   const markDelivered = async (orderId) => {
     try {
       await axios.put(`${API}/orders/${orderId}/status?status=delivered`);
-      toast.success('Sifariş çatdırıldı');
+      toast.success('Sifaris catdirildi');
+      stopAlarm();
       fetchOrders();
     } catch (error) {
-      toast.error('Xəta baş verdi');
+      toast.error('Xeta bas verdi');
     }
   };
 
@@ -117,7 +134,10 @@ function WaiterContent() {
     try {
       await axios.post(`${API}/waiter-call/${callId}/acknowledge`);
       setWaiterCalls(prev => prev.filter(c => c.id !== callId));
-      toast.success('Qəbul edildi');
+      if (waiterCalls.length <= 1 && orders.length === 0) {
+        stopAlarm();
+      }
+      toast.success('Qebul edildi');
     } catch {}
   };
 
@@ -132,8 +152,30 @@ function WaiterContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7] p-6">
+    <div className="min-h-screen bg-[#F9F9F7] p-6" onClick={handleUserInteraction}>
       <div className="max-w-7xl mx-auto">
+        {/* Alarm Banner */}
+        {alarmActive && (
+          <div
+            className="mb-4 bg-red-600 text-white rounded-xl p-4 flex items-center justify-between"
+            style={{ animation: 'pulse 0.5s ease-in-out infinite alternate' }}
+            data-testid="waiter-alarm-banner"
+          >
+            <div className="flex items-center gap-3">
+              <Volume2 className="w-6 h-6 animate-bounce" />
+              <span className="text-lg font-bold">DIQQET! Yeni tapsirig var!</span>
+            </div>
+            <Button
+              onClick={stopAlarm}
+              className="bg-white text-red-600 hover:bg-red-50 font-bold"
+              data-testid="stop-alarm-btn"
+            >
+              <VolumeX className="w-4 h-4 mr-2" />
+              Sesi dayandır
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight mb-2">{az.waiterOrders}</h1>
@@ -142,7 +184,7 @@ function WaiterContent() {
               {isConnected ? (
                 <span className="flex items-center gap-1 text-xs text-green-600">
                   <Wifi className="w-3 h-3" />
-                  Canlı
+                  Canli
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-xs text-orange-600">
@@ -155,7 +197,7 @@ function WaiterContent() {
           <div className="flex gap-2">
             <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md">
               <RefreshCw className="w-4 h-4 mr-2" />
-              Yenilə
+              Yenile
             </Button>
             <Button onClick={logout} variant="outline" className="rounded-md">
               <LogOut className="w-4 h-4 mr-2" />
@@ -169,12 +211,12 @@ function WaiterContent() {
           <div className="mb-6 space-y-3" data-testid="waiter-calls-section">
             <h2 className="text-lg font-bold text-red-600 flex items-center gap-2">
               <BellRing className="w-5 h-5 animate-bounce" />
-              Ofisiant çağırışları ({waiterCalls.length})
+              Ofisiant cagirislari ({waiterCalls.length})
             </h2>
             {waiterCalls.map(call => (
               <div
                 key={call.id}
-                className="bg-red-50 border-2 border-red-500 rounded-xl p-4 flex items-center justify-between animate-pulse"
+                className="bg-red-50 border-2 border-red-500 rounded-xl p-4 flex items-center justify-between"
                 style={{ animation: 'pulse 0.5s ease-in-out infinite alternate' }}
                 data-testid={`waiter-call-${call.id}`}
               >
@@ -188,7 +230,7 @@ function WaiterContent() {
                   data-testid={`ack-call-${call.id}`}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
-                  Qəbul et
+                  Qebul et
                 </Button>
               </div>
             ))}
@@ -197,12 +239,12 @@ function WaiterContent() {
 
         {orders.length === 0 ? (
           <div className="bg-white border border-[#E6E5DF] rounded-xl p-12 text-center">
-            <p className="text-[#5C665F] text-lg">Hazırda hazır sifariş yoxdur</p>
+            <p className="text-[#5C665F] text-lg">Hazirda hazir sifaris yoxdur</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {orders.map(({ order, table, venue }) => (
-              <Card key={order.id} className="bg-white">
+              <Card key={order.id} className="bg-white ring-2 ring-green-400 ring-offset-2" data-testid={`waiter-order-${order.id}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-[#181C1A]">
                     <span>Masa {table?.table_number}</span>
@@ -210,12 +252,12 @@ function WaiterContent() {
                   </CardTitle>
                   <p className="text-sm text-[#5C665F]">{venue?.name}</p>
                   <p className="text-xs text-[#5C665F] mt-2">
-                    Sifariş #{order.order_number}
+                    Sifaris #{order.order_number}
                   </p>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-4">
-                    <p className="text-xs text-[#5C665F] mb-2">Yeməklər:</p>
+                    <p className="text-xs text-[#5C665F] mb-2">Yemekler:</p>
                     <div className="space-y-1">
                       {order.items.map((item, idx) => (
                         <p key={idx} className="text-sm font-semibold">
@@ -229,7 +271,7 @@ function WaiterContent() {
                     <div className="flex items-center gap-2 text-[#181C1A]">
                       <Clock className="w-4 h-4" />
                       <span className="text-sm font-semibold">
-                        Hazır: {getTimeSince(order.ready_at)}
+                        Hazir: {getTimeSince(order.ready_at)}
                       </span>
                     </div>
                   </div>
@@ -237,6 +279,7 @@ function WaiterContent() {
                   <Button
                     onClick={() => markDelivered(order.id)}
                     className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white"
+                    data-testid={`mark-delivered-${order.id}`}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
                     {az.markAsDelivered}

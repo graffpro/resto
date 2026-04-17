@@ -243,6 +243,7 @@ class MenuItem(BaseModel):
     discount_percentage: float = 0  # Per-item discount
     is_available: bool = True
     preparation_time: int = 15
+    target_station: str = "kitchen"  # kitchen, bar, or waiter
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MenuItemCreate(BaseModel):
@@ -254,6 +255,7 @@ class MenuItemCreate(BaseModel):
     discount_percentage: float = 0
     is_available: bool = True
     preparation_time: int = 15
+    target_station: str = "kitchen"  # kitchen, bar, or waiter
 
 class OrderItem(BaseModel):
     menu_item_id: str
@@ -262,6 +264,7 @@ class OrderItem(BaseModel):
     quantity: int
     discount_percentage: float = 0  # Per-item discount
     discounted_price: Optional[float] = None  # Price after item discount
+    target_station: str = "kitchen"  # kitchen, bar, or waiter
 
 class Order(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1440,6 +1443,9 @@ async def create_order(order: OrderCreate):
         menu_item = await db.menu_items.find_one({"id": item_dict['menu_item_id']}, {"_id": 0})
         item_discount = menu_item.get('discount_percentage', 0) if menu_item else 0
         
+        # Get target_station from menu item
+        item_dict['target_station'] = menu_item.get('target_station', 'kitchen') if menu_item else 'kitchen'
+        
         if item_discount > 0:
             discounted_price = original_price * (1 - item_discount / 100)
             item_dict['discount_percentage'] = item_discount
@@ -1576,7 +1582,7 @@ async def get_session_orders(session_token: str):
     }
 
 @api_router.get("/orders/kitchen")
-async def get_kitchen_orders(current_user: dict = Depends(get_current_user)):
+async def get_kitchen_orders(current_user: dict = Depends(get_current_user), station: Optional[str] = None):
     if current_user['role'] not in [UserRole.KITCHEN, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -1589,6 +1595,13 @@ async def get_kitchen_orders(current_user: dict = Depends(get_current_user)):
         for field in ['ordered_at', 'preparing_started_at']:
             if order.get(field) and isinstance(order[field], str):
                 order[field] = datetime.fromisoformat(order[field])
+        
+        # Filter items by station if specified
+        if station:
+            filtered_items = [item for item in order.get('items', []) if item.get('target_station', 'kitchen') == station]
+            if not filtered_items:
+                continue
+            order = {**order, 'items': filtered_items}
         
         table = await db.tables.find_one({"id": order['table_id']}, {"_id": 0})
         venue = await db.venues.find_one({"id": table['venue_id']}, {"_id": 0}) if table else None
@@ -1875,7 +1888,7 @@ async def update_settings(settings: dict, current_user: dict = Depends(get_curre
 # Verify Admin PIN
 @api_router.post("/verify-admin-pin")
 async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_user)):
-    if current_user['role'] != UserRole.ADMIN:
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Check user's personal PIN first
@@ -2581,11 +2594,59 @@ async def notify_order_update(order_data: dict, event_type: str):
     # Notify kitchen for new orders
     if event_type in ["new_order", "order_update"]:
         await manager.broadcast_to_role(message, "kitchen")
-    # Notify waiters for ready orders
+    # Notify waiters for ready orders AND new orders with waiter-targeted items
     if event_type in ["order_ready", "order_update"]:
         await manager.broadcast_to_role(message, "waiter")
+    # For new orders, check if any items target waiter/bar station
+    if event_type == "new_order":
+        order = order_data.get("order", {})
+        items = order.get("items", [])
+        has_waiter_items = any(
+            item.get("target_station") in ("waiter", "bar")
+            for item in items
+        )
+        if has_waiter_items:
+            waiter_msg = {**message, "type": "new_order_waiter_items"}
+            await manager.broadcast_to_role(waiter_msg, "waiter")
     # Notify admin about all order events
     await manager.broadcast_to_role(message, "admin")
+
+
+# Kitchen Stations Management
+DEFAULT_STATIONS = [
+    {"id": "kitchen", "name": "Mətbəx", "icon": "chef-hat"},
+    {"id": "bar", "name": "Bar", "icon": "wine"},
+    {"id": "waiter", "name": "Ofisiant", "icon": "user"},
+]
+
+@api_router.get("/stations")
+async def get_stations():
+    stations = await db.stations.find({}, {"_id": 0}).to_list(100)
+    if not stations:
+        return DEFAULT_STATIONS
+    return stations
+
+@api_router.post("/stations")
+async def create_station(station: dict, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    station_doc = {
+        "id": station.get("id", str(uuid.uuid4())),
+        "name": station["name"],
+        "icon": station.get("icon", "chef-hat"),
+    }
+    await db.stations.insert_one(station_doc)
+    return station_doc
+
+@api_router.delete("/stations/{station_id}")
+async def delete_station(station_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if station_id in ("kitchen", "bar", "waiter"):
+        raise HTTPException(status_code=400, detail="Standart stansiyalar silinə bilməz")
+    await db.stations.delete_one({"id": station_id})
+    return {"message": "Station deleted"}
 
 
 # Discount Model and Endpoints
