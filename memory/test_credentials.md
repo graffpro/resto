@@ -1,18 +1,15 @@
 # Test Credentials
 
-## Owner
-- Username: `graff`
-- Password: `Testforresto123`
+## Owner Accounts
+- **username:** owner | **password:** owner123
+- **username:** graff | **password:** Testforresto123
 
-## Emergent Test Owner
-- Username: `owner`
-- Password: `owner123`
+## Admin PIN
+- **PIN:** 5159
 
-## Admin
-- Username: `admin1`
-- Password: `admin123`
-- Admin PIN: `5159`
+## Test Table ID
+- 54e3595b-8a97-4b6b-8818-95bb2756d9d9
 
-## Test Data
-- Table ID (Masa 1): `89ececa6-2856-4b18-9ad8-323ec7aa3be2`
-- Customer Page URL: `/customer/89ececa6-2856-4b18-9ad8-323ec7aa3be2`
+## Admin Users
+- **username:** admin1 | **password:** admin123 | **PIN:** 1234
+- **username:** emin | **PIN:** 5159

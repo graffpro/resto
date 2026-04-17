@@ -1,72 +1,78 @@
-# Real-Time QR-Code Restaurant Management System - PRD
+# QR Restoran - Product Requirements Document
 
 ## Original Problem Statement
-Multi-Restaurant (Multi-Tenant) QR-Code Restaurant Management System with Owner/Admin/Kitchen/Waiter roles, detailed inventory tracking with auto-deduction, staff points/shifts, WebRTC voice communication, timed table services (with automated billing), table transfers, and real-time WebSockets.
+Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features include Owner/Admin/Kitchen/Waiter roles, detailed inventory tracking, WebRTC voice communication, timed table services, table transfers, real-time WebSockets, and QR-based digital menus.
 
-## Technical Stack
-- Frontend: React 18, Shadcn/UI, TailwindCSS, React.lazy (code splitting)
-- Backend: FastAPI, MongoDB, WebSocket, JWT/RBAC, WebRTC, Object Storage
-- Deployment: Docker, Nginx, Supervisor (Oracle Cloud Free Tier ready)
+## Core Requirements
+- Complex routing: Multi-Kitchen tracking where different items go to different kitchens/waiters
+- Waiter/Kitchen dashboards: continuous, persistent audio alerts for new orders/calls until acknowledged
+- Customer Menu: highly dynamic, support custom restaurant background images, display item details in popup/modal before adding to cart
 
-## Implemented Features
+## Tech Stack
+- Frontend: React + Tailwind CSS + Shadcn/UI
+- Backend: FastAPI + MongoDB
+- Real-time: WebSockets
+- Deployment: Docker + Nginx (Oracle Cloud)
+- Auth: JWT-based
 
-### Core
-- Auth (JWT/RBAC), CRUD, QR, Orders, Analytics, Expenses, Multi-menu, Reservations, Discounts, PIN
-- Multi-Restaurant: Restaurant CRUD, cascading deactivation, time-limited admins
+## Architecture
+```
+/app/
+├── backend/
+│   ├── server.py          # Monolithic API (2900+ lines)
+│   ├── models.py          # Pydantic schemas
+│   ├── auth.py            # JWT Auth
+│   ├── ws_manager.py      # WebSocket manager
+│   ├── database.py        # MongoDB connection
+├── frontend/
+│   ├── src/pages/
+│   │   ├── customer/CustomerPage.js  # Dark-themed customer menu
+│   │   ├── waiter/WaiterDashboard.js # With continuous alarms
+│   │   ├── kitchen/KitchenDashboard.js # With station filter + alarms
+│   │   ├── admin/MenuManagement.js   # Station selector for items
+│   │   ├── admin/SettingsPage.js     # Background URL + Logo settings
+├── deploy/               # Docker, nginx, supervisord
+```
 
-### UI/UX
-- Modern design, "Masa" terminology, terracotta/green theme
-- React.lazy() code splitting, accessibility (aria-labels, alt tags)
-- Lazy loading images
+## Completed Features
 
-### Staff & Inventory
-- Points, shifts, recipes, auto-deduction from stock
+### Phase 1 (Previous Sessions)
+- [x] Multi-restaurant support with venues/tables
+- [x] QR code generation with custom base URL
+- [x] Session device locking (security)
+- [x] Venue order rules (required items per category)
+- [x] Call Waiter feature with WS broadcasting
+- [x] Discount campaigns (per-item + order-level)
+- [x] Inventory management with auto-deduction
+- [x] WebRTC voice calls
+- [x] Timed table services
+- [x] Table transfers
+- [x] Analytics + Financial reports
+- [x] Oracle Cloud deployment files
+- [x] Local image storage fallback
 
-### Voice & Timed Services
-- WebRTC live calls, timed table service with alarm, Verildi/Yetərlidir
+### Phase 2 (Current Session - Feb 2026)
+- [x] **Multi-Kitchen Routing** - MenuItem has `target_station` field (kitchen/bar/waiter). Orders automatically route items to correct stations. Kitchen dashboard has station filter dropdown. WebSocket notifications route by station.
+- [x] **Continuous Audio Alarms** - Kitchen and Waiter dashboards play persistent alarm sounds (via Web Audio API `startContinuousAlarm`) when new orders/calls arrive. Red alarm banner with "Sesi dayandır" (Stop Sound) button. Auto-stops when no pending items remain.
+- [x] **Customer Menu Redesign** - Dark navy/amber themed UI. 2-column grid layout. Item detail modal popup with full image, description, price, prep time. Custom background image from settings. Restaurant name + logo display.
+- [x] Admin PIN verification fixed for Owner role
+- [x] Settings page: added menu_background_url and logo_url fields
 
-### Image Upload
-- Menu items via Object Storage (with local fallback for production)
+## Pending / Upcoming Tasks
+- P1: WhatsApp/Twilio Integration (daily sales reports)
+- P2: server.py Refactoring (2900+ lines → routes/)
+- P3: Multi-language support
+- P3: Domain + SSL configuration
+- P3: PWA/Native app wrapping
 
-### Customer Page
-- Redesigned compact menu with images, search, categories, cart
-- Discount explanations ("Xüsusi endirim: -X%"), service charge display
-- **"Ofisiant çağır" button** with 30s cooldown
+## Key API Endpoints
+- `GET /api/stations` - List kitchen stations
+- `POST /api/stations` - Create custom station
+- `GET /api/orders/kitchen?station=X` - Filter orders by station
+- `POST /api/orders` - Create order (auto-populates target_station)
+- `GET /api/settings` - Includes menu_background_url, logo_url
 
-### Table Transfer
-- Admin moves session between tables
-
-### Service Charge
-- Applied ONLY at table close (not per order), shown in bill summary
-
-### Waiter Call System (NEW)
-- Customer button "Ofisiant" with WebSocket notification
-- Waiter dashboard: Flashing red alert + ding-ding sound (5x)
-- Admin also receives notifications
-- Acknowledge/dismiss functionality
-
-### Venue Order Rules (NEW)
-- Per-venue rules: "require_with" type (e.g., tea requires dessert)
-- Backend validation on order creation
-- Admin UI to manage rules per venue
-
-### QR Code URL Fix (NEW)
-- Configurable base_url in Settings
-- "Regenerate QR" button for all tables
-- Frontend uses relative URLs (no IP configuration needed in Docker)
-
-### Deployment
-- Dockerfile, docker-compose.yml, nginx.conf, supervisord.conf
-- entrypoint.sh auto-creates owner account
-- Oracle Cloud Free Tier guide (Russian)
-- No REACT_APP_BACKEND_URL needed (relative URLs)
-
-## Credentials
-- Production Owner: `graff` / `Testforresto123`
-- Emergent Owner: `owner` / `owner123`
-- Admin: `admin1` / `admin123` (PIN: 5159)
-
-## Remaining Tasks
-### P1: WhatsApp/Twilio integration (requires user API key)
-### P2: Complete server.py refactoring to routes/
-### P3: Multi-language support
+## Key Data Models
+- MenuItem: includes `target_station` (kitchen/bar/waiter)
+- OrderItem: includes `target_station` (populated from menu item)
+- Settings: includes `menu_background_url`, `logo_url`
