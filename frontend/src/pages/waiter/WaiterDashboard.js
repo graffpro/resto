@@ -123,6 +123,27 @@ function WaiterContent() {
     }
   };
 
+  const acceptOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/status?status=preparing`);
+      toast.success('Sifaris qebul edildi');
+      stopAlarm();
+      fetchOrders();
+    } catch (error) {
+      toast.error('Xeta bas verdi');
+    }
+  };
+
+  const markReady = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/status?status=ready`);
+      toast.success('Sifaris hazirdir');
+      fetchOrders();
+    } catch (error) {
+      toast.error('Xeta bas verdi');
+    }
+  };
+
   const markDelivered = async (orderId) => {
     try {
       await axios.put(`${API}/orders/${orderId}/status?status=delivered`);
@@ -321,23 +342,23 @@ function WaiterContent() {
 
                     {order.status === 'pending' && (
                       <Button
-                        onClick={() => markDelivered(order.id)}
+                        onClick={() => acceptOrder(order.id)}
                         className="w-full bg-[#E9C46A] hover:bg-[#D4A849] text-white text-xs sm:text-sm"
-                        data-testid={`confirm-order-${order.id}`}
+                        data-testid={`accept-order-${order.id}`}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Təsdiqlə
+                        Qəbul Et
                       </Button>
                     )}
 
                     {order.status === 'preparing' && (
                       <Button
-                        onClick={() => markDelivered(order.id)}
+                        onClick={() => markReady(order.id)}
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm"
-                        data-testid={`preparing-order-${order.id}`}
+                        data-testid={`mark-ready-${order.id}`}
                       >
                         <Clock className="w-4 h-4 mr-2" />
-                        Hazırlanır...
+                        Hazırdır
                       </Button>
                     )}
 
@@ -348,7 +369,7 @@ function WaiterContent() {
                         data-testid={`mark-delivered-${order.id}`}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        {az.markAsDelivered}
+                        Çatdırıldı
                       </Button>
                     )}
                   </CardContent>

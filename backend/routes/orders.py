@@ -374,11 +374,11 @@ async def update_order_status(order_id: str, status: OrderStatus, current_user: 
     
     update_data = {"status": status}
     
-    if status == OrderStatus.PREPARING and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR]:
+    if status == OrderStatus.PREPARING and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR, UserRole.WAITER]:
         update_data['preparing_started_at'] = datetime.now(timezone.utc).isoformat()
-    elif status == OrderStatus.READY and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR]:
+    elif status == OrderStatus.READY and current_user['role'] in [UserRole.KITCHEN, UserRole.BAR, UserRole.WAITER]:
         update_data['ready_at'] = datetime.now(timezone.utc).isoformat()
-    elif status == OrderStatus.DELIVERED and current_user['role'] == UserRole.WAITER:
+    elif status == OrderStatus.DELIVERED and current_user['role'] in [UserRole.WAITER, UserRole.ADMIN, UserRole.OWNER]:
         update_data['delivered_at'] = datetime.now(timezone.utc).isoformat()
         update_data['waiter_id'] = current_user['id']
     
