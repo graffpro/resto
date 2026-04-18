@@ -294,7 +294,13 @@ async def get_sessions_history(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    sessions = await db.table_sessions.find({"is_active": False}, {"_id": 0}).sort("ended_at", -1).limit(100).to_list(100)
+    # Only show TODAY's closed sessions
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    sessions = await db.table_sessions.find({
+        "is_active": False,
+        "ended_at": {"$gte": today_start.isoformat()}
+    }, {"_id": 0}).sort("ended_at", -1).to_list(1000)
     
     result = []
     for session in sessions:
