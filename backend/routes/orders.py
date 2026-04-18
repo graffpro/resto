@@ -294,8 +294,12 @@ async def get_kitchen_orders(current_user: dict = Depends(get_current_user), sta
     if current_user['role'] not in [UserRole.KITCHEN, UserRole.BAR, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    # Only show TODAY's orders
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
     orders = await db.orders.find({
-        "status": {"$in": [OrderStatus.PENDING, OrderStatus.PREPARING]}
+        "status": {"$in": [OrderStatus.PENDING, OrderStatus.PREPARING]},
+        "ordered_at": {"$gte": today_start.isoformat()}
     }, {"_id": 0}).sort("ordered_at", 1).to_list(1000)
     
     result = []
@@ -401,9 +405,12 @@ async def get_waiter_orders(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.WAITER, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Show ALL active orders (pending, preparing, ready) to waiter
+    # Only show TODAY's active orders
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
     orders = await db.orders.find({
-        "status": {"$in": [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY]}
+        "status": {"$in": [OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY]},
+        "ordered_at": {"$gte": today_start.isoformat()}
     }, {"_id": 0}).sort("ordered_at", 1).to_list(1000)
     
     result = []

@@ -119,10 +119,7 @@ function KitchenContent() {
         toast.success('Yeni sifaris!', { duration: 5000 });
       }
       
-      // Auto-stop alarm if no pending orders
-      if (newOrders.every(o => o.order.status !== 'pending') && alarmRef.current) {
-        stopAlarm();
-      }
+      // DO NOT auto-stop alarm - stops ONLY when user clicks action button
       
       prevOrderIds.current = new Set(newOrders.map(o => o.order.id));
       setOrders(newOrders);

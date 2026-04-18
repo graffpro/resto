@@ -113,10 +113,7 @@ function WaiterContent() {
         toast.success('Hazir sifaris var!', { duration: 5000 });
       }
       
-      // Auto-stop alarm if nothing to attend
-      if (newOrders.length === 0 && waiterCalls.length === 0 && alarmRef.current) {
-        stopAlarm();
-      }
+      // DO NOT auto-stop alarm here - alarm stops ONLY when user clicks action button
       
       prevOrderIds.current = newIds;
       setOrders(newOrders);
@@ -148,9 +145,7 @@ function WaiterContent() {
     try {
       await axios.post(`${API}/waiter-call/${callId}/acknowledge`);
       setWaiterCalls(prev => prev.filter(c => c.id !== callId));
-      if (waiterCalls.length <= 1 && orders.length === 0) {
-        stopAlarm();
-      }
+      stopAlarm();
       toast.success('Qebul edildi');
     } catch {}
   };
