@@ -32,6 +32,7 @@ export default function CustomerPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [restaurantSettings, setRestaurantSettings] = useState({});
   const [lockExpiresIn, setLockExpiresIn] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
 
   const getDeviceId = () => {
     let id = localStorage.getItem('qr_device_id');
@@ -140,6 +141,18 @@ export default function CustomerPage() {
       const response = await axios.get(`${API}/orders/session/${session.session_token}`);
       setOrders(response.data.orders);
       setTotalBill(response.data.total_bill);
+      // Fetch recommendations when there are orders
+      if (response.data.orders.length > 0) {
+        fetchRecommendations();
+      }
+    } catch {}
+  };
+
+  const fetchRecommendations = async () => {
+    if (!session) return;
+    try {
+      const res = await axios.get(`${API}/orders/recommendations/${session.session_token}`);
+      setRecommendations(res.data || []);
     } catch {}
   };
 
@@ -635,6 +648,54 @@ export default function CustomerPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Recommendations - Sizə Təklif Edirik */}
+              {recommendations.length > 0 && isSessionOwner && (
+                <div data-testid="recommendations-section">
+                  <h3 className="text-sm font-bold text-amber-400 mb-3 flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    Sizə Təklif Edirik
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {recommendations.map(item => {
+                      const hasDiscount = item.discount_percentage > 0;
+                      const finalPrice = hasDiscount ? item.price * (1 - item.discount_percentage / 100) : item.price;
+                      return (
+                        <div
+                          key={item.id}
+                          className="shrink-0 w-36 bg-white/8 border border-white/10 rounded-2xl overflow-hidden"
+                        >
+                          <div className="h-24 bg-white/5 overflow-hidden relative">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/10 to-rose-500/10">
+                                <span className="text-2xl text-white/15 font-bold">{item.name?.charAt(0)}</span>
+                              </div>
+                            )}
+                            {hasDiscount && (
+                              <span className="absolute top-1 left-1 bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">-{item.discount_percentage}%</span>
+                            )}
+                          </div>
+                          <div className="p-2">
+                            <p className="text-[11px] font-bold text-white truncate">{item.name}</p>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-[11px] font-bold text-amber-400">{finalPrice.toFixed(2)}</span>
+                              <button
+                                onClick={() => { addToCart(item); }}
+                                className="w-6 h-6 rounded-full bg-amber-500 text-black flex items-center justify-center active:scale-90"
+                                data-testid={`recommend-add-${item.id}`}
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Bill Summary */}
               {orders.length > 0 && (

@@ -289,7 +289,47 @@ async def get_session_orders(session_token: str):
         "total_bill": total
     }
 
-@router.get("/orders/kitchen")
+@router.get("/orders/recommendations/{session_token}")
+async def get_recommendations(session_token: str):
+    """Get 3-5 product recommendations based on what the customer already ordered"""
+    session = await db.table_sessions.find_one({"session_token": session_token}, {"_id": 0})
+    if not session:
+        return []
+    
+    # Get all items already ordered in this session
+    orders = await db.orders.find({"session_id": session['id']}, {"_id": 0}).to_list(100)
+    ordered_item_ids = set()
+    ordered_category_ids = set()
+    for order in orders:
+        for item in order.get('items', []):
+            ordered_item_ids.add(item.get('menu_item_id'))
+    
+    # Get categories of ordered items
+    for item_id in ordered_item_ids:
+        menu_item = await db.menu_items.find_one({"id": item_id}, {"_id": 0})
+        if menu_item:
+            ordered_category_ids.add(menu_item.get('category_id'))
+    
+    # Get all available menu items
+    all_items = await db.menu_items.find({"is_available": True}, {"_id": 0}).to_list(500)
+    
+    recommendations = []
+    
+    # Priority 1: Items from DIFFERENT categories (complementary)
+    for item in all_items:
+        if item['id'] not in ordered_item_ids and item.get('category_id') not in ordered_category_ids:
+            recommendations.append(item)
+    
+    # Priority 2: Popular items from SAME categories but not yet ordered
+    if len(recommendations) < 5:
+        for item in all_items:
+            if item['id'] not in ordered_item_ids and item not in recommendations:
+                recommendations.append(item)
+    
+    # Shuffle and limit to 5
+    import random
+    random.shuffle(recommendations)
+    return recommendations[:5]
 async def get_kitchen_orders(current_user: dict = Depends(get_current_user), station: Optional[str] = None):
     if current_user['role'] not in [UserRole.KITCHEN, UserRole.BAR, UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
