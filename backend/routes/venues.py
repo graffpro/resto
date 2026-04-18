@@ -7,6 +7,7 @@ from database import db
 from auth import get_current_user
 from models import UserRole, Venue, VenueCreate, Table, TableCreate, TableSession, OrderStatus
 from routes.shared import generate_qr_code
+from routes.services import deactivate_session_timed_services
 from ws_manager import manager
 
 router = APIRouter()

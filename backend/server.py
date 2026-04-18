@@ -86,12 +86,25 @@ async def startup_event():
     asyncio.create_task(check_timed_services_loop())
 
 async def check_timed_services_loop():
+    """Check timed services every 30s. Only notify once per expired service."""
+    notified_ids = set()
     while True:
         try:
             await asyncio.sleep(30)
             now = datetime.now(timezone.utc)
             active_services = await db.timed_services.find({"is_active": True}, {"_id": 0}).to_list(1000)
+            
             for svc in active_services:
+                # Skip already notified
+                if svc["id"] in notified_ids:
+                    continue
+                
+                # Check if session is still active — auto-deactivate if closed
+                session = await db.table_sessions.find_one({"id": svc.get("session_id")}, {"_id": 0})
+                if session and not session.get("is_active", True):
+                    await db.timed_services.update_one({"id": svc["id"]}, {"$set": {"is_active": False}})
+                    continue
+                
                 next_serve = svc.get("next_serve_at")
                 if not next_serve:
                     continue
@@ -101,13 +114,26 @@ async def check_timed_services_loop():
                     next_serve_dt = next_serve
                 if next_serve_dt.tzinfo is None:
                     next_serve_dt = next_serve_dt.replace(tzinfo=timezone.utc)
+                
                 if now >= next_serve_dt:
                     table = await db.tables.find_one({"id": svc["table_id"]}, {"_id": 0})
                     table_number = table.get("table_number", "?") if table else "?"
-                    alert_msg = {"type": "timed_service_expired", "data": {"service_id": svc["id"], "table_id": svc["table_id"], "table_number": table_number, "menu_item_name": svc.get("menu_item_name", ""), "interval_minutes": svc.get("interval_minutes", 0), "serve_count": svc.get("serve_count", 0), "notes": svc.get("notes", "")}, "timestamp": now.isoformat()}
+                    alert_msg = {
+                        "type": "timed_service_expired",
+                        "data": {
+                            "service_id": svc["id"], "table_id": svc["table_id"],
+                            "table_number": table_number,
+                            "menu_item_name": svc.get("menu_item_name", ""),
+                            "interval_minutes": svc.get("interval_minutes", 0),
+                            "serve_count": svc.get("serve_count", 0),
+                            "notes": svc.get("notes", ""),
+                        },
+                        "timestamp": now.isoformat()
+                    }
                     await manager.broadcast_to_role(alert_msg, "waiter")
                     await manager.broadcast_to_role(alert_msg, "admin")
                     await manager.broadcast_to_role(alert_msg, "kitchen")
+                    notified_ids.add(svc["id"])
                     logger.info(f"Timed service expired: {svc['id']} - Table {table_number}")
         except Exception as e:
             logger.error(f"Timed services check error: {e}")
