@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { isNativeApp } from './capacitor';
 import { Download, Loader2 } from 'lucide-react';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
 export default function AppUpdater() {

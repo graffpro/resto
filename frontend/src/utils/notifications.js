@@ -1,152 +1,152 @@
-// Notification sound utility
+// Notification sound utility — works in WebView, APK, all browsers
 let audioContext = null;
+let htmlAudio = null;
 
-export const initAudio = () => {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+// Create a beep sound as data URI for HTML5 Audio fallback
+function createBeepDataUri() {
+  const sampleRate = 8000;
+  const duration = 0.2;
+  const freq = 1400;
+  const samples = sampleRate * duration;
+  const buffer = new ArrayBuffer(44 + samples * 2);
+  const view = new DataView(buffer);
+  
+  // WAV header
+  const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + samples * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, samples * 2, true);
+  
+  for (let i = 0; i < samples; i++) {
+    const t = i / sampleRate;
+    const value = Math.sin(2 * Math.PI * freq * t) * 0.5 * 32767;
+    view.setInt16(44 + i * 2, value, true);
   }
-  // CRITICAL: Resume AudioContext on mobile/Capacitor WebView
-  // Mobile browsers suspend AudioContext until user interaction
-  if (audioContext.state === 'suspended') {
-    audioContext.resume().then(() => {
-      console.log('[Audio] AudioContext resumed successfully');
-    }).catch(e => console.error('[Audio] Resume failed:', e));
-  }
-  return audioContext;
-};
-
-// Force resume on any user interaction (for mobile)
-const forceResumeAudio = () => {
-  if (audioContext && audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-};
-if (typeof document !== 'undefined') {
-  document.addEventListener('click', forceResumeAudio, { passive: true });
-  document.addEventListener('touchstart', forceResumeAudio, { passive: true });
-  document.addEventListener('touchend', forceResumeAudio, { passive: true });
+  
+  const blob = new Blob([buffer], { type: 'audio/wav' });
+  return URL.createObjectURL(blob);
 }
 
-export const playNotificationSound = () => {
-  if (!audioContext) initAudio();
-  // Ensure resumed before playing
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-  
+export const initAudio = () => {
   try {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 800;
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.5);
-    
-    setTimeout(() => {
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode2 = audioContext.createGain();
-      
-      oscillator2.connect(gainNode2);
-      gainNode2.connect(audioContext.destination);
-      
-      oscillator2.frequency.value = 600;
-      oscillator2.type = 'sine';
-      
-      gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator2.start(audioContext.currentTime);
-      oscillator2.stop(audioContext.currentTime + 0.5);
-    }, 100);
-  } catch (error) {
-    console.error('Audio playback failed:', error);
-  }
-};
-
-// Alias for WebSocket context usage
-export const playOrderSound = playNotificationSound;
-
-// Ding-ding alarm for timed services (repeating pattern)
-export const playTimedServiceAlarm = () => {
-  if (!audioContext) initAudio();
-  if (audioContext.state === 'suspended') audioContext.resume();
-  
-  try {
-    const playDing = (startTime, freq) => {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.connect(gain);
-      gain.connect(audioContext.destination);
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.4, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
-      osc.start(startTime);
-      osc.stop(startTime + 0.15);
-    };
-
-    const now = audioContext.currentTime;
-    playDing(now, 1200);
-    playDing(now + 0.18, 1200);
-    playDing(now + 0.5, 1200);
-    playDing(now + 0.68, 1200);
-    playDing(now + 1.0, 1200);
-    playDing(now + 1.18, 1200);
-  } catch (error) {
-    console.error('Alarm playback failed:', error);
-  }
-};
-
-// Continuous alarm that plays every N seconds until stopped
-// Returns an object with a stop() method
-export const startContinuousAlarm = (intervalMs = 3000) => {
-  if (!audioContext) initAudio();
-  if (audioContext.state === 'suspended') audioContext.resume();
-  let stopped = false;
-  
-  const playLoudAlarm = () => {
-    if (stopped || !audioContext) return;
-    // Resume every time in case it got suspended again
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
     if (audioContext.state === 'suspended') {
       audioContext.resume();
     }
+  } catch (e) {
+    console.log('[Audio] WebAudio not available, using HTML5');
+  }
+  
+  // Create HTML5 Audio fallback
+  if (!htmlAudio) {
     try {
-      const now = audioContext.currentTime;
-      const playTone = (time, freq, dur) => {
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.frequency.setValueAtTime(freq, time);
-        osc.type = 'square';
-        gain.gain.setValueAtTime(0.5, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + dur);
-        osc.start(time);
-        osc.stop(time + dur);
-      };
-      // Louder and more urgent pattern
-      playTone(now, 1400, 0.15);
-      playTone(now + 0.2, 1800, 0.15);
-      playTone(now + 0.4, 1400, 0.15);
-      playTone(now + 0.6, 1800, 0.15);
-      playTone(now + 0.8, 1400, 0.15);
-      playTone(now + 1.0, 1800, 0.15);
-    } catch (e) {
-      console.error('Alarm error:', e);
+      htmlAudio = new Audio(createBeepDataUri());
+      htmlAudio.volume = 1.0;
+    } catch {}
+  }
+};
+
+// Force resume on ANY interaction
+if (typeof document !== 'undefined') {
+  const resume = () => {
+    if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+    if (htmlAudio) htmlAudio.play().catch(() => {});
+  };
+  document.addEventListener('click', resume, { passive: true });
+  document.addEventListener('touchstart', resume, { passive: true });
+  document.addEventListener('touchend', resume, { passive: true });
+}
+
+function playWebAudioBeep(freq, duration, vol) {
+  if (!audioContext || audioContext.state === 'suspended') return false;
+  try {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.frequency.value = freq;
+    osc.type = 'square';
+    const now = audioContext.currentTime;
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    osc.start(now);
+    osc.stop(now + duration);
+    return true;
+  } catch { return false; }
+}
+
+function playHtmlAudioBeep() {
+  if (!htmlAudio) {
+    htmlAudio = new Audio(createBeepDataUri());
+    htmlAudio.volume = 1.0;
+  }
+  try {
+    htmlAudio.currentTime = 0;
+    htmlAudio.play().catch(() => {});
+  } catch {}
+}
+
+export const playNotificationSound = () => {
+  initAudio();
+  if (!playWebAudioBeep(800, 0.3, 0.4)) {
+    playHtmlAudioBeep();
+  }
+  setTimeout(() => {
+    if (!playWebAudioBeep(600, 0.3, 0.4)) {
+      playHtmlAudioBeep();
     }
+  }, 150);
+};
+
+export const playOrderSound = playNotificationSound;
+
+export const playTimedServiceAlarm = () => {
+  initAudio();
+  const times = [0, 180, 500, 680, 1000, 1180];
+  times.forEach(delay => {
+    setTimeout(() => {
+      if (!playWebAudioBeep(1200, 0.15, 0.5)) playHtmlAudioBeep();
+    }, delay);
+  });
+};
+
+// Continuous alarm — plays until stopped
+export const startContinuousAlarm = (intervalMs = 3000) => {
+  initAudio();
+  let stopped = false;
+
+  const playAlarm = () => {
+    if (stopped) return;
+    if (audioContext) {
+      try { audioContext.resume(); } catch {}
+    }
+    // Play urgent pattern: beep-beep-beep-beep-beep-beep
+    const delays = [0, 200, 400, 600, 800, 1000];
+    const freqs = [1400, 1800, 1400, 1800, 1400, 1800];
+    delays.forEach((d, i) => {
+      setTimeout(() => {
+        if (stopped) return;
+        if (!playWebAudioBeep(freqs[i], 0.15, 0.5)) {
+          playHtmlAudioBeep();
+        }
+      }, d);
+    });
   };
 
-  // Play immediately
-  playLoudAlarm();
-  const id = setInterval(playLoudAlarm, intervalMs);
+  playAlarm();
+  const id = setInterval(playAlarm, intervalMs);
 
   return {
     stop: () => {
@@ -164,10 +164,6 @@ export const requestNotificationPermission = async () => {
 
 export const showNotification = (title, body) => {
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body,
-      icon: '/logo192.png',
-      badge: '/logo192.png'
-    });
+    new Notification(title, { body, icon: '/logo192.png', badge: '/logo192.png' });
   }
 };

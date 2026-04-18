@@ -49,7 +49,7 @@ api_router.include_router(inventory_router)
 api_router.include_router(services_router)
 
 # ==================== APK VERSION & DOWNLOAD ====================
-CURRENT_APK_VERSION = "1.0.1"
+CURRENT_APK_VERSION = "1.1.0"
 
 @api_router.get("/app-version")
 async def get_app_version():
