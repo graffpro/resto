@@ -32,7 +32,20 @@ export default function AppUpdater() {
   if (!updateAvailable) return null;
 
   const handleUpdate = () => {
-    window.open('/qr-restoran.apk', '_system');
+    // In Capacitor WebView, use location.href to trigger system download
+    const baseUrl = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+    const apkUrl = `${baseUrl}/qr-restoran.apk`;
+    
+    // Try Capacitor Browser plugin first, fallback to location
+    try {
+      import('@capacitor/browser').then(({ Browser }) => {
+        Browser.open({ url: apkUrl });
+      }).catch(() => {
+        window.location.href = apkUrl;
+      });
+    } catch {
+      window.location.href = apkUrl;
+    }
   };
 
   return (
