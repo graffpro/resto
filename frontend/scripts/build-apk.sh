@@ -12,7 +12,7 @@
 
 set -e
 
-SERVER_URL=${1:-"https://table-sync-pro.preview.emergentagent.com"}
+SERVER_URL=${1:-"https://multi-tenant-kitchen.preview.emergentagent.com"}
 echo "=========================================="
 echo "  QR Restoran APK Builder"
 echo "  Server: $SERVER_URL"

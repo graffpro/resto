@@ -14,7 +14,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://table-sync-pro.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://multi-tenant-kitchen.preview.emergentagent.com')
 
 # Test table ID
 TABLE_ID = "89ececa6-2856-4b18-9ad8-323ec7aa3be2"
