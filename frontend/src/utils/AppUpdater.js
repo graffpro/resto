@@ -1,70 +1,68 @@
 import { useEffect, useState } from 'react';
 import { isNativeApp } from './capacitor';
-import { Download, X } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 
 const APP_VERSION = '1.0.0';
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
 export default function AppUpdater() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [newVersion, setNewVersion] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     if (!isNativeApp) return;
-    
-    const checkUpdate = async () => {
+
+    const checkAndUpdate = async () => {
       try {
         const res = await fetch(`${API}/app-version`);
         const data = await res.json();
         if (data.version && data.version !== APP_VERSION) {
-          setNewVersion(data.version);
-          setUpdateAvailable(true);
+          // Auto-trigger download
+          setUpdating(true);
+          setStatus(`v${data.version} yüklənir...`);
+
+          // Trigger download via hidden link
+          setTimeout(() => {
+            const baseUrl = window.location.origin;
+            const link = document.createElement('a');
+            link.href = `${baseUrl}/qr-restoran.apk`;
+            link.download = 'qr-restoran.apk';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Also try location change as fallback
+            setTimeout(() => {
+              setStatus('Bildirişlərdən quraşdırın');
+              setTimeout(() => setUpdating(false), 5000);
+            }, 2000);
+          }, 1000);
         }
-      } catch {}
+      } catch {
+        setUpdating(false);
+      }
     };
 
-    // Check on start and every 30 minutes
-    checkUpdate();
-    const interval = setInterval(checkUpdate, 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    checkAndUpdate();
   }, []);
 
-  if (!updateAvailable) return null;
-
-  const handleUpdate = () => {
-    // In Capacitor WebView, use location.href to trigger system download
-    const baseUrl = process.env.REACT_APP_BACKEND_URL || window.location.origin;
-    const apkUrl = `${baseUrl}/qr-restoran.apk`;
-    
-    // Try Capacitor Browser plugin first, fallback to location
-    try {
-      import('@capacitor/browser').then(({ Browser }) => {
-        Browser.open({ url: apkUrl });
-      }).catch(() => {
-        window.location.href = apkUrl;
-      });
-    } catch {
-      window.location.href = apkUrl;
-    }
-  };
+  if (!updating) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[200] bg-emerald-600 text-white rounded-2xl p-4 shadow-2xl shadow-emerald-900/50 flex items-center justify-between" data-testid="app-update-banner">
-      <div className="flex items-center gap-3">
-        <Download className="w-5 h-5 animate-bounce" />
-        <div>
-          <p className="text-sm font-bold">Yeni versiya: v{newVersion}</p>
-          <p className="text-[10px] text-emerald-100">Yeniləyin</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={handleUpdate} className="bg-white text-emerald-700 px-4 py-2 rounded-xl text-xs font-bold active:scale-95">
-          Yenilə
-        </button>
-        <button onClick={() => setUpdateAvailable(false)} className="p-1.5 text-emerald-200 hover:text-white">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+    <div className="fixed inset-0 z-[999] bg-[#1A251E] flex flex-col items-center justify-center p-6" data-testid="app-updating-screen">
+      <Loader2 className="w-12 h-12 text-emerald-400 animate-spin mb-6" />
+      <h2 className="text-xl font-bold text-white mb-2">Yeniləmə</h2>
+      <p className="text-sm text-emerald-300 mb-4">{status}</p>
+      <p className="text-xs text-white/40 text-center">
+        Yükləmə tamamlandıqdan sonra bildirişlərdən APK faylını açıb quraşdırın
+      </p>
+      <button
+        onClick={() => setUpdating(false)}
+        className="mt-8 text-xs text-white/30 underline"
+      >
+        Keç (sonra yenilə)
+      </button>
     </div>
   );
 }
