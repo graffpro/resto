@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone, Smartphone, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone, Smartphone, Download, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
@@ -27,6 +28,7 @@ function ProtectedPage({ children, sectionName }) {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
@@ -49,8 +51,21 @@ export default function AdminDashboard() {
     <VoiceCallProvider myRole="admin">
     <div className="min-h-screen bg-[#F9F9F7]">
       <VoiceCallOverlay />
+      
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#1A251E] px-4 py-3 flex items-center justify-between">
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white p-1">
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+        <h1 className="text-sm font-medium text-white">QR Restoran</h1>
+        <div className="w-5" />
+      </div>
+
+      {/* Backdrop */}
+      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setSidebarOpen(false)} />}
+
       <div className="flex">
-        <aside className="w-56 min-h-screen bg-[#1A251E] fixed left-0 top-0 z-30">
+        <aside className={`w-56 min-h-screen bg-[#1A251E] fixed left-0 top-0 z-30 transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
           <div className="flex flex-col h-full p-4">
             {/* Logo */}
             <div className="flex items-center gap-2.5 mb-6 px-1">
@@ -91,6 +106,7 @@ export default function AdminDashboard() {
                 <Link
                   key={item.to}
                   to={item.to}
+                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
                     isActive(item.to)
                       ? 'bg-[#C05C3D]/15 text-[#C05C3D]'
@@ -126,7 +142,7 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        <main className="ml-56 flex-1 p-6">
+        <main className="lg:ml-56 flex-1 p-3 sm:p-6 pt-16 lg:pt-6 min-w-0">
           <Routes>
             <Route path="/" element={<ActiveTablesPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />

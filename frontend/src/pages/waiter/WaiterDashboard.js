@@ -114,7 +114,7 @@ function WaiterContent() {
       }
       
       // Auto-stop alarm if nothing to attend
-      if (newOrders.length === 0 && waiterCalls.length === 0 && alarmActive) {
+      if (newOrders.length === 0 && waiterCalls.length === 0 && alarmRef.current) {
         stopAlarm();
       }
       
@@ -166,56 +166,48 @@ function WaiterContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7] p-6" onClick={handleUserInteraction}>
+    <div className="min-h-screen bg-[#F9F9F7] p-3 sm:p-6" onClick={handleUserInteraction}>
       <div className="max-w-7xl mx-auto">
         {/* Alarm Banner */}
         {alarmActive && (
           <div
-            className="mb-4 bg-red-600 text-white rounded-xl p-4 flex items-center justify-between"
+            className="mb-3 bg-red-600 text-white rounded-xl p-3 sm:p-4 flex items-center justify-between"
             style={{ animation: 'pulse 0.5s ease-in-out infinite alternate' }}
             data-testid="waiter-alarm-banner"
           >
-            <div className="flex items-center gap-3">
-              <Volume2 className="w-6 h-6 animate-bounce" />
-              <span className="text-lg font-bold">DIQQET! Yeni tapsirig var!</span>
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce" />
+              <span className="text-sm sm:text-lg font-bold">DIQQET!</span>
             </div>
             <Button
               onClick={stopAlarm}
-              className="bg-white text-red-600 hover:bg-red-50 font-bold"
+              className="bg-white text-red-600 hover:bg-red-50 font-bold text-xs sm:text-sm px-3 py-1.5"
               data-testid="stop-alarm-btn"
             >
-              <VolumeX className="w-4 h-4 mr-2" />
-              Sesi dayandır
+              <VolumeX className="w-4 h-4 mr-1" />
+              Dayandır
             </Button>
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 gap-3">
           <div>
-            <h1 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight mb-2">{az.waiterOrders}</h1>
+            <h1 className="heading-font text-lg sm:text-xl font-medium text-[#181C1A] tracking-tight mb-1">{az.waiterOrders}</h1>
             <div className="flex items-center gap-2">
-              <p className="text-[#5C665F]">{user?.full_name}</p>
+              <p className="text-sm text-[#5C665F]">{user?.full_name}</p>
               {isConnected ? (
-                <span className="flex items-center gap-1 text-xs text-green-600">
-                  <Wifi className="w-3 h-3" />
-                  Canli
-                </span>
+                <span className="flex items-center gap-1 text-xs text-green-600"><Wifi className="w-3 h-3" />Canli</span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-orange-600">
-                  <WifiOff className="w-3 h-3" />
-                  Offline
-                </span>
+                <span className="flex items-center gap-1 text-xs text-orange-600"><WifiOff className="w-3 h-3" />Offline</span>
               )}
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Yenile
+            <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md text-xs sm:text-sm px-3">
+              <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Yenile</span>
             </Button>
-            <Button onClick={logout} variant="outline" className="rounded-md">
-              <LogOut className="w-4 h-4 mr-2" />
-              {az.logout}
+            <Button onClick={logout} variant="outline" className="rounded-md text-xs sm:text-sm px-3">
+              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">{az.logout}</span>
             </Button>
           </div>
         </div>
@@ -291,7 +283,7 @@ function WaiterContent() {
             <p className="text-[#5C665F] text-lg">Hazirda sifaris yoxdur</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {orders.map(({ order, table, venue }) => {
               const statusConfig = {
                 pending: { ring: 'ring-yellow-400', badge: 'bg-yellow-100 text-yellow-800', label: az.pending, timeField: 'ordered_at', timeLabel: 'Sifaris' },
@@ -300,11 +292,11 @@ function WaiterContent() {
               };
               const cfg = statusConfig[order.status] || statusConfig.pending;
               return (
-                <Card key={order.id} className={`bg-white ring-2 ${cfg.ring} ring-offset-2`} data-testid={`waiter-order-${order.id}`}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-[#181C1A]">
+                <Card key={order.id} className={`bg-white ring-2 ${cfg.ring} ring-offset-1`} data-testid={`waiter-order-${order.id}`}>
+                  <CardHeader className="p-3 sm:p-6 pb-2">
+                    <CardTitle className="flex items-center justify-between text-[#181C1A] text-sm sm:text-base">
                       <span>Masa {table?.table_number}</span>
-                      <Badge className={cfg.badge}>{cfg.label}</Badge>
+                      <Badge className={`text-[10px] sm:text-xs ${cfg.badge}`}>{cfg.label}</Badge>
                     </CardTitle>
                     <p className="text-sm text-[#5C665F]">{venue?.name}</p>
                     <p className="text-xs text-[#5C665F] mt-2">
