@@ -324,10 +324,32 @@ function WaiterContent() {
                       </div>
                     </div>
 
+                    {order.status === 'pending' && (
+                      <Button
+                        onClick={() => markDelivered(order.id)}
+                        className="w-full bg-[#E9C46A] hover:bg-[#D4A849] text-white text-xs sm:text-sm"
+                        data-testid={`confirm-order-${order.id}`}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Təsdiqlə
+                      </Button>
+                    )}
+
+                    {order.status === 'preparing' && (
+                      <Button
+                        onClick={() => markDelivered(order.id)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm"
+                        data-testid={`preparing-order-${order.id}`}
+                      >
+                        <Clock className="w-4 h-4 mr-2" />
+                        Hazırlanır...
+                      </Button>
+                    )}
+
                     {order.status === 'ready' && (
                       <Button
                         onClick={() => markDelivered(order.id)}
-                        className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white"
+                        className="w-full bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs sm:text-sm"
                         data-testid={`mark-delivered-${order.id}`}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
