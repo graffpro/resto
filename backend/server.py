@@ -48,7 +48,13 @@ api_router.include_router(orders_router)
 api_router.include_router(inventory_router)
 api_router.include_router(services_router)
 
-# ==================== APK DOWNLOAD ====================
+# ==================== APK VERSION & DOWNLOAD ====================
+CURRENT_APK_VERSION = "1.0.1"
+
+@api_router.get("/app-version")
+async def get_app_version():
+    return {"version": CURRENT_APK_VERSION, "download_url": "/qr-restoran.apk"}
+
 @api_router.get("/download/apk")
 async def download_apk():
     apk_path = os.path.join(LOCAL_UPLOAD_DIR, "qr-restoran.apk")

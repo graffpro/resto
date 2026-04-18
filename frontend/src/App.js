@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner';
 import '@/App.css';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { lazy, Suspense } from 'react';
+import AppUpdater from '@/utils/AppUpdater';
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
@@ -114,6 +115,7 @@ function App() {
           <AppRoutes />
         </BrowserRouter>
         <Toaster position="top-right" />
+        <AppUpdater />
       </div>
     </AuthProvider>
   );
