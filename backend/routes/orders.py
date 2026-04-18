@@ -421,3 +421,4 @@ async def get_waiter_orders(current_user: dict = Depends(get_current_user)):
             "venue": venue
         })
     
+    return result
