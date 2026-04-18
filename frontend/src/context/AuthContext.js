@@ -56,8 +56,17 @@ export const AuthProvider = ({ children }) => {
     delete axios.defaults.headers.common['Authorization'];
   };
 
+  // Direct auth set (for registration flow)
+  const setAuth = (newToken, newUser) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, setAuth, loading }}>
       {children}
     </AuthContext.Provider>
   );

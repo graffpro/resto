@@ -36,7 +36,7 @@ const FAQS = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { login: authLogin } = useAuth();
+  const { setAuth } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
@@ -51,8 +51,7 @@ export default function LandingPage() {
     setRegLoading(true);
     try {
       const res = await axios.post(`${API}/auth/register`, regForm);
-      localStorage.setItem('token', res.data.token);
-      authLogin(res.data.token, res.data.user);
+      setAuth(res.data.token, res.data.user);
       toast.success('Qeydiyyat uğurlu! Xoş gəlmisiniz!');
       navigate('/admin');
     } catch (err) {

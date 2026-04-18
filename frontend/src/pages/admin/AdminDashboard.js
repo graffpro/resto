@@ -121,19 +121,25 @@ export default function AdminDashboard() {
             </nav>
 
             {/* APK Download */}
-            <a
-              href="/qr-restoran.apk"
-              download="qr-restoran.apk"
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 text-emerald-400 hover:from-emerald-600/30 hover:to-teal-600/30 transition-all mt-2"
+            <button
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/qr-restoran.apk';
+                link.download = 'qr-restoran.apk';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 text-emerald-400 hover:from-emerald-600/30 hover:to-teal-600/30 transition-all mt-2 w-full"
               data-testid="download-apk-btn"
             >
               <Smartphone className="w-4 h-4 shrink-0" />
-              <div>
+              <div className="text-left">
                 <span className="font-semibold block">Android APK</span>
                 <span className="text-[9px] text-emerald-500/70">Mətbəx / Ofisiant üçün</span>
               </div>
               <Download className="w-3.5 h-3.5 ml-auto" />
-            </a>
+            </button>
 
             {/* Logout */}
             <Button onClick={logout} variant="ghost" className="w-full justify-start text-[#8A948D] hover:text-white hover:bg-white/5 rounded-lg h-9 text-xs mt-2" data-testid="admin-logout-button">
