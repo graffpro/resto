@@ -1,159 +1,102 @@
-// Notification sound utility — works in WebView, APK, all browsers
+// Notification sound — works in WebView/APK/Browser
 let audioContext = null;
-let htmlAudio = null;
 
-// Create a beep sound as data URI for HTML5 Audio fallback
-function createBeepDataUri() {
+// Create alarm beep as WAV data URI
+function createAlarmWav() {
   const sampleRate = 8000;
-  const duration = 0.2;
-  const freq = 1400;
+  const duration = 0.15;
+  const freq = 1500;
   const samples = sampleRate * duration;
   const buffer = new ArrayBuffer(44 + samples * 2);
   const view = new DataView(buffer);
-  
-  // WAV header
-  const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + samples * 2, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(36, 'data');
-  view.setUint32(40, samples * 2, true);
-  
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  w(0,'RIFF'); view.setUint32(4,36+samples*2,true); w(8,'WAVE'); w(12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+  view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*2,true);
+  view.setUint16(32,2,true); view.setUint16(34,16,true); w(36,'data');
+  view.setUint32(40,samples*2,true);
   for (let i = 0; i < samples; i++) {
-    const t = i / sampleRate;
-    const value = Math.sin(2 * Math.PI * freq * t) * 0.5 * 32767;
-    view.setInt16(44 + i * 2, value, true);
+    view.setInt16(44+i*2, Math.sin(2*Math.PI*freq*i/sampleRate)*0.7*32767, true);
   }
-  
-  const blob = new Blob([buffer], { type: 'audio/wav' });
-  return URL.createObjectURL(blob);
+  return URL.createObjectURL(new Blob([buffer], {type:'audio/wav'}));
 }
+
+let alarmSoundUrl = null;
 
 export const initAudio = () => {
   try {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-  } catch (e) {
-    console.log('[Audio] WebAudio not available, using HTML5');
-  }
-  
-  // Create HTML5 Audio fallback
-  if (!htmlAudio) {
-    try {
-      htmlAudio = new Audio(createBeepDataUri());
-      htmlAudio.volume = 1.0;
-    } catch {}
-  }
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+  } catch {}
+  if (!alarmSoundUrl) alarmSoundUrl = createAlarmWav();
 };
 
-// Force resume on ANY interaction
+// Resume AudioContext on user touch — NO sound, just resume
 if (typeof document !== 'undefined') {
-  const resume = () => {
+  const silentResume = () => {
     if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-    if (htmlAudio) htmlAudio.play().catch(() => {});
   };
-  document.addEventListener('click', resume, { passive: true });
-  document.addEventListener('touchstart', resume, { passive: true });
-  document.addEventListener('touchend', resume, { passive: true });
+  document.addEventListener('click', silentResume, { passive: true });
+  document.addEventListener('touchstart', silentResume, { passive: true });
 }
 
-function playWebAudioBeep(freq, duration, vol) {
-  if (!audioContext || audioContext.state === 'suspended') return false;
+// Play one beep using HTML5 Audio (works in APK without user gesture)
+function playBeep() {
+  if (!alarmSoundUrl) alarmSoundUrl = createAlarmWav();
   try {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.frequency.value = freq;
-    osc.type = 'square';
-    const now = audioContext.currentTime;
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-    osc.start(now);
-    osc.stop(now + duration);
-    return true;
-  } catch { return false; }
-}
-
-function playHtmlAudioBeep() {
-  if (!htmlAudio) {
-    htmlAudio = new Audio(createBeepDataUri());
-    htmlAudio.volume = 1.0;
-  }
-  try {
-    htmlAudio.currentTime = 0;
-    htmlAudio.play().catch(() => {});
+    const audio = new Audio(alarmSoundUrl);
+    audio.volume = 1.0;
+    audio.play().catch(() => {});
   } catch {}
+}
+
+// Try WebAudio, fallback to HTML5
+function playTone(freq, dur, vol) {
+  if (audioContext && audioContext.state === 'running') {
+    try {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain); gain.connect(audioContext.destination);
+      osc.frequency.value = freq; osc.type = 'square';
+      const now = audioContext.currentTime;
+      gain.gain.setValueAtTime(vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + dur);
+      osc.start(now); osc.stop(now + dur);
+      return;
+    } catch {}
+  }
+  playBeep();
 }
 
 export const playNotificationSound = () => {
   initAudio();
-  if (!playWebAudioBeep(800, 0.3, 0.4)) {
-    playHtmlAudioBeep();
-  }
-  setTimeout(() => {
-    if (!playWebAudioBeep(600, 0.3, 0.4)) {
-      playHtmlAudioBeep();
-    }
-  }, 150);
+  playBeep();
+  setTimeout(playBeep, 200);
 };
 
 export const playOrderSound = playNotificationSound;
 
 export const playTimedServiceAlarm = () => {
   initAudio();
-  const times = [0, 180, 500, 680, 1000, 1180];
-  times.forEach(delay => {
-    setTimeout(() => {
-      if (!playWebAudioBeep(1200, 0.15, 0.5)) playHtmlAudioBeep();
-    }, delay);
-  });
+  [0, 200, 500, 700, 1000, 1200].forEach(d => setTimeout(playBeep, d));
 };
 
-// Continuous alarm — plays until stopped
+// Continuous alarm — plays until stopped. Uses HTML5 Audio for reliability
 export const startContinuousAlarm = (intervalMs = 3000) => {
   initAudio();
   let stopped = false;
 
   const playAlarm = () => {
     if (stopped) return;
-    if (audioContext) {
-      try { audioContext.resume(); } catch {}
-    }
-    // Play urgent pattern: beep-beep-beep-beep-beep-beep
-    const delays = [0, 200, 400, 600, 800, 1000];
-    const freqs = [1400, 1800, 1400, 1800, 1400, 1800];
-    delays.forEach((d, i) => {
-      setTimeout(() => {
-        if (stopped) return;
-        if (!playWebAudioBeep(freqs[i], 0.15, 0.5)) {
-          playHtmlAudioBeep();
-        }
-      }, d);
+    // Play 6 rapid beeps
+    [0, 200, 400, 600, 800, 1000].forEach(d => {
+      setTimeout(() => { if (!stopped) playBeep(); }, d);
     });
   };
 
   playAlarm();
   const id = setInterval(playAlarm, intervalMs);
-
-  return {
-    stop: () => {
-      stopped = true;
-      clearInterval(id);
-    }
-  };
+  return { stop: () => { stopped = true; clearInterval(id); } };
 };
 
 export const requestNotificationPermission = async () => {
@@ -164,6 +107,6 @@ export const requestNotificationPermission = async () => {
 
 export const showNotification = (title, body) => {
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '/logo192.png', badge: '/logo192.png' });
+    new Notification(title, { body, icon: '/logo192.png' });
   }
 };
