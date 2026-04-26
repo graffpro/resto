@@ -108,6 +108,13 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Admin Çatdırılma Plitkası + İdarə Səhifəsi (2026-02)**:
+  - Yeni route `/admin/delivery` → `DeliveryOrdersPage.js`
+  - Admin home-da yeni yaşıl `Çatdırılma` plitkası (size: md, Truck ikon, DELIVERY subtitle, badge "X aktiv")
+  - `dashboard-stats` endpoint-inə `pending_delivery` field əlavə olundu
+  - Səhifə xüsusiyyətləri: 4 filter (Aktiv/Çatdırıldı/Ləğv/Hamısı) + axtarış (ad, telefon, ünvan, ID), 20s auto-refresh
+  - Hər sifariş kartı: status icon + label, müştəri ad/telefon (klikbar `tel:`), ünvan, total + ödəniş tipi, "Detallar" toggle (yeməklər, ünvan qeydi, müştəri qeydi, email)
+  - Status flow düymələri: pending → confirmed → preparing → out_for_delivery → delivered (avtomatik next status); Ləğv düyməsi (confirm dialog ilə); WhatsApp (`wa.me/`) + Zəng linkləri
 - [x] **Customer Auth + Reservation + Delivery (2026-02)** — Wolt-vari müştəri experience tam:
   - **Backend**: `/app/backend/routes/customer.py` (passwordless email OTP + JWT, separate `customer_users` & `customer_otp` collections)
   - **Resend** inteqrasiyası — bilingual HTML OTP email (AZ + EN), Test mode default sender `onboarding@resend.dev`. Resend xətalarını zərif idarə edir (loga yazır, qeydiyyat dayanmır)

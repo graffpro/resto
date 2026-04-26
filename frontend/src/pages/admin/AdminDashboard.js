@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   Users, Table2, DollarSign, Calendar, BarChart3, Tag, ShoppingCart,
-  UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings,
+  UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Truck,
 } from 'lucide-react';
 import DashboardTopBar from '@/components/layouts/DashboardTopBar';
 import TileHome from '@/components/layouts/TileHome';
@@ -24,6 +24,7 @@ import VenuesTablesPage from './VenuesTablesPage';
 import StaffManagementPage from './StaffManagementPage';
 import InventoryPage from './InventoryPage';
 import SettingsPage from './SettingsPage';
+import DeliveryOrdersPage from './DeliveryOrdersPage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
@@ -61,6 +62,7 @@ function AdminHome() {
   // Live ops = warm reds/oranges, Money = greens, People = blues, System = neutral
   const tiles = [
     { to: '/admin/tables',           label: t('nav.tables'),                Icon: Table2,           color: '#E0402A', subtitle: 'LIVE',         size: 'md', testid: 'tile-tables', badge: stats?.active_tables ? `${stats.active_tables} aktiv` : null },
+    { to: '/admin/delivery',         label: 'Çatdırılma',                   Icon: Truck,            color: '#10B981', subtitle: 'DELIVERY',     size: 'md', testid: 'tile-delivery', badge: stats?.pending_delivery ? `${stats.pending_delivery} aktiv` : null },
     { to: '/admin/reservations',     label: t('nav.reservations'),          Icon: Calendar,         color: '#F59E0B', subtitle: 'BOOK',                                                badge: stats?.reservations_today ? `${stats.reservations_today} bu gün` : null },
     { to: '/admin/menu-management',  label: t('nav.menu'),                  Icon: UtensilsCrossed,  color: '#EC4899', subtitle: 'KITCHEN',                                             badge: stats?.pending_orders ? `${stats.pending_orders} sifariş` : null },
     { to: '/admin/venues-tables',    label: t('nav.venues'),                Icon: MapPin,           color: '#A855F7', subtitle: 'VENUE' },
@@ -108,6 +110,7 @@ export default function AdminDashboard() {
         <Routes>
           <Route path="/" element={<AdminHome />} />
           <Route path="/tables" element={<SubPageWrap><ActiveTablesPage /></SubPageWrap>} />
+          <Route path="/delivery" element={<SubPageWrap><DeliveryOrdersPage /></SubPageWrap>} />
           <Route path="/reservations" element={<SubPageWrap><ReservationsPage /></SubPageWrap>} />
           <Route path="/venues-tables" element={<SubPageWrap><VenuesTablesPage /></SubPageWrap>} />
           <Route path="/users" element={<SubPageWrap><ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage></SubPageWrap>} />

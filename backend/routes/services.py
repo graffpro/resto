@@ -88,6 +88,15 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     except Exception:
         users_count = 0
 
+    # Pending delivery orders (public Wolt-style orders awaiting confirmation/delivery)
+    try:
+        pending_delivery = await db.delivery_orders.count_documents({
+            **tq,
+            "status": {"$in": ["pending", "confirmed", "preparing", "out_for_delivery"]},
+        })
+    except Exception:
+        pending_delivery = 0
+
     return {
         "active_tables": active_tables,
         "reservations_today": reservations_today,
@@ -96,6 +105,7 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         "low_stock": low_stock,
         "today_revenue": round(today_revenue, 2),
         "users_count": users_count,
+        "pending_delivery": pending_delivery,
     }
 
 
