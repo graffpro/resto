@@ -47,7 +47,9 @@
       "filter_nearby": "Рядом",
       "rate_now": "Оценить",
       "your_rating": "Ваша оценка",
-      "ratings_count": "{{count}} отзывов"
+      "ratings_count": "{{count}} отзывов",
+      "translate": "Перевести",
+      "original": "Оригинал"
     },
     "features": {
       "title": "Всё в одной платформе"

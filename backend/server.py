@@ -28,6 +28,7 @@ from routes.orders import router as orders_router
 from routes.inventory import router as inventory_router
 from routes.services import router as services_router
 from routes.partners import router as partners_router
+from routes.translate import router as translate_router
 
 # ==================== APP SETUP ====================
 app = FastAPI()
@@ -49,6 +50,7 @@ api_router.include_router(orders_router)
 api_router.include_router(inventory_router)
 api_router.include_router(services_router)
 api_router.include_router(partners_router)
+api_router.include_router(translate_router)
 
 # ==================== APK VERSION & DOWNLOAD ====================
 CURRENT_APK_VERSION = "1.1.0"

@@ -47,7 +47,9 @@
       "filter_nearby": "Bu yaxınlarda",
       "rate_now": "Qiymətləndir",
       "your_rating": "Sizin reytinqiniz",
-      "ratings_count": "{{count}} rəy"
+      "ratings_count": "{{count}} rəy",
+      "translate": "Tərcümə et",
+      "original": "Orijinal"
     },
     "features": {
       "title": "Hər şey bir platformada"

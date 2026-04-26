@@ -47,7 +47,9 @@
       "filter_nearby": "Yakınımda",
       "rate_now": "Puanla",
       "your_rating": "Puanınız",
-      "ratings_count": "{{count}} değerlendirme"
+      "ratings_count": "{{count}} değerlendirme",
+      "translate": "Çevir",
+      "original": "Orijinal"
     },
     "features": {
       "title": "Her şey tek platformda"

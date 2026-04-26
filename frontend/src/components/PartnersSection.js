@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X } from 'lucide-react';
+import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X, Languages } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
@@ -21,8 +21,78 @@ function StarsDisplay({ value, size = 16 }) {
   );
 }
 
-function PartnerDetailModal({ partner, onClose, onRated }) {
+function ReviewItem({ review, currentLang }) {
   const { t } = useTranslation();
+  const [translated, setTranslated] = useState(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const original = (review.comment || '').trim();
+  const canTranslate = original.length > 0;
+
+  const toggleTranslate = async () => {
+    if (showTranslated) {
+      setShowTranslated(false);
+      return;
+    }
+    if (translated) {
+      setShowTranslated(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await axios.post(`${API}/translate`, {
+        text: original,
+        target_lang: currentLang,
+      });
+      setTranslated(res.data?.text || original);
+      setShowTranslated(true);
+    } catch {
+      toast.error('Translation failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const displayed = showTranslated && translated ? translated : original;
+
+  return (
+    <div className="rounded-lg border border-stone-200 p-3 bg-white" data-testid={`partner-review-${review.id}`}>
+      <div className="flex items-center justify-between mb-1">
+        <StarsDisplay value={review.stars} size={13} />
+        <span className="text-[10px] text-stone-400">
+          {review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
+        </span>
+      </div>
+      {canTranslate ? (
+        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap break-words">{displayed}</p>
+      ) : (
+        <p className="text-xs text-stone-400 italic">—</p>
+      )}
+      {canTranslate && (
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTranslate}
+            disabled={busy}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-600 hover:text-[#E0402A] disabled:opacity-50 transition-colors"
+            data-testid={`partner-review-translate-${review.id}`}
+          >
+            <Languages size={12} />
+            {busy ? '...' : (showTranslated ? t('landing.partners.original') : t('landing.partners.translate'))}
+          </button>
+          {showTranslated && translated && (
+            <span className="text-[10px] uppercase tracking-wider text-stone-400">→ {currentLang}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartnerDetailModal({ partner, onClose, onRated }) {
+  const { t, i18n } = useTranslation();
+  const currentLang = (i18n.resolvedLanguage || i18n.language || 'az').split('-')[0];
   const [hover, setHover] = useState(0);
   const [chosen, setChosen] = useState(0);
   const [comment, setComment] = useState('');
@@ -262,19 +332,7 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
             ) : (
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {reviews.map((r) => (
-                  <div key={r.id} className="rounded-lg border border-stone-200 p-3 bg-white" data-testid={`partner-review-${r.id}`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <StarsDisplay value={r.stars} size={13} />
-                      <span className="text-[10px] text-stone-400">
-                        {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                      </span>
-                    </div>
-                    {r.comment && r.comment.trim() ? (
-                      <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap break-words">{r.comment}</p>
-                    ) : (
-                      <p className="text-xs text-stone-400 italic">—</p>
-                    )}
-                  </div>
+                  <ReviewItem key={r.id} review={r} currentLang={currentLang} />
                 ))}
               </div>
             )}

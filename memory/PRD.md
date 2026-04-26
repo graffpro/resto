@@ -101,6 +101,8 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - Partner detail modal: logo/cover, description, address, phone, Instagram/Facebook/WhatsApp/website links, Google Maps embed, "View Menu" deep link to `/table/<menu_table_id>`, Directions to Google Maps, in-modal star rating submit
   - Owner Dashboard: new `/owner/partners` page — visible/hidden + featured toggles, full edit form
 
+- [x] **Comment translation** — `POST /api/translate` powered by Emergent LLM (Gemini 2.5 Flash). Each review card has a "Tərcümə et" button that translates the comment to the user's UI language (az/tr/ru/en). Cache stored in `db.translation_cache` to avoid repeated LLM calls.
+
 ## Pending / Upcoming Tasks
 - P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache
 - P1: WhatsApp/Twilio Integration (daily sales reports)

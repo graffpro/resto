@@ -47,7 +47,9 @@
       "filter_nearby": "Nearby",
       "rate_now": "Rate",
       "your_rating": "Your rating",
-      "ratings_count": "{{count}} reviews"
+      "ratings_count": "{{count}} reviews",
+      "translate": "Translate",
+      "original": "Original"
     },
     "features": {
       "title": "Everything in one platform"
