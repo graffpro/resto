@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Sparkles, Eye, EyeOff, Plus, Trash2, Edit2, Star, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Eye, EyeOff, Plus, Trash2, Edit2, Star, MapPin, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -145,7 +145,7 @@ export default function PartnersPage() {
               <div className="h-28 bg-stone-100 relative overflow-hidden">
                 {p.cover_url
                   ? <img src={p.cover_url} alt="" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full grid place-items-center text-stone-300"><ImageIcon size={28} /></div>}
+                  : <div className="w-full h-full grid place-items-center text-stone-300"><ImagePlus size={28} /></div>}
                 {p.is_featured && (
                   <span className="absolute top-2 left-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400 text-amber-900">
                     <Sparkles size={10} /> Featured
