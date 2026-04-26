@@ -1,0 +1,75 @@
+{
+  "common": {
+    "login": "Daxil ol",
+    "register": "Qeydiyyat",
+    "logout": "Çıxış",
+    "save": "Yadda saxla",
+    "cancel": "Ləğv et",
+    "delete": "Sil",
+    "edit": "Düzəliş",
+    "close": "Bağla",
+    "loading": "Yüklənir...",
+    "search": "Axtar",
+    "view_menu": "Menyunu Gör",
+    "phone": "Telefon",
+    "address": "Ünvan",
+    "rating": "Reytinq",
+    "near_you": "Yaxınlıqda",
+    "featured": "Önə Çıxan"
+  },
+  "landing": {
+    "nav": {
+      "partners": "Partnyor Restoranlar",
+      "features": "Xüsusiyyətlər",
+      "how": "Necə işləyir",
+      "faq": "FAQ"
+    },
+    "hero": {
+      "badge": "Restoran üçün ağıllı QR sistemi",
+      "title_1": "Restoranınızı",
+      "title_2": "rəqəmsallaşdırın",
+      "subtitle": "QR menyu, real-time sifariş, mətbəx ekranı, inventar, analitika — hamısı bir yerdə. 10 dəqiqədə qurulur, ilk gündən satışları artırır.",
+      "cta_start": "Pulsuz Başla",
+      "cta_login": "Daxil ol",
+      "feature_1": "Limitsiz masa",
+      "feature_2": "Android APK daxil",
+      "feature_3": "Real-time bildirişlər"
+    },
+    "partners": {
+      "section_label": "Partnyor Restoranlar",
+      "title": "Bizim Partnyorlarımız",
+      "subtitle": "Sistemimizdən istifadə edən təsdiqlənmiş restoranlar. Menyularına baxın, ünvanlarını kəşf edin.",
+      "view_menu": "Menyunu Gör",
+      "directions": "Yol Tarifi",
+      "no_partners": "Hələ partnyor restoran yoxdur",
+      "filter_all": "Hamısı",
+      "filter_featured": "Önə Çıxanlar",
+      "filter_nearby": "Bu yaxınlarda",
+      "rate_now": "Qiymətləndir",
+      "your_rating": "Sizin reytinqiniz",
+      "ratings_count": "{{count}} rəy"
+    },
+    "features": {
+      "title": "Hər şey bir platformada"
+    },
+    "how": {
+      "title": "Necə işləyir?"
+    },
+    "faq": {
+      "title": "Tez-tez verilən suallar"
+    },
+    "footer": {
+      "copyright": "© 2026 QR Restoran. Bütün hüquqlar qorunur."
+    }
+  },
+  "register": {
+    "title": "Yeni Restoran Qeydiyyatı",
+    "restaurant_name": "Restoran Adı",
+    "owner_name": "Sahibin Adı",
+    "username": "İstifadəçi adı",
+    "password": "Şifrə",
+    "phone": "Telefon",
+    "submit": "Qeydiyyatdan Keç",
+    "have_account": "Artıq hesabınız var?"
+  }
+}

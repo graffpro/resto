@@ -1,0 +1,75 @@
+{
+  "common": {
+    "login": "Giriş",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "close": "Kapat",
+    "loading": "Yükleniyor...",
+    "search": "Ara",
+    "view_menu": "Menüyü Gör",
+    "phone": "Telefon",
+    "address": "Adres",
+    "rating": "Puan",
+    "near_you": "Yakınımda",
+    "featured": "Öne Çıkanlar"
+  },
+  "landing": {
+    "nav": {
+      "partners": "Partner Restoranlar",
+      "features": "Özellikler",
+      "how": "Nasıl Çalışır",
+      "faq": "SSS"
+    },
+    "hero": {
+      "badge": "Restoranlar için akıllı QR sistemi",
+      "title_1": "Restoranınızı",
+      "title_2": "dijitalleştirin",
+      "subtitle": "QR menü, gerçek zamanlı sipariş, mutfak ekranı, envanter, analitik — hepsi tek yerde. 10 dakikada kurulur, ilk günden satışları artırır.",
+      "cta_start": "Ücretsiz Başla",
+      "cta_login": "Giriş Yap",
+      "feature_1": "Sınırsız masa",
+      "feature_2": "Android APK dahil",
+      "feature_3": "Anlık bildirimler"
+    },
+    "partners": {
+      "section_label": "Partner Restoranlar",
+      "title": "Partnerlerimiz",
+      "subtitle": "Sistemimizi kullanan onaylı restoranlar. Menülerini ve konumlarını keşfedin.",
+      "view_menu": "Menüyü Aç",
+      "directions": "Yol Tarifi",
+      "no_partners": "Henüz partner restoran yok",
+      "filter_all": "Tümü",
+      "filter_featured": "Öne Çıkanlar",
+      "filter_nearby": "Yakınımda",
+      "rate_now": "Puanla",
+      "your_rating": "Puanınız",
+      "ratings_count": "{{count}} değerlendirme"
+    },
+    "features": {
+      "title": "Her şey tek platformda"
+    },
+    "how": {
+      "title": "Nasıl çalışır?"
+    },
+    "faq": {
+      "title": "Sıkça Sorulan Sorular"
+    },
+    "footer": {
+      "copyright": "© 2026 QR Restoran. Tüm hakları saklıdır."
+    }
+  },
+  "register": {
+    "title": "Yeni Restoran Kaydı",
+    "restaurant_name": "Restoran Adı",
+    "owner_name": "Sahip Adı",
+    "username": "Kullanıcı adı",
+    "password": "Şifre",
+    "phone": "Telefon",
+    "submit": "Kayıt Ol",
+    "have_account": "Hesabınız var mı?"
+  }
+}

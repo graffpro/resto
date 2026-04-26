@@ -1,9 +1,10 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Store, LogOut, Settings } from 'lucide-react';
+import { Store, LogOut, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RestaurantsPage from './RestaurantsPage';
 import SettingsPage from './SettingsPage';
+import PartnersPage from './PartnersPage';
 
 export default function OwnerDashboard() {
   const { user, logout } = useAuth();
@@ -12,7 +13,8 @@ export default function OwnerDashboard() {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   const navItems = [
-    { to: '/owner', icon: Store, label: 'Restoranlar', match: () => isActive('/owner') && !location.pathname.includes('/settings') },
+    { to: '/owner', icon: Store, label: 'Restoranlar', match: () => isActive('/owner') && !location.pathname.includes('/settings') && !location.pathname.includes('/partners') },
+    { to: '/owner/partners', icon: Sparkles, label: 'Partnyorlar', match: () => isActive('/owner/partners') },
     { to: '/owner/settings', icon: Settings, label: 'Parametrlər', match: () => isActive('/owner/settings') },
   ];
 
@@ -85,6 +87,7 @@ export default function OwnerDashboard() {
           <Routes>
             <Route path="/" element={<RestaurantsPage />} />
             <Route path="/restaurants" element={<RestaurantsPage />} />
+            <Route path="/partners" element={<PartnersPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>

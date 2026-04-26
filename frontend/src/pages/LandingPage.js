@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import {
-  QrCode, ChefHat, Users, BarChart3, Package, Bell, Clock, Wifi,
-  ArrowRight, Check, ChevronDown, Menu, X, Smartphone
+  QrCode, ChefHat, Users, BarChart3, Package, Bell, Wifi,
+  ArrowRight, Check, ChevronDown, Menu, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import PartnersSection from '@/components/PartnersSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -36,12 +39,16 @@ const FAQS = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { setAuth } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const [regForm, setRegForm] = useState({ restaurant_name: '', owner_name: '', username: '', password: '', phone: '' });
   const [regLoading, setRegLoading] = useState(false);
+
+  // Static text in features/steps/faqs is kept Azerbaijani for legacy users; the
+  // navigation, hero, partner section, and modals are fully translated.
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -65,26 +72,32 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200" data-testid="landing-nav">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="text-xl font-black tracking-tighter">QR Restoran</a>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">Xüsusiyyətlər</a>
-            <a href="#how" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">Necə İşləyir</a>
-            <a href="#faq" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">FAQ</a>
-            <button onClick={() => navigate('/login')} className="text-sm text-gray-600 hover:text-[#0A0A0A]" data-testid="nav-login-link">Daxil ol</button>
+          <div className="hidden md:flex items-center gap-6">
+            <a href="#partners" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.partners')}</a>
+            <a href="#features" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.features')}</a>
+            <a href="#how" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.how')}</a>
+            <a href="#faq" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.faq')}</a>
+            <button onClick={() => navigate('/login')} className="text-sm text-gray-600 hover:text-[#0A0A0A]" data-testid="nav-login-link">{t('common.login')}</button>
             <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-5 py-2.5 text-sm font-medium hover:bg-[#C93622] transition-colors" data-testid="nav-register-btn">
-              Pulsuz Qeydiyyat
+              {t('common.register')}
+            </button>
+            <LanguageSwitcher />
+          </div>
+          <div className="flex items-center gap-2 md:hidden">
+            <LanguageSwitcher />
+            <button onClick={() => setMobileMenu(!mobileMenu)} className="p-2">
+              {mobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
-          <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2">
-            {mobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
         {mobileMenu && (
           <div className="md:hidden bg-white border-t border-gray-200 px-6 py-4 space-y-3">
-            <a href="#features" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">Xüsusiyyətlər</a>
-            <a href="#how" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">Necə İşləyir</a>
-            <a href="#faq" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">FAQ</a>
-            <button onClick={() => navigate('/login')} className="block text-sm text-gray-600 w-full text-left">Daxil ol</button>
-            <button onClick={() => { setShowRegister(true); setMobileMenu(false); }} className="w-full bg-[#E0402A] text-white px-5 py-2.5 text-sm font-medium">Pulsuz Qeydiyyat</button>
+            <a href="#partners" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.partners')}</a>
+            <a href="#features" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.features')}</a>
+            <a href="#how" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.how')}</a>
+            <a href="#faq" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.faq')}</a>
+            <button onClick={() => navigate('/login')} className="block text-sm text-gray-600 w-full text-left">{t('common.login')}</button>
+            <button onClick={() => { setShowRegister(true); setMobileMenu(false); }} className="w-full bg-[#E0402A] text-white px-5 py-2.5 text-sm font-medium">{t('common.register')}</button>
           </div>
         )}
       </nav>
@@ -93,26 +106,26 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 md:pt-40 md:pb-32 px-6" data-testid="hero-section">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-4">Restoran İdarəetmə Sistemi</p>
+            <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-4">{t('landing.hero.badge')}</p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-              Restoranınızı<br />
-              <span className="text-[#E0402A]">Rəqəmsallaşdırın.</span>
+              {t('landing.hero.title_1')}<br />
+              <span className="text-[#E0402A]">{t('landing.hero.title_2')}.</span>
             </h1>
             <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-lg">
-              QR menyu, mətbəx ekranı, inventar, analitika — hər şey bir platformada. Kağız menyudan qurtulun, sifarişləri real-time idarə edin.
+              {t('landing.hero.subtitle')}
             </p>
             <div className="flex flex-wrap gap-4">
               <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-8 py-3.5 font-medium hover:bg-[#C93622] transition-colors flex items-center gap-2 text-sm" data-testid="hero-register-cta">
-                İndi Başlayın <ArrowRight className="w-4 h-4" />
+                {t('landing.hero.cta_start')} <ArrowRight className="w-4 h-4" />
               </button>
               <button onClick={() => navigate('/login')} className="border border-[#0A0A0A] px-8 py-3.5 font-medium hover:bg-gray-50 transition-colors text-sm" data-testid="hero-login-btn">
-                Daxil Ol
+                {t('landing.hero.cta_login')}
               </button>
             </div>
             <div className="flex items-center gap-6 mt-8 text-sm text-gray-500">
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Pulsuz</span>
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Limitsiz</span>
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Android APK</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_1')}</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_2')}</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_3')}</span>
             </div>
           </div>
           <div className="relative hidden md:block">
@@ -138,6 +151,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Partner Restaurants */}
+      <PartnersSection />
 
       {/* Features */}
       <section id="features" className="py-24 md:py-32 px-6 bg-white" data-testid="features-section">

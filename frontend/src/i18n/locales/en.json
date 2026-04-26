@@ -1,0 +1,75 @@
+{
+  "common": {
+    "login": "Login",
+    "register": "Sign Up",
+    "logout": "Logout",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "search": "Search",
+    "view_menu": "View Menu",
+    "phone": "Phone",
+    "address": "Address",
+    "rating": "Rating",
+    "near_you": "Near You",
+    "featured": "Featured"
+  },
+  "landing": {
+    "nav": {
+      "partners": "Partner Restaurants",
+      "features": "Features",
+      "how": "How It Works",
+      "faq": "FAQ"
+    },
+    "hero": {
+      "badge": "Smart QR system for restaurants",
+      "title_1": "Digitize",
+      "title_2": "your restaurant",
+      "subtitle": "QR menu, real-time orders, kitchen display, inventory, analytics — all in one. Set up in 10 minutes, grow sales from day one.",
+      "cta_start": "Start Free",
+      "cta_login": "Log In",
+      "feature_1": "Unlimited tables",
+      "feature_2": "Android APK included",
+      "feature_3": "Real-time notifications"
+    },
+    "partners": {
+      "section_label": "Partner Restaurants",
+      "title": "Our Partners",
+      "subtitle": "Verified restaurants using our system. Browse their menus and locations.",
+      "view_menu": "Open Menu",
+      "directions": "Directions",
+      "no_partners": "No partner restaurants yet",
+      "filter_all": "All",
+      "filter_featured": "Featured",
+      "filter_nearby": "Nearby",
+      "rate_now": "Rate",
+      "your_rating": "Your rating",
+      "ratings_count": "{{count}} reviews"
+    },
+    "features": {
+      "title": "Everything in one platform"
+    },
+    "how": {
+      "title": "How it works"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions"
+    },
+    "footer": {
+      "copyright": "© 2026 QR Restoran. All rights reserved."
+    }
+  },
+  "register": {
+    "title": "New Restaurant Registration",
+    "restaurant_name": "Restaurant Name",
+    "owner_name": "Owner Name",
+    "username": "Username",
+    "password": "Password",
+    "phone": "Phone",
+    "submit": "Sign Up",
+    "have_account": "Already have an account?"
+  }
+}

@@ -85,13 +85,28 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - One-time startup migration stamps legacy data with the original admin's tenant id
 - [x] Bug fix: `/api/orders/kitchen` was missing its `@router.get` decorator — restored
 - [x] Bug fix: `routes/inventory.py` was missing `timedelta` import; `routes/services.py` was missing `APP_NAME` import
+- [x] **Admin reactivation bug fixed** — when Owner reactivates a restaurant, all its staff users are now also reactivated (previously only deactivation was synced)
+- [x] **Internationalization (i18n)** — 4 languages: Azerbaijani, Turkish, Russian, English
+  - `react-i18next` + `i18next-browser-languagedetector` with auto-detect from `navigator.language`
+  - Persistence in `localStorage[qr_lang]`
+  - `LanguageSwitcher` component with flag emoji + country name dropdown (header)
+  - Translation files in `/app/frontend/src/i18n/locales/{az,tr,ru,en}.json`
+  - Landing page (nav, hero, partners section) + register modal fully translated
+- [x] **Partner Restaurants directory (Landing Page)**
+  - New backend `routes/partners.py` with collections `partner_restaurants` + `partner_ratings`
+  - Owner-only management: `GET/POST/PUT/DELETE /api/owner/partners`, `GET /api/owner/eligible-restaurants`
+  - Public: `GET /api/partner-restaurants` (filters: featured, near_lat/near_lng/radius_km), `GET /api/partner-restaurants/:id`
+  - Public ratings: `POST /api/partner-restaurants/:id/rate` (1–5 stars + comment), aggregated `rating_avg` & `ratings_count`
+  - Featured slot (larger card, gradient, sparkle badge), nearby filter (geolocation + Haversine distance)
+  - Partner detail modal: logo/cover, description, address, phone, Instagram/Facebook/WhatsApp/website links, Google Maps embed, "View Menu" deep link to `/table/<menu_table_id>`, Directions to Google Maps, in-modal star rating submit
+  - Owner Dashboard: new `/owner/partners` page — visible/hidden + featured toggles, full edit form
 
 ## Pending / Upcoming Tasks
 - P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache
 - P1: WhatsApp/Twilio Integration (daily sales reports)
+- P1: Translate remaining dashboards (Admin/Kitchen/Waiter UI) — currently only Landing is translated
 - P1: iOS build (requires Mac + Apple Developer account)
-- P2: server.py Refactoring (DONE — already in routes/)
-- P3: Multi-language support
+- P3: Multi-language support (full coverage of all dashboards)
 - P3: Domain + SSL configuration
 - P3: Play Store publication
 

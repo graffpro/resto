@@ -85,9 +85,10 @@ async def toggle_restaurant_status(restaurant_id: str, current_user: dict = Depe
     new_status = not restaurant.get('is_active', True)
     await db.restaurants.update_one({"id": restaurant_id}, {"$set": {"is_active": new_status}})
     
-    # If deactivating, also deactivate all users of this restaurant
-    if not new_status:
-        await db.users.update_many({"restaurant_id": restaurant_id}, {"$set": {"is_active": False}})
+    # Sync all users of this restaurant with the restaurant status:
+    # - When deactivating: disable all staff (so they can't log in)
+    # - When activating: re-enable all staff (otherwise admins stayed deactivated)
+    await db.users.update_many({"restaurant_id": restaurant_id}, {"$set": {"is_active": new_status}})
     
     return {"message": "Restaurant status updated", "is_active": new_status}
 
