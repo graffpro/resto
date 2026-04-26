@@ -1,68 +1,65 @@
-<analysis>**original_problem_statement**: 
+<analysis>### Handover Summary
+
+**original_problem_statement**: 
 Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features include multi-kitchen routing, background native Android APK for staff with continuous alarms, SaaS landing page for new restaurants to register, timed table services, WebSocket live alerts, and strict multi-tenant data isolation.
 **PRODUCT REQUIREMENTS:** 
-- The system must act as a SaaS platform (like tabres.com) where new restaurant owners can register via a Landing Page.
+- The system must act as a SaaS platform where new restaurant owners can register via a Landing Page.
 - Data MUST be strictly isolated per tenant (restaurant).
+- Multi-language support (AZ, EN, RU, TR).
+- Partner Restaurants public directory with ratings, reviews, and AI-powered translations.
 - Mobile responsive UI for both customers and staff, with an Android APK wrapper for push/background alerts.
 
-**User's preferred language**: Azerbaijani. (INSTRUCT next agent to respond in Azerbaijani ONLY).
+**User's preferred language**: Azerbaijani (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in Azerbaijani only).
 
 **what currently exists?** 
-A heavily refactored React + FastAPI + MongoDB architecture. The backend monorepo () has been split into modular route files. The frontend includes a newly built SaaS Landing Page () for self-registration, a Capacitor-based Android APK for staff, advanced table session locking with takeover functionality, cart auto-recommendations, and multi-step order flows for staff. 
+A production-ready React + FastAPI + MongoDB SaaS application. The backend has strict multi-tenant data isolation ( filtering on all routes). The frontend has a fully translated i18n system (Azerbaijani, English, Russian, Turkish) spanning the SaaS Landing Page, Customer UI, Admin, Kitchen, Waiter, and Owner dashboards. A Partner Restaurants directory exists with AI-powered review translations (via  & Gemini). 
 
 **Last working item**:
-    - Last item agent was working: Investigating two critical bugs reported by the user in the final message: 1) Multi-tenant isolation is completely broken. Newly registered tenants see the original administrator's data because backend queries lack  filtering. 2) The root domain () aggressively redirects to  due to frontend caching/routing issues.
-    - Status: NOT STARTED
+    - Last item agent was working: Editing the production deployment files ( and backend dependencies) to permanently include the  package. The user is deploying to their own VPS using  and the backend container is crash-looping because  is missing from the Docker image build steps.
+    - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use? both
+    - Which testing method agent to use? manual testing by bash (build the docker image locally or test the pip install command)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: **CRITICAL P0: Multi-Tenant Data Isolation Leak**
-     - Attempted fixes: Identified in the final message but not yet addressed.
-     - Next debug checklist: Check ALL data fetching and creation endpoints in  (especially , , , , , ). Ensure every MongoDB query includes a  filter (e.g., ) so new tenants cannot see or modify other tenants' data. You may need to trace the relationship (e.g., if querying , ensure they belong to a category owned by the ).
-     - Why fix this issue and what will be achieved with the fix? This is a severe security/privacy breach for a SaaS platform. Fixing it ensures proper multi-tenant architecture.
-     - Status: NOT STARTED
+  - Issue 1: **CRITICAL P0: Production Docker Build Crash (Missing Dependency)**
+     - Attempted fixes: The agent identified that  imports , but it was never added to  or . The agent viewed the  but the conversation ended before it could be updated.
+     - Next debug checklist: 
+        1. Add  to  (or ensure it installs via bash using the extra-index-url before freeze).
+        2. Modify  to explicitly include:  after the standard requirements installation. 
+        3. DO NOT delete or wipe the old DB. Ensure  and scripts remain safe for .
+     - Why fix this issue and what will be achieved with the fix? Fixes a fatal  on the user's live Contabo VPS, allowing them to pull the code and successfully boot the backend.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? both
-     - Blocked on other issue: None
-  - Issue 2: **Browser aggressive redirect to **
-     - Attempted fixes: None.
-     - Next debug checklist: Investigate  in  and . Ensure that unauthenticated users visiting the root URL () are correctly served the Landing Page without being forced into a cached redirect loop to .
-     - Why fix this issue and what will be achieved with the fix? Allows new customers to actually see the sales Landing Page and register.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? frontend
+     - Should Test frontend/backend/both after fix? backend (verify docker build / pip install)
      - Blocked on other issue: None
 
 **In progress Task List**:
-  - None.
+  - None
 
 **Upcoming and Future Tasks**
-    Upcoming Tasks:
-    - P1: **WhatsApp/Twilio Integration** - Automated daily sales reports or customer receipts via WhatsApp (Requires User API Key).
-    
-    Future Tasks:
-    - P2: Play Store Upload instructions/configuration.
-    - P3: Multi-language support.
+    *As requested by user in the final messages (Prioritized for monetization & retention):*
+    - P0: **Online Payment (Stripe/Pulpal)** — Allow customers to pay via phone.
+    - P0: **Loyalty Points System (Sədaqət Proqramı)** — CRM, phone verification, stamp card UI.
+    - P1: **Real-Time Dashboard TV Screen** — A dedicated large-screen UI for restaurant owners to see live stats.
+    - P1: **AI Menu Assistant (Smart Recommendations)** — Chat UI to suggest items to customers based on context.
+    - P1: **Promo Codes / Discount Coupons** — Extend existing  collection.
+    - P1: **Customer Web Push Notifications** — VAPID + Service Worker alerts for order status.
+    - P2: **Auto Backup (Dropbox/GDrive)** — Cron job to mongodump and upload.
+    - P2: **Delivery Module (Yandex/Wolt integration)** — Address picker, courier tracking.
+    - P2: **Staff Performance Gamification** — Leaderboards based on .
 
 **Completed work in this session**
-- Refactored massive  into modular  (auth, inventory, orders, restaurants, services, shared, venues) (DONE)
-- Built SaaS Landing Page and self-registration flow (DONE)
-- Added Bar role across full stack (DONE)
-- Implemented multi-kitchen/bar item routing with  (DONE)
-- Built Capacitor Android APK with native DownloadListener and Web Audio API integration for continuous alarms (DONE)
-- Upgraded Customer UI: Pill-shaped categories, Ofitsiant Çağır, cart auto-recommendations (DONE)
-- Implemented Table session locking, 10-minute auto-unlock, and force takeover feature (DONE)
-- Enabled Admin manual order creation and editing capabilities inside Table Details (DONE)
-- Fixed date filtering for daily history and active orders (DONE)
+- Multi-Tenant Data Isolation (P0) (DONE) - Added  to models and filtered all backend GET/POST/PUT/DELETE routes.
+- Admin reactivation bug fixed in  (DONE)
+- i18n implementation across entire app (Landing, Admin, Kitchen, Waiter, Owner dashboards + Modals) (DONE)
+- Partner Restaurants public directory (DONE)
+- AI-powered review translation via  (Gemini 2.5 Flash) (DONE)
+- Stale token redirect bug ( aggressive redirect to ) fixed (DONE)
+-  and  generated (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-  - Issue 1: Missing multi-tenant isolation on GET requests.
-    - Debug checklist: Audit , ,  and  to ensure  is explicitly queried.
-    - Why to solve this issue: Core requirement for the app to function as a SaaS.
-    - Should Test frontend/backend/both after fix: both
-    - Is recurring issue? N
+  - None.
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: None
@@ -73,69 +70,73 @@ A heavily refactored React + FastAPI + MongoDB architecture. The backend monorep
 
 
 **Key Technical Concepts**
-React SPA, FastAPI modular routing, MongoDB, WebSockets, Capacitor Android (Browser plugin, Web Audio API), Multi-tenant SaaS architecture.
+React SPA, FastAPI modular routing, MongoDB, WebSockets, Multi-tenant SaaS architecture, i18n (react-i18next), Docker/VPS deployment, AI Integrations.
 
 **key DB schema**
-  - : {id, username, role, restaurant_id}
   - : {id, name, created_by}
-  - , , , , : Current schema relies on implicit connections. You must ensure data access layers validate ownership against .
+  - : {id, username, role, restaurant_id, is_active}
+  - , , , , , , : All now strongly tied to .
+  - : {id, restaurant_id, name, ...}
+  - : {id, partner_id, stars, comment}
+  - : {text, target_lang, translated_text}
 
 **changes in tech stack**
-  - Integrated , , and .
-  - Backend monorepo completely refactored into modular  files under .
+  - Added  and  for frontend translations.
+  - Added  package on backend for LLM translations.
 
 **All files of reference** 
-  -  (Needs urgent data isolation fixes)
-  -  (Routing redirect fix)
-  -  
-  - 
+  -  (Action needed here immediately)
+  -  (Action needed here immediately)
+  -  (Uses the new integration)
+  -  & 
 
 **Areas that need refactoring**: 
-  - Backend data access layers (queries). The transition to a SaaS model was only partially completed (Registration works, but data fetching isn't isolated).
+  - None critical, codebase was extensively linted and cleaned this session.
 
 **key api endpoints**
-  - , , ,  -> Missing  filtering.
+  - : Uses Gemini via  to translate reviews.
+  - : Fetches visible partner restaurants.
 
 **Critical Info for New Agent** 
-  - **LANGUAGE**: Always speak **Azerbaijani**.
-  - **URL USAGE**: DO NOT mention or use preview/deployment URLs in your summary or explanations. The user handles their own deployment on a Contabo VPS () using .
-  - **MULTI-TENANT**: Treat every database query strictly as a tenant-isolated operation. 
-  - **APK**: The APK is served directly from .
+  - **LANGUAGE**: The user speaks strictly **Azerbaijani**. You must respond in Azerbaijani.
+  - **DEPLOYMENT**: The user deploys manually via a VPS (Ubuntu) running . *Any python packages you add MUST be added to  and the .*
+  - **DATABASE CAUTION**: The user has live data on their VPS in a database named . **Do not** write scripts or provide instructions that wipe docker volumes ().
+  - **INTEGRATIONS**: The user relies on  for AI features. Ensure it's handled properly in environment files.
 
 **documents and test reports created in this job** 
   - 
   - 
   - 
-  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - (User) Reported critical bugs:  is aggressively cached and forces redirects away from the root domain. New registrations leak into the old admin's data (multi-tenant failure). (STATUS: PENDING)
- - (User) Complained APK is not auto-updating. Agent fixed caching headers and removed frontend update script in favor of direct Nginx/WebView reloading. (STATUS: COMPLETED)
- - (User) Requested Waiter flow to mimic Kitchen flow (Accept -> Prepare -> Deliver). (STATUS: COMPLETED)
- - (User) Complained about sounds and missing notifications in APK. Agent integrated Web Audio API + HTML5 fallback. (STATUS: COMPLETED)
- - (User) Requested auto-recommendations in cart. Agent built . (STATUS: COMPLETED)
- - (User) Requested date filtering for closed table history. (STATUS: COMPLETED)
- - (User) Complained alarms do not stop and old orders mix with new. Agent fixed  and date filtering. (STATUS: COMPLETED)
- - (User) Reported Waiter cannot confirm orders in APK. (STATUS: COMPLETED)
- - (User) Reported Waiter dashboard loading fails ( response). Agent fixed missing return statement in . (STATUS: COMPLETED)
- - (User) Mentioned APK opens Admin account but fails on Waiter account. (STATUS: COMPLETED)
+ - (User) Provided a screenshot showing  during their VPS deployment crash loop.
+ - (Agent) Explained the package needs to be installed with a specific extra index URL and suggested adding it to the .
+ - (User) Instructed the agent: Bunların hamısını elə, mən githuba save edib sonra deploy edim. Yoxsa çox uzun olacaq. Köhnə DB silinməməlidir. Sadəcə üstünə nəsə çatmırsa əlavə et! (Do all of this, so I can save to Github and deploy. Don't let it be too long. Old DB must not be deleted. Just add whatever is missing!).
+ - (STATUS: PENDING - Agent viewed  but did not modify it before turn ended).
 
 **Project Health Check:**
-  - Backend: Broken (Critical SaaS Multi-Tenant Data Leak)
-  - Frontend: Healthy (Minor routing redirect bug on root domain)
+  - Backend: Broken on production deployment (Missing  in Dockerfile), but runs locally in platform env.
+  - Frontend: Healthy
 
 **3rd Party Integrations** 
-  - None active.
+  - Gemini 2.5 Flash via  (Review translations) — uses Emergent LLM Key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (but not after the massive  refactoring/SaaS conversion).
+  - Testing agent used after significant changes: YES (Iteration 11 passed 25/25 backend tests and frontend smoke tests).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: Handled by testing subagent
-  - Known regressions: Multi-tenant data isolation completely failed after enabling public registration.
+  - Test files created: 
+  - Known regressions: Dockerfile wasn't updated to reflect new dependencies.
 
 **Credentials to test flow:**
-  - Old Admin (Original Tenant):  / 
-  - New Test Tenant:  /  (Should be isolated from )
+  - Admin (Original Tenant):  / 
+  - Test Tenant:  / 
+  - Owner:  / 
 
 **What agent forgot to execute**
-  - The agent created the SaaS Landing Page and allowed users to register, but forgot to implement  filtering on any of the GET endpoints, resulting in a severe data leak where new users see the original tenant's configuration.</analysis>
+  - The agent figured out that  needs to be added to the  and  to stop the user's VPS from crashing, but the conversation history ran out of turns right after viewing the . You need to actually apply this change using  immediately so the user can deploy.
+
+**Debugging checklist for current issue**
+    Issue: Missing  in production Docker build causing startup crash.
+    Backend files to check: 
+    -  -> Add 
+    -  -> Ensure the package is present or installed during the build process.</analysis>

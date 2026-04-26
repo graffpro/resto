@@ -12,7 +12,7 @@ import requests
 import os
 import io
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://multi-tenant-kitchen.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://qr-order-platform-5.preview.emergentagent.com')
 
 class TestSecurityHeaders:
     """Test security headers are present in responses"""
