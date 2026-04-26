@@ -1,0 +1,47 @@
+/* react-phone-number-input — light theme tweaks */
+.phone-input-wrapper .PhoneInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e7e5e4; /* stone-200 */
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 40px;
+  font-size: 14px;
+}
+.phone-input-wrapper .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.phone-input-wrapper .PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  height: 100%;
+  font: inherit;
+}
+.phone-input-wrapper .PhoneInputCountrySelect {
+  cursor: pointer;
+}
+.phone-input-wrapper .PhoneInputCountryIcon {
+  width: 22px;
+  height: 16px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* Dark variant for use on dark surfaces (PublicMenuPage uses light modals so default is fine) */
+.phone-input-wrapper.dark .PhoneInput {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+.phone-input-wrapper.dark .PhoneInputInput {
+  color: white;
+}
+.phone-input-wrapper.dark .PhoneInputInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}

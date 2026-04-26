@@ -108,6 +108,21 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Customer Auth + Reservation + Delivery (2026-02)** — Wolt-vari müştəri experience tam:
+  - **Backend**: `/app/backend/routes/customer.py` (passwordless email OTP + JWT, separate `customer_users` & `customer_otp` collections)
+  - **Resend** inteqrasiyası — bilingual HTML OTP email (AZ + EN), Test mode default sender `onboarding@resend.dev`. Resend xətalarını zərif idarə edir (loga yazır, qeydiyyat dayanmır)
+  - Endpoints: `POST /api/customer/auth/send-otp`, `POST /api/customer/auth/verify-otp`, `GET /api/customer/auth/me`, `PUT /api/customer/auth/profile`
+  - `POST /api/public/reservations` — anonim/auth-bağlı rezerv (`source: "public_menu"`, status `pending`, restoran sonra təsdiqləyir)
+  - `POST /api/public/delivery-orders` — qonaq sifarişi (items + address + payment_method, `subtotal`/`total` hesablanır)
+  - `GET /api/admin/delivery-orders` + `PUT /api/admin/delivery-orders/{id}/status` — staff axını (pending → confirmed → preparing → out_for_delivery → delivered)
+  - `GET /api/customer/delivery-orders` — istifadəçi öz tarixçəsi
+  - **Frontend**: `CustomerAuthContext` provider, 3 yeni modal:
+    - `CustomerAuthModal` — 2 addımlı (email+ad+telefon → 6 rəqəmli OTP), 60s resend cooldown, autofocus
+    - `ReservationModal` — narıncı header, tarix/saat picker, qonaq sayı pill (1-8+), success ekranı
+    - `DeliveryCheckoutModal` — 3 addım (Səbət → Detallar → Təsdiq), qty +/-, ünvan, ödəniş, success tracking
+  - **PublicMenuPage**: hər item-də yaşıl `+` Səbətə əlavə düyməsi, floating cart bottom (`Sifariş ver · X ₼`), localStorage cart persistence per restaurant, "Daxil ol/Çıxış" üst-sağda
+  - **react-phone-number-input** beynəlxalq nömrə input bayraq + ölkə kodu seçimi ilə (AZ default), `/app/frontend/src/styles/phone-input.css` tema
+  - `RESEND_API_KEY` + `JWT_SECRET_CUSTOMER` `.env`-ə əlavə olundu, `resend==2.29.0` requirements.txt-də
 - [x] **Live Tile Stats + Public Menu (2026-02)** — Wolt-vari customer experience başlanğıc:
   - Yeni endpoint `GET /api/admin/dashboard-stats` — Tables aktiv, today reservations, pending orders, active discounts, low stock, today revenue, users count (15s tezliyində refresh)
   - Admin plitkalarında **canlı badge-lər**: Tables `4 aktiv`, Menu `6 sifariş`, Users `9`, Discounts `1 aktiv` və s.

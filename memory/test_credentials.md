@@ -1,20 +1,37 @@
 # Test Credentials
 
-## Owner Accounts
-- **username:** owner | **password:** owner123
-- **username:** graff | **password:** Testforresto123
+## Staff / Admin (existing JWT auth)
+- Owner: `graff` / `Testforresto123`
+- Admin (Original Tenant — emin): `emin` / `1517`
+- Test Tenant Admin: `ehe1` / `ehe123`
 
-## Admin PIN
-- **PIN:** 5159
+## Customer Accounts (Email OTP — Wolt-vari)
+Customers register via `POST /api/customer/auth/send-otp` and verify via `POST /api/customer/auth/verify-otp`.
+There are no pre-seeded customer accounts; OTPs are auto-generated.
 
-## Test Table ID
-- 54e3595b-8a97-4b6b-8818-95bb2756d9d9
+### Resend test-mode limitation
+`onboarding@resend.dev` (default sender) can ONLY send to verified emails.
+For Resend account holder `zbruuhh@gmail.com`:
+- Sending OTP to ANY email → record created in `customer_otp` collection (auto-generated 6-digit code)
+- Email delivery only succeeds for `zbruuhh@gmail.com`
+- For testing other addresses: read OTP code from `customer_otp` collection or backend logs (level INFO)
 
-## Admin Users (Original "9Lar Pub" tenant — restaurant_id: e211ddf8-ed99-4af0-956d-2e521759f079)
-- **username:** emin | **password:** 1517 | **PIN:** 5159
-- **username:** admin1 | **password:** admin123 | **PIN:** 1234
+### Quick test (verify OTP without email):
+```bash
+# 1) Send OTP (creates DB record even if email send fails)
+curl -X POST $API_URL/api/customer/auth/send-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","name":"Test","phone":"+994501234567"}'
 
-## Multi-tenant isolation
-- Every authenticated GET/POST is scoped to `current_user.restaurant_id`
-- Owners (`owner`, `graff`) see ALL tenants (super-admin)
-- Customer pages pass `?restaurant_id=...` derived from the table
+# 2) Read OTP from DB
+mongosh restaurant_db --eval 'db.customer_otp.find({email:"test@example.com"},{code:1,_id:0}).pretty()'
+
+# 3) Verify OTP → JWT
+curl -X POST $API_URL/api/customer/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","code":"123456"}'
+```
+
+## Restaurant for Public Menu Tests
+- 9Lar Pub: `restaurant_id=e211ddf8-ed99-4af0-956d-2e521759f079` (visible partner)
+- Public menu URL: `/menu/e211ddf8-ed99-4af0-956d-2e521759f079`

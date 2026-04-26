@@ -4,11 +4,16 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, MapPin, Phone, Star, Search, Sparkles, Info, Calendar, Truck, Navigation, ChevronRight,
+  Plus, ShoppingCart, LogIn, LogOut, User,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import CustomerAuthModal from '@/components/CustomerAuthModal';
+import ReservationModal from '@/components/ReservationModal';
+import DeliveryCheckoutModal from '@/components/DeliveryCheckoutModal';
+import { useCustomerAuth } from '@/context/CustomerAuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -30,6 +35,7 @@ function StarsDisplay({ value, size = 14 }) {
 export default function PublicMenuPage() {
   const { restaurantId } = useParams();
   const { t } = useTranslation();
+  const { customer, logout, isAuthenticated } = useCustomerAuth();
   const [info, setInfo] = useState(null);
   const [categories, setCategories] = useState([]);
   const [items, setItems] = useState([]);
@@ -37,6 +43,37 @@ export default function PublicMenuPage() {
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('all');
   const [selectedItem, setSelectedItem] = useState(null);
+
+  // Cart for delivery
+  const [cart, setCart] = useState([]);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showReserve, setShowReserve] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
+
+  // Persist cart per restaurant in localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`qr_cart_${restaurantId}`);
+    if (saved) {
+      try { setCart(JSON.parse(saved)); } catch { /* ignore */ }
+    }
+  }, [restaurantId]);
+  useEffect(() => {
+    localStorage.setItem(`qr_cart_${restaurantId}`, JSON.stringify(cart));
+  }, [cart, restaurantId]);
+
+  const addToCart = (item) => {
+    setCart((curr) => {
+      const idx = curr.findIndex((c) => c.menu_item_id === item.id);
+      if (idx >= 0) {
+        return curr.map((c, i) => i === idx ? { ...c, quantity: c.quantity + 1 } : c);
+      }
+      return [...curr, { menu_item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
+    });
+    toast.success(`${item.name} səbətə əlavə olundu`, { duration: 1500 });
+  };
+
+  const cartCount = cart.reduce((s, it) => s + it.quantity, 0);
+  const cartTotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -125,7 +162,29 @@ export default function PublicMenuPage() {
             >
               <ArrowLeft size={14} /> Geri
             </Link>
-            <LanguageSwitcher variant="dark" />
+            <div className="flex items-center gap-2">
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/40 backdrop-blur text-xs font-semibold hover:bg-black/60"
+                  data-testid="public-menu-logout"
+                  title={customer?.email}
+                >
+                  <User size={13} /> {customer?.name?.split(' ')[0] || 'Hesab'} <LogOut size={12} className="opacity-60" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAuth(true)}
+                  className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/40 backdrop-blur text-xs font-semibold hover:bg-black/60"
+                  data-testid="public-menu-login"
+                >
+                  <LogIn size={13} /> Daxil ol
+                </button>
+              )}
+              <LanguageSwitcher variant="dark" />
+            </div>
           </div>
         </div>
 
@@ -181,7 +240,7 @@ export default function PublicMenuPage() {
             )}
             <button
               type="button"
-              onClick={() => toast.info('Rezerv funksiyası tezliklə əlavə olunacaq', { duration: 4000 })}
+              onClick={() => setShowReserve(true)}
               className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-amber-400/15 text-amber-300 hover:bg-amber-400/25 text-xs font-semibold"
               data-testid="public-menu-reserve"
             >
@@ -189,11 +248,17 @@ export default function PublicMenuPage() {
             </button>
             <button
               type="button"
-              onClick={() => toast.info('Çatdırılma tezliklə əlavə olunacaq', { duration: 4000 })}
+              onClick={() => {
+                if (cart.length === 0) {
+                  toast.info('Çatdırılma üçün menyudan yeməyi səbətə əlavə edin');
+                  return;
+                }
+                setShowDelivery(true);
+              }}
               className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/25 text-xs font-semibold"
               data-testid="public-menu-delivery"
             >
-              <Truck size={13} /> Çatdırılma
+              <Truck size={13} /> Çatdırılma {cartCount > 0 && `(${cartCount})`}
             </button>
             {partner?.menu_table_id && (
               <Link
@@ -258,7 +323,7 @@ export default function PublicMenuPage() {
                 <h2 className="text-lg font-black mb-3 text-stone-100">{cat.name}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {grouped[cat.id].map((it) => (
-                    <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} />
+                    <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} onAdd={addToCart} />
                   ))}
                 </div>
               </section>
@@ -266,7 +331,7 @@ export default function PublicMenuPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {filtered.map((it) => (
-              <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} />
+              <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} onAdd={addToCart} />
             ))}
           </div>
         )}
@@ -287,13 +352,15 @@ export default function PublicMenuPage() {
                 <img src={selectedItem.image_url} alt={selectedItem.name} className="w-full h-full object-cover" />
               </div>
             )}
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-4">
               <h3 className="text-xl font-black">{selectedItem.name}</h3>
               {selectedItem.description && (
                 <p className="text-sm text-stone-400 leading-relaxed">{selectedItem.description}</p>
               )}
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between pt-1">
                 <span className="text-2xl font-black text-amber-400">{selectedItem.price} ₼</span>
+              </div>
+              <div className="flex gap-2 pt-2">
                 <Button
                   variant="ghost"
                   onClick={() => setSelectedItem(null)}
@@ -301,36 +368,88 @@ export default function PublicMenuPage() {
                 >
                   Bağla
                 </Button>
+                <Button
+                  onClick={() => { addToCart(selectedItem); setSelectedItem(null); }}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  data-testid="public-menu-add-to-cart-modal"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Səbətə əlavə et · {selectedItem.price} ₼
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* FLOATING CART BUTTON */}
+      {cartCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowDelivery(true)}
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white pl-5 pr-6 py-3.5 rounded-full shadow-2xl font-bold text-sm transition-all"
+          data-testid="public-menu-cart-fab"
+        >
+          <div className="relative">
+            <ShoppingCart size={18} />
+            <span className="absolute -top-2 -right-2 bg-amber-400 text-stone-900 text-[10px] w-5 h-5 grid place-items-center rounded-full font-black">
+              {cartCount}
+            </span>
+          </div>
+          Sifariş ver · {cartTotal.toFixed(2)} ₼
+        </button>
+      )}
+
+      {/* MODALS */}
+      <CustomerAuthModal open={showAuth} onClose={() => setShowAuth(false)} />
+      <ReservationModal
+        open={showReserve}
+        onClose={() => setShowReserve(false)}
+        restaurantId={restaurantId}
+        restaurantName={partner?.name || restaurant?.name}
+      />
+      <DeliveryCheckoutModal
+        open={showDelivery}
+        onClose={() => setShowDelivery(false)}
+        restaurantId={restaurantId}
+        restaurantName={partner?.name || restaurant?.name}
+        cart={cart}
+        setCart={setCart}
+      />
     </div>
   );
 }
 
-function MenuItemCard({ item, onClick }) {
+function MenuItemCard({ item, onClick, onAdd }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/5 transition-all text-left"
+    <div
+      className="group relative flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/5 transition-all"
       data-testid={`public-menu-item-${item.id}`}
     >
-      <div className="flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex-1 min-w-0 text-left"
+      >
         <h4 className="font-bold text-stone-100 truncate">{item.name}</h4>
         {item.description && (
           <p className="text-xs text-stone-400 line-clamp-2 mt-0.5">{item.description}</p>
         )}
         <p className="text-amber-400 font-black mt-1.5">{item.price} ₼</p>
-      </div>
+      </button>
       {item.image_url && (
-        <div className="w-20 h-20 rounded-xl overflow-hidden bg-stone-800 shrink-0">
+        <button type="button" onClick={onClick} className="w-20 h-20 rounded-xl overflow-hidden bg-stone-800 shrink-0">
           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-        </div>
+        </button>
       )}
-      <ChevronRight size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-600 sm:hidden" />
-    </button>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onAdd?.(item); }}
+        className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 grid place-items-center shrink-0 shadow-lg"
+        aria-label="Səbətə əlavə et"
+        data-testid={`public-menu-add-${item.id}`}
+      >
+        <Plus size={16} />
+      </button>
+    </div>
   );
 }

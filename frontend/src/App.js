@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import '@/App.css';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { CustomerAuthProvider } from '@/context/CustomerAuthContext';
 import { lazy, Suspense } from 'react';
 import AppUpdater from '@/utils/AppUpdater';
 
@@ -120,13 +121,15 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <div className="App">
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-        <Toaster position="top-right" />
-        <AppUpdater />
-      </div>
+      <CustomerAuthProvider>
+        <div className="App">
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+          <Toaster position="top-right" />
+          <AppUpdater />
+        </div>
+      </CustomerAuthProvider>
     </AuthProvider>
   );
 }

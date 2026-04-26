@@ -2,6 +2,9 @@
   min-height: 100vh;
 }
 
+/* Phone input theming */
+@import './styles/phone-input.css';
+
 .App-header {
   min-height: 100vh;
   display: flex;
