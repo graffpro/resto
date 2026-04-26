@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
@@ -35,6 +35,13 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
   const [regForm, setRegForm] = useState({ restaurant_name: '', owner_name: '', username: '', password: '', phone: '' });
   const [regLoading, setRegLoading] = useState(false);
+
+  // Listen for custom event from PartnersSection "Bizimlə Partnyor Ol" CTA
+  useEffect(() => {
+    const open = () => setShowRegister(true);
+    window.addEventListener('open-restaurant-register', open);
+    return () => window.removeEventListener('open-restaurant-register', open);
+  }, []);
 
   // Static text in features/steps/faqs is kept Azerbaijani for legacy users; the
   // navigation, hero, partner section, and modals are fully translated.

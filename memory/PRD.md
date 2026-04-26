@@ -108,6 +108,14 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Live Tile Stats + Public Menu (2026-02)** — Wolt-vari customer experience başlanğıc:
+  - Yeni endpoint `GET /api/admin/dashboard-stats` — Tables aktiv, today reservations, pending orders, active discounts, low stock, today revenue, users count (15s tezliyində refresh)
+  - Admin plitkalarında **canlı badge-lər**: Tables `4 aktiv`, Menu `6 sifariş`, Users `9`, Discounts `1 aktiv` və s.
+  - Yeni public endpoint `GET /api/public/restaurant/{restaurant_id}` — yalnız visible partner restoranlar
+  - Yeni səhifə `/app/frontend/src/pages/public/PublicMenuPage.js` (`/menu/:restaurantId`) — tam-ekran dark dizayn, hero cover, logo, rating, axtarış, kategoriya filtri, item detail modal. **Masa məşğul edilmir**.
+  - Action chips: Directions, Phone, Rezerv et (toast placeholder), Çatdırılma (toast placeholder), Restoranda sifariş ver (köhnə `/table/<id>` flow)
+  - PartnersSection kartları artıq tamamı `<Link>` `/menu/<restaurant_id>` ünvanına aparır; ⓘ Info düyməsi köhnə detail modalını saxlayır (rating + reviews + map)
+  - Landing-ə "Bizimlə Partnyor Ol" qabarıq CTA əlavə olundu — `window.dispatchEvent('open-restaurant-register')` ilə qeydiyyat modal açılır
 - [x] **Dashboard Metro-Tile Redesign (2026-02)** — Owner & Admin paneli tamamilə yeniləndi:
   - Yan menyu (sidebar) silindi → əvəzində slim üst bar (logo, istifadəçi çipi, voice call, APK, dil, logout)
   - Ana səhifə artıq parlaq Metro-tile grid (Windows Modern UI / ERP12 üslubu): yumuşaq köşəli kvadrat plitkalar, gradient overlay, grain texture, hover-də lift + glow ring

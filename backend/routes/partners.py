@@ -124,6 +124,39 @@ async def get_partner(partner_id: str):
     return p
 
 
+# ==================== PUBLIC MENU (browse-only, by restaurant_id) ====================
+@router.get("/public/restaurant/{restaurant_id}")
+async def get_public_restaurant(restaurant_id: str):
+    """Public restaurant info for browse-only menu (only if restaurant is a visible partner)."""
+    partner = await db.partner_restaurants.find_one(
+        {"restaurant_id": restaurant_id, "is_visible": True},
+        {"_id": 0},
+    )
+    if not partner:
+        raise HTTPException(status_code=404, detail="Restaurant not available for public browsing")
+
+    rest = await db.restaurants.find_one({"id": restaurant_id, "is_active": True}, {"_id": 0})
+    if not rest:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    # Recent reviews (top 5) for context
+    reviews = await db.partner_ratings.find(
+        {"partner_id": partner["id"]}, {"_id": 0}
+    ).sort("created_at", -1).to_list(5)
+
+    return {
+        "restaurant": {
+            "id": rest["id"],
+            "name": rest.get("name"),
+            "address": rest.get("address"),
+            "phone": rest.get("phone"),
+        },
+        "partner": partner,
+        "recent_reviews": reviews,
+    }
+
+
+
 # ==================== OWNER MANAGEMENT ====================
 @router.get("/owner/partners")
 async def list_all_partners(current_user: dict = Depends(get_current_user)):

@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X, Languages, Music2, Youtube, Send, Linkedin, Twitter, Link2 } from 'lucide-react';
+import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X, Languages, Music2, Youtube, Send, Linkedin, Twitter, Link2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
@@ -295,15 +296,13 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
 
           {/* CTAs */}
           <div className="flex flex-wrap gap-2">
-            {partner.menu_table_id && (
-              <a
-                href={`/table/${partner.menu_table_id}`}
-                className="inline-flex items-center gap-2 bg-[#E0402A] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#C93622] transition-colors"
-                data-testid="partner-view-menu"
-              >
-                {t('landing.partners.view_menu')} <ExternalLink size={14} />
-              </a>
-            )}
+            <Link
+              to={`/menu/${partner.restaurant_id}`}
+              className="inline-flex items-center gap-2 bg-[#E0402A] text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#C93622] transition-colors"
+              data-testid="partner-view-menu"
+            >
+              {t('landing.partners.view_menu')} <ExternalLink size={14} />
+            </Link>
             {mapsHref && (
               <a
                 href={mapsHref}
@@ -387,16 +386,31 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
 function PartnerCard({ partner, featured = false, onOpen }) {
   const { t } = useTranslation();
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(partner)}
-      className={`group text-left relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+    <div
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
         featured
           ? 'bg-gradient-to-br from-stone-900 to-stone-800 text-white border-stone-700 sm:col-span-2 lg:col-span-2'
           : 'bg-white border-stone-200'
       }`}
       data-testid={`partner-card-${partner.id}`}
     >
+      {/* Click-anywhere → public menu (does NOT occupy a table) */}
+      <Link
+        to={`/menu/${partner.restaurant_id}`}
+        className="absolute inset-0 z-10"
+        aria-label={`${partner.name} menyusu`}
+        data-testid={`partner-card-link-${partner.id}`}
+      />
+      {/* Info button — opens detail modal with rating/reviews/map */}
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(partner); }}
+        className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-stone-800 grid place-items-center shadow-md backdrop-blur transition-transform hover:scale-110"
+        aria-label="Ətraflı məlumat"
+        data-testid={`partner-card-info-${partner.id}`}
+      >
+        <Info size={16} />
+      </button>
       <div className={`relative ${featured ? 'h-44' : 'h-32'} overflow-hidden`}>
         {partner.cover_url ? (
           <img src={partner.cover_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -438,7 +452,7 @@ function PartnerCard({ partner, featured = false, onOpen }) {
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -561,6 +575,43 @@ export default function PartnersSection() {
             ))}
           </div>
         )}
+
+        {/* Become a Partner CTA — for restaurant owners */}
+        <div className="mt-12 sm:mt-16 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1A251E] via-[#1A251E] to-[#0E1612] text-white p-6 sm:p-10 border border-white/10" data-testid="become-partner-cta">
+          <div
+            className="absolute inset-0 opacity-[0.06] mix-blend-overlay pointer-events-none"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>\")",
+            }}
+          />
+          <div className="relative flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+            <div className="flex-1">
+              <p className="uppercase tracking-[0.2em] text-[11px] font-bold text-amber-400 mb-2">
+                {t('landing.partners.become_label', 'Restoran sahibisiniz?')}
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black tracking-tight mb-3">
+                {t('landing.partners.become_title', 'Bizimlə Partnyor Ol')}
+              </h3>
+              <p className="text-sm sm:text-base text-stone-300 max-w-xl leading-relaxed">
+                {t('landing.partners.become_subtitle', 'Restoranınızı saytımızda nümayiş etdirin, müştərilərə menyunuzu QR-siz təqdim edin və yeni gəlir mənbəyi yaradın. Qeydiyyat bir neçə dəqiqə çəkir.')}
+              </p>
+            </div>
+            <a
+              href="#cta-banner"
+              onClick={(e) => {
+                e.preventDefault();
+                // Trigger the existing register modal at the parent
+                window.dispatchEvent(new CustomEvent('open-restaurant-register'));
+              }}
+              className="inline-flex shrink-0 items-center justify-center gap-2 bg-[#E0402A] hover:bg-[#C93622] text-white px-8 py-4 rounded-full text-sm font-bold transition-colors"
+              data-testid="become-partner-cta-btn"
+            >
+              <Sparkles className="w-4 h-4" />
+              {t('landing.partners.become_cta', 'Hələ də qoşulmamısan? Qoşul')}
+            </a>
+          </div>
+        </div>
       </div>
 
       {active && (

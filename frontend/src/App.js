@@ -12,6 +12,7 @@ const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const KitchenDashboard = lazy(() => import('@/pages/kitchen/KitchenDashboard'));
 const WaiterDashboard = lazy(() => import('@/pages/waiter/WaiterDashboard'));
 const CustomerPage = lazy(() => import('@/pages/customer/CustomerPage'));
+const PublicMenuPage = lazy(() => import('@/pages/public/PublicMenuPage'));
 
 function PageLoader() {
   return (
@@ -59,6 +60,7 @@ function AppRoutes() {
       <Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
       <Route path="/table/:tableId" element={<Suspense fallback={<PageLoader />}><CustomerPage /></Suspense>} />
       <Route path="/customer/:tableId" element={<Suspense fallback={<PageLoader />}><CustomerPage /></Suspense>} />
+      <Route path="/menu/:restaurantId" element={<Suspense fallback={<PageLoader />}><PublicMenuPage /></Suspense>} />
       
       <Route
         path="/owner/*"
