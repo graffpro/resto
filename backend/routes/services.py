@@ -8,9 +8,9 @@ import uuid
 import os
 import hashlib
 from database import db
-from auth import get_current_user
+from auth import get_current_user, get_current_user_optional
 from models import UserRole, OrderStatus
-from routes.shared import sanitize_input, put_object, get_object, generate_qr_code, init_storage, LOCAL_UPLOAD_DIR, notify_order_update
+from routes.shared import sanitize_input, put_object, get_object, generate_qr_code, init_storage, LOCAL_UPLOAD_DIR, notify_order_update, APP_NAME, tenant_query, stamp_restaurant_id
 from ws_manager import manager
 
 router = APIRouter()
@@ -20,7 +20,7 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    all_sessions = await db.table_sessions.find({}, {"_id": 0}).to_list(10000)
+    all_sessions = await db.table_sessions.find(tenant_query(current_user), {"_id": 0}).to_list(10000)
     
     if not all_sessions:
         return []
@@ -88,7 +88,36 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
     return detailed_data
 
 @router.get("/settings")
-async def get_settings():
+async def get_settings(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    """Tenant-scoped settings. Authenticated calls use the user's restaurant_id;
+    public calls (customer page) must pass the restaurant_id query parameter."""
+    rid = None
+    if current_user and current_user.get('restaurant_id'):
+        rid = current_user.get('restaurant_id')
+    elif restaurant_id:
+        rid = restaurant_id
+    
+    if rid:
+        settings = await db.settings.find_one({"restaurant_id": rid}, {"_id": 0})
+        if not settings:
+            default_settings = {
+                "id": str(uuid.uuid4()),
+                "restaurant_id": rid,
+                "name": "Restoran",
+                "address": "",
+                "phone": "",
+                "email": "",
+                "tax_percentage": 0,
+                "service_charge_percentage": 0,
+                "currency": "AZN",
+                "admin_pin": "",
+                "base_url": ""
+            }
+            await db.settings.insert_one({**default_settings})
+            return default_settings
+        return settings
+    
+    # Legacy fallback (no rid context — only owners or unauthenticated callers without rid)
     settings = await db.settings.find_one({"id": "settings"}, {"_id": 0})
     if not settings:
         default_settings = {
@@ -112,6 +141,17 @@ async def update_settings(settings: dict, current_user: dict = Depends(get_curre
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    rid = current_user.get('restaurant_id')
+    if rid:
+        settings["restaurant_id"] = rid
+        # Don't let clients overwrite the doc id
+        settings.pop("_id", None)
+        if not settings.get("id"):
+            settings["id"] = str(uuid.uuid4())
+        await db.settings.update_one({"restaurant_id": rid}, {"$set": settings}, upsert=True)
+        return settings
+    
+    # Owner without specific tenant - operate on the legacy doc
     settings["id"] = "settings"
     await db.settings.update_one({"id": "settings"}, {"$set": settings}, upsert=True)
     return settings
@@ -148,7 +188,7 @@ async def verify_admin_pin(data: dict, current_user: dict = Depends(get_current_
 async def regenerate_all_qr(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    tables = await db.tables.find({}, {"_id": 0}).to_list(1000)
+    tables = await db.tables.find(tenant_query(current_user), {"_id": 0}).to_list(1000)
     count = 0
     for t in tables:
         new_qr = generate_qr_code(t["id"])
@@ -167,6 +207,7 @@ async def call_waiter(table_id: str):
         "table_id": table_id,
         "table_number": table.get("table_number", "?"),
         "venue_id": table.get("venue_id", ""),
+        "restaurant_id": table.get("restaurant_id"),
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -177,6 +218,7 @@ async def call_waiter(table_id: str):
         "table_id": table_id,
         "table_number": table.get("table_number", "?"),
         "venue_id": table.get("venue_id", ""),
+        "restaurant_id": table.get("restaurant_id"),
         "call_id": call_doc["id"]
     }
     await manager.broadcast_to_role(msg, "waiter")
@@ -184,13 +226,15 @@ async def call_waiter(table_id: str):
     return {"message": "Ofisiant çağırıldı", "call_id": call_doc["id"]}
 
 @router.get("/waiter-calls")
-async def get_waiter_calls(status: str = "pending"):
-    calls = await db.waiter_calls.find({"status": status}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def get_waiter_calls(status: str = "pending", current_user: dict = Depends(get_current_user)):
+    q = {"status": status, **tenant_query(current_user)}
+    calls = await db.waiter_calls.find(q, {"_id": 0}).sort("created_at", -1).to_list(100)
     return calls
 
 @router.post("/waiter-call/{call_id}/acknowledge")
-async def acknowledge_waiter_call(call_id: str):
-    result = await db.waiter_calls.update_one({"id": call_id}, {"$set": {"status": "acknowledged"}})
+async def acknowledge_waiter_call(call_id: str, current_user: dict = Depends(get_current_user)):
+    q = {"id": call_id, **tenant_query(current_user)}
+    result = await db.waiter_calls.update_one(q, {"$set": {"status": "acknowledged"}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Call not found")
     await manager.broadcast_to_role({"type": "waiter_call_ack", "call_id": call_id}, "waiter")
@@ -269,8 +313,10 @@ async def get_file(file_id: str):
         raise HTTPException(status_code=500, detail=f"Fayl oxunma xətası: {str(e)}")
 
 @router.get("/analytics/popular-items")
-async def get_popular_items_stats():
-    orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
+async def get_popular_items_stats(current_user: dict = Depends(get_current_user)):
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    orders = await db.orders.find(tenant_query(current_user), {"_id": 0}).to_list(100000)
     
     item_stats = {}
     for order in orders:
@@ -299,7 +345,8 @@ async def get_sessions_history(current_user: dict = Depends(get_current_user)):
     
     sessions = await db.table_sessions.find({
         "is_active": False,
-        "ended_at": {"$gte": today_start.isoformat()}
+        "ended_at": {"$gte": today_start.isoformat()},
+        **tenant_query(current_user)
     }, {"_id": 0}).sort("ended_at", -1).to_list(1000)
     
     result = []
@@ -330,7 +377,8 @@ async def delete_session(session_id: str, current_user: dict = Depends(get_curre
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    session = await db.table_sessions.find_one({"id": session_id}, {"_id": 0})
+    q = {"id": session_id, **tenant_query(current_user)}
+    session = await db.table_sessions.find_one(q, {"_id": 0})
     if not session:
         raise HTTPException(status_code=404, detail="Sessiya tapılmadı")
     
@@ -371,6 +419,10 @@ async def create_reservation(reservation: ReservationCreate):
     reservation_obj = TableReservation(**reservation.model_dump())
     doc = reservation_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    # Stamp restaurant_id from the table
+    table = await db.tables.find_one({"id": reservation.table_id}, {"_id": 0})
+    if table and table.get('restaurant_id'):
+        doc['restaurant_id'] = table.get('restaurant_id')
     await db.reservations.insert_one(doc)
     return reservation_obj
 
@@ -379,7 +431,7 @@ async def get_reservations(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    reservations = await db.reservations.find({}, {"_id": 0}).sort("reservation_date", 1).to_list(1000)
+    reservations = await db.reservations.find(tenant_query(current_user), {"_id": 0}).sort("reservation_date", 1).to_list(1000)
     result = []
     for res in reservations:
         if isinstance(res['created_at'], str):
@@ -398,7 +450,8 @@ async def update_reservation_status(reservation_id: str, status: str, current_us
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    await db.reservations.update_one({"id": reservation_id}, {"$set": {"status": status}})
+    q = {"id": reservation_id, **tenant_query(current_user)}
+    await db.reservations.update_one(q, {"$set": {"status": status}})
     return {"message": "Reservation status updated"}
 
 @router.delete("/reservations/{reservation_id}")
@@ -406,24 +459,29 @@ async def delete_reservation(reservation_id: str, current_user: dict = Depends(g
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.reservations.delete_one({"id": reservation_id})
+    q = {"id": reservation_id, **tenant_query(current_user)}
+    result = await db.reservations.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Reservation not found")
     return {"message": "Reservation deleted"}
 
 @router.get("/tables/available")
-async def get_available_tables(date: str, time: str):
-    all_tables = await db.tables.find({"is_active": True}, {"_id": 0}).to_list(1000)
+async def get_available_tables(date: str, time: str, restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    rid = current_user.get('restaurant_id') if current_user else restaurant_id
+    table_filter = {"is_active": True}
+    if rid:
+        table_filter["restaurant_id"] = rid
+    all_tables = await db.tables.find(table_filter, {"_id": 0}).to_list(1000)
     
-    reserved_table_ids = []
-    reservations = await db.reservations.find({
+    res_filter = {
         "reservation_date": date,
         "status": {"$ne": "cancelled"}
-    }, {"_id": 0}).to_list(1000)
+    }
+    if rid:
+        res_filter["restaurant_id"] = rid
+    reservations = await db.reservations.find(res_filter, {"_id": 0}).to_list(1000)
     
-    for res in reservations:
-        reserved_table_ids.append(res['table_id'])
-    
+    reserved_table_ids = [res['table_id'] for res in reservations]
     available_tables = [t for t in all_tables if t['id'] not in reserved_table_ids]
     return available_tables
 
@@ -450,12 +508,18 @@ async def create_menu(menu: MenuCreate, current_user: dict = Depends(get_current
     menu_obj = Menu(**menu.model_dump())
     doc = menu_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    stamp_restaurant_id(doc, current_user)
     await db.menus.insert_one(doc)
     return menu_obj
 
 @router.get("/menus", response_model=List[Menu])
-async def get_menus():
-    menus = await db.menus.find({}, {"_id": 0}).sort("display_order", 1).to_list(1000)
+async def get_menus(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    query = {}
+    if current_user:
+        query.update(tenant_query(current_user))
+    elif restaurant_id:
+        query["restaurant_id"] = restaurant_id
+    menus = await db.menus.find(query, {"_id": 0}).sort("display_order", 1).to_list(1000)
     for menu in menus:
         if isinstance(menu['created_at'], str):
             menu['created_at'] = datetime.fromisoformat(menu['created_at'])
@@ -466,12 +530,13 @@ async def update_menu(menu_id: str, menu: MenuCreate, current_user: dict = Depen
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.menus.find_one({"id": menu_id}, {"_id": 0})
+    q = {"id": menu_id, **tenant_query(current_user)}
+    result = await db.menus.find_one(q, {"_id": 0})
     if not result:
         raise HTTPException(status_code=404, detail="Menu not found")
     
-    await db.menus.update_one({"id": menu_id}, {"$set": menu.model_dump()})
-    updated = await db.menus.find_one({"id": menu_id}, {"_id": 0})
+    await db.menus.update_one(q, {"$set": menu.model_dump()})
+    updated = await db.menus.find_one(q, {"_id": 0})
     if isinstance(updated['created_at'], str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Menu(**updated)
@@ -481,7 +546,8 @@ async def delete_menu(menu_id: str, current_user: dict = Depends(get_current_use
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.menus.delete_one({"id": menu_id})
+    q = {"id": menu_id, **tenant_query(current_user)}
+    result = await db.menus.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Menu not found")
     return {"message": "Menu deleted"}
@@ -515,6 +581,7 @@ async def create_expense(expense: ExpenseCreate, current_user: dict = Depends(ge
     expense_obj = Expense(**expense.model_dump(), created_by=current_user['id'])
     doc = expense_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    stamp_restaurant_id(doc, current_user)
     await db.expenses.insert_one(doc)
     return expense_obj
 
@@ -523,7 +590,7 @@ async def get_expenses(current_user: dict = Depends(get_current_user), start_dat
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    query = {}
+    query = {**tenant_query(current_user)}
     if start_date and end_date:
         query["date"] = {"$gte": start_date, "$lte": end_date}
     
@@ -538,14 +605,15 @@ async def update_expense(expense_id: str, expense: ExpenseCreate, current_user: 
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    q = {"id": expense_id, **tenant_query(current_user)}
+    result = await db.expenses.find_one(q, {"_id": 0})
     if not result:
         raise HTTPException(status_code=404, detail="Expense not found")
     
     update_data = expense.model_dump()
-    await db.expenses.update_one({"id": expense_id}, {"$set": update_data})
+    await db.expenses.update_one(q, {"$set": update_data})
     
-    updated = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    updated = await db.expenses.find_one(q, {"_id": 0})
     if isinstance(updated['created_at'], str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Expense(**updated)
@@ -555,7 +623,8 @@ async def delete_expense(expense_id: str, current_user: dict = Depends(get_curre
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.expenses.delete_one({"id": expense_id})
+    q = {"id": expense_id, **tenant_query(current_user)}
+    result = await db.expenses.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Expense not found")
     return {"message": "Expense deleted"}
@@ -565,8 +634,8 @@ async def get_financial_analytics(current_user: dict = Depends(get_current_user)
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Get all orders and filter by date in Python (since ordered_at is ISO string)
-    all_orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
+    # Get tenant-scoped orders and filter by date in Python (since ordered_at is ISO string)
+    all_orders = await db.orders.find(tenant_query(current_user), {"_id": 0}).to_list(100000)
     
     # Filter orders by date range
     if start_date and end_date:
@@ -584,7 +653,7 @@ async def get_financial_analytics(current_user: dict = Depends(get_current_user)
     
     total_revenue = sum(o.get('total_amount', 0) for o in orders)
     
-    expense_query = {}
+    expense_query = {**tenant_query(current_user)}
     if start_date and end_date:
         expense_query["date"] = {"$gte": start_date, "$lte": end_date}
     
@@ -618,7 +687,8 @@ async def get_session_details(session_id: str, current_user: dict = Depends(get_
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    session = await db.table_sessions.find_one({"id": session_id}, {"_id": 0})
+    q = {"id": session_id, **tenant_query(current_user)}
+    session = await db.table_sessions.find_one(q, {"_id": 0})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     
@@ -649,7 +719,7 @@ async def get_sales_by_item(current_user: dict = Depends(get_current_user), peri
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    all_orders = await db.orders.find({}, {"_id": 0}).to_list(100000)
+    all_orders = await db.orders.find(tenant_query(current_user), {"_id": 0}).to_list(100000)
     
     # Filter by period
     today = datetime.now(timezone.utc)
@@ -719,8 +789,12 @@ DEFAULT_STATIONS = [
 ]
 
 @router.get("/stations")
-async def get_stations():
-    stations = await db.stations.find({}, {"_id": 0}).to_list(100)
+async def get_stations(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    rid = current_user.get('restaurant_id') if current_user else restaurant_id
+    query = {}
+    if rid:
+        query["restaurant_id"] = rid
+    stations = await db.stations.find(query, {"_id": 0}).to_list(100)
     if not stations:
         return DEFAULT_STATIONS
     return stations
@@ -735,6 +809,7 @@ async def create_station(station: dict, current_user: dict = Depends(get_current
         "name": station["name"],
         "icon": station.get("icon", "chef-hat"),
     }
+    stamp_restaurant_id(station_doc, current_user)
     await db.stations.insert_one(station_doc)
     return station_doc
 
@@ -744,7 +819,8 @@ async def delete_station(station_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=403, detail="Not authorized")
     if station_id in ("kitchen", "bar", "waiter"):
         raise HTTPException(status_code=400, detail="Standart stansiyalar silinə bilməz")
-    await db.stations.delete_one({"id": station_id})
+    q = {"id": station_id, **tenant_query(current_user)}
+    await db.stations.delete_one(q)
     return {"message": "Station deleted"}
 
 
@@ -779,27 +855,38 @@ async def create_discount(discount: DiscountCreate, current_user: dict = Depends
     discount_obj = Discount(**discount.model_dump())
     doc = discount_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    stamp_restaurant_id(doc, current_user)
     await db.discounts.insert_one(doc)
     return discount_obj
 
 @router.get("/discounts", response_model=List[Discount])
-async def get_discounts():
-    discounts = await db.discounts.find({}, {"_id": 0}).to_list(1000)
+async def get_discounts(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    query = {}
+    if current_user:
+        query.update(tenant_query(current_user))
+    elif restaurant_id:
+        query["restaurant_id"] = restaurant_id
+    discounts = await db.discounts.find(query, {"_id": 0}).to_list(1000)
     for disc in discounts:
         if isinstance(disc['created_at'], str):
             disc['created_at'] = datetime.fromisoformat(disc['created_at'])
     return discounts
 
 @router.get("/discounts/active", response_model=List[Discount])
-async def get_active_discounts():
+async def get_active_discounts(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
     today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-    discounts = await db.discounts.find({
+    query = {
         "is_active": True,
         "$or": [
             {"valid_until": None},
             {"valid_until": {"$gte": today}}
         ]
-    }, {"_id": 0}).to_list(1000)
+    }
+    if current_user:
+        query.update(tenant_query(current_user))
+    elif restaurant_id:
+        query["restaurant_id"] = restaurant_id
+    discounts = await db.discounts.find(query, {"_id": 0}).to_list(1000)
     for disc in discounts:
         if isinstance(disc['created_at'], str):
             disc['created_at'] = datetime.fromisoformat(disc['created_at'])
@@ -810,12 +897,13 @@ async def update_discount(discount_id: str, discount: DiscountCreate, current_us
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    q = {"id": discount_id, **tenant_query(current_user)}
+    result = await db.discounts.find_one(q, {"_id": 0})
     if not result:
         raise HTTPException(status_code=404, detail="Discount not found")
     
-    await db.discounts.update_one({"id": discount_id}, {"$set": discount.model_dump()})
-    updated = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    await db.discounts.update_one(q, {"$set": discount.model_dump()})
+    updated = await db.discounts.find_one(q, {"_id": 0})
     if isinstance(updated['created_at'], str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Discount(**updated)
@@ -825,12 +913,13 @@ async def toggle_discount(discount_id: str, current_user: dict = Depends(get_cur
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    discount = await db.discounts.find_one({"id": discount_id}, {"_id": 0})
+    q = {"id": discount_id, **tenant_query(current_user)}
+    discount = await db.discounts.find_one(q, {"_id": 0})
     if not discount:
         raise HTTPException(status_code=404, detail="Discount not found")
     
     new_status = not discount.get('is_active', True)
-    await db.discounts.update_one({"id": discount_id}, {"$set": {"is_active": new_status}})
+    await db.discounts.update_one(q, {"$set": {"is_active": new_status}})
     return {"message": "Discount toggled", "is_active": new_status}
 
 @router.delete("/discounts/{discount_id}")
@@ -838,7 +927,8 @@ async def delete_discount(discount_id: str, current_user: dict = Depends(get_cur
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.discounts.delete_one({"id": discount_id})
+    q = {"id": discount_id, **tenant_query(current_user)}
+    result = await db.discounts.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Discount not found")
     return {"message": "Discount deleted"}
@@ -857,12 +947,12 @@ async def create_timed_service(svc: TimedServiceCreate, current_user: dict = Dep
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Verify table session is active
-    session = await db.table_sessions.find_one({"id": svc.session_id, "is_active": True}, {"_id": 0})
+    # Verify table session is active and belongs to this tenant
+    session = await db.table_sessions.find_one({"id": svc.session_id, "is_active": True, **tenant_query(current_user)}, {"_id": 0})
     if not session:
         raise HTTPException(status_code=400, detail="Aktiv sessiya tapılmadı")
     
-    menu_item = await db.menu_items.find_one({"id": svc.menu_item_id}, {"_id": 0})
+    menu_item = await db.menu_items.find_one({"id": svc.menu_item_id, **tenant_query(current_user)}, {"_id": 0})
     if not menu_item:
         raise HTTPException(status_code=404, detail="Menyu elementi tapılmadı")
     
@@ -885,6 +975,7 @@ async def create_timed_service(svc: TimedServiceCreate, current_user: dict = Dep
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": current_user['id']
     }
+    stamp_restaurant_id(doc, current_user)
     await db.timed_services.insert_one(doc)
     doc.pop('_id', None)
     
@@ -904,7 +995,7 @@ async def create_timed_service(svc: TimedServiceCreate, current_user: dict = Dep
 
 @router.get("/timed-services")
 async def get_timed_services(table_id: Optional[str] = None, session_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    query = {}
+    query = {**tenant_query(current_user)}
     if table_id:
         query["table_id"] = table_id
     if session_id:
@@ -914,12 +1005,13 @@ async def get_timed_services(table_id: Optional[str] = None, session_id: Optiona
 
 @router.get("/timed-services/active")
 async def get_active_timed_services(current_user: dict = Depends(get_current_user)):
-    services = await db.timed_services.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    services = await db.timed_services.find({"is_active": True, **tenant_query(current_user)}, {"_id": 0}).to_list(1000)
     return services
 
 @router.put("/timed-services/{service_id}/serve")
 async def mark_timed_service_served(service_id: str, current_user: dict = Depends(get_current_user)):
-    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    q = {"id": service_id, **tenant_query(current_user)}
+    svc = await db.timed_services.find_one(q, {"_id": 0})
     if not svc:
         raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
     
@@ -985,28 +1077,31 @@ async def mark_timed_service_served(service_id: str, current_user: dict = Depend
 @router.put("/timed-services/{service_id}/stop")
 async def stop_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
     """Stop a timed service - 'Yetərlidir' (Enough)"""
-    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    q = {"id": service_id, **tenant_query(current_user)}
+    svc = await db.timed_services.find_one(q, {"_id": 0})
     if not svc:
         raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
-    await db.timed_services.update_one({"id": service_id}, {"$set": {"is_active": False}})
+    await db.timed_services.update_one(q, {"$set": {"is_active": False}})
     return {"message": "Vaxtlı xidmət dayandırıldı", "is_active": False}
 
 @router.delete("/timed-services/{service_id}")
 async def delete_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    result = await db.timed_services.delete_one({"id": service_id})
+    q = {"id": service_id, **tenant_query(current_user)}
+    result = await db.timed_services.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
     return {"message": "Vaxtlı xidmət silindi"}
 
 @router.put("/timed-services/{service_id}/toggle")
 async def toggle_timed_service(service_id: str, current_user: dict = Depends(get_current_user)):
-    svc = await db.timed_services.find_one({"id": service_id}, {"_id": 0})
+    q = {"id": service_id, **tenant_query(current_user)}
+    svc = await db.timed_services.find_one(q, {"_id": 0})
     if not svc:
         raise HTTPException(status_code=404, detail="Xidmət tapılmadı")
     new_status = not svc.get('is_active', True)
-    await db.timed_services.update_one({"id": service_id}, {"$set": {"is_active": new_status}})
+    await db.timed_services.update_one(q, {"$set": {"is_active": new_status}})
     return {"message": "Status dəyişdirildi", "is_active": new_status}
 
 # Deactivate timed services when session closes
@@ -1026,8 +1121,8 @@ async def transfer_table(req: TableTransferRequest, current_user: dict = Depends
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Verify session exists and is active
-    session = await db.table_sessions.find_one({"id": req.session_id, "is_active": True}, {"_id": 0})
+    # Verify session exists, is active, and belongs to this tenant
+    session = await db.table_sessions.find_one({"id": req.session_id, "is_active": True, **tenant_query(current_user)}, {"_id": 0})
     if not session:
         raise HTTPException(status_code=404, detail="Aktiv sessiya tapılmadı")
     
@@ -1035,8 +1130,8 @@ async def transfer_table(req: TableTransferRequest, current_user: dict = Depends
     if old_table_id == req.new_table_id:
         raise HTTPException(status_code=400, detail="Eyni masa seçilə bilməz")
     
-    # Verify new table exists
-    new_table = await db.tables.find_one({"id": req.new_table_id}, {"_id": 0})
+    # Verify new table exists and belongs to this tenant
+    new_table = await db.tables.find_one({"id": req.new_table_id, **tenant_query(current_user)}, {"_id": 0})
     if not new_table:
         raise HTTPException(status_code=404, detail="Yeni masa tapılmadı")
     

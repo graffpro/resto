@@ -50,6 +50,24 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
 
 
+optional_security = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(optional_security)):
+    """Same as get_current_user but returns None when no/invalid token is provided.
+    Use this on endpoints that can be hit by both customers (no auth) and staff (auth)."""
+    if not credentials:
+        return None
+    try:
+        payload = verify_token(credentials.credentials)
+        user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
+        if not user or not user.get('is_active', True):
+            return None
+        return user
+    except HTTPException:
+        return None
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 

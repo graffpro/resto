@@ -45,10 +45,17 @@ export default function CustomerPage() {
 
   useEffect(() => {
     initSession();
-    fetchMenu();
-    fetchActiveDiscounts();
-    fetchSettings();
   }, [tableId]);
+
+  // Once we know the table (and therefore the restaurant_id),
+  // fetch tenant-scoped public data: menu, discounts, settings.
+  useEffect(() => {
+    if (table && table.restaurant_id) {
+      fetchMenu(table.restaurant_id);
+      fetchActiveDiscounts(table.restaurant_id);
+      fetchSettings(table.restaurant_id);
+    }
+  }, [table]);
 
   useEffect(() => {
     if (session) {
@@ -58,9 +65,10 @@ export default function CustomerPage() {
     }
   }, [session]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (restaurantId) => {
     try {
-      const response = await axios.get(`${API}/settings`);
+      const params = restaurantId ? `?restaurant_id=${restaurantId}` : '';
+      const response = await axios.get(`${API}/settings${params}`);
       setServiceChargePercentage(response.data.service_charge_percentage || 0);
       setRestaurantSettings(response.data);
     } catch {}
@@ -117,20 +125,22 @@ export default function CustomerPage() {
     initSession(true);
   };
 
-  const fetchMenu = async () => {
+  const fetchMenu = async (restaurantId) => {
     try {
+      const params = restaurantId ? `?restaurant_id=${restaurantId}` : '';
       const [catsRes, itemsRes] = await Promise.all([
-        axios.get(`${API}/categories`),
-        axios.get(`${API}/menu-items`)
+        axios.get(`${API}/categories${params}`),
+        axios.get(`${API}/menu-items${params}`)
       ]);
       setCategories(catsRes.data);
       setMenuItems(itemsRes.data.filter(item => item.is_available));
     } catch {}
   };
 
-  const fetchActiveDiscounts = async () => {
+  const fetchActiveDiscounts = async (restaurantId) => {
     try {
-      const response = await axios.get(`${API}/discounts/active`);
+      const params = restaurantId ? `?restaurant_id=${restaurantId}` : '';
+      const response = await axios.get(`${API}/discounts/active${params}`);
       setActiveDiscounts(response.data);
     } catch {}
   };

@@ -81,6 +81,7 @@ class Venue(BaseModel):
     name: str
     description: Optional[str] = None
     is_active: bool = True
+    restaurant_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class VenueCreate(BaseModel):
@@ -94,6 +95,7 @@ class Table(BaseModel):
     venue_id: str
     qr_code: str
     is_active: bool = True
+    restaurant_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class TableCreate(BaseModel):
@@ -105,6 +107,7 @@ class TableSession(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     table_id: str
     session_token: str
+    restaurant_id: Optional[str] = None
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     ended_at: Optional[datetime] = None
     is_active: bool = True
@@ -116,6 +119,7 @@ class Category(BaseModel):
     description: Optional[str] = None
     display_order: int = 0
     menu_id: Optional[str] = None
+    restaurant_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CategoryCreate(BaseModel):
@@ -136,6 +140,7 @@ class MenuItem(BaseModel):
     is_available: bool = True
     preparation_time: int = 15
     target_station: str = "kitchen"
+    restaurant_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MenuItemCreate(BaseModel):
@@ -175,6 +180,7 @@ class Order(BaseModel):
     service_charge_amount: float = 0
     total_amount: float
     status: OrderStatus = OrderStatus.PENDING
+    restaurant_id: Optional[str] = None
     ordered_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     preparing_started_at: Optional[datetime] = None
     ready_at: Optional[datetime] = None

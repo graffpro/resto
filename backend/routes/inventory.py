@@ -2,11 +2,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 from database import db
 from auth import get_current_user
 from models import UserRole
+from routes.shared import tenant_query, stamp_restaurant_id
 
 router = APIRouter()
 
@@ -32,6 +33,7 @@ async def create_ingredient(ing: IngredientCreate, current_user: dict = Depends(
         "cost_per_unit": ing.cost_per_unit,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    stamp_restaurant_id(doc, current_user)
     await db.ingredients.insert_one(doc)
     doc.pop('_id', None)
     return doc
@@ -40,7 +42,7 @@ async def create_ingredient(ing: IngredientCreate, current_user: dict = Depends(
 async def get_ingredients(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    items = await db.ingredients.find({}, {"_id": 0}).to_list(1000)
+    items = await db.ingredients.find(tenant_query(current_user), {"_id": 0}).to_list(1000)
     return items
 
 @router.put("/ingredients/{ingredient_id}")
@@ -48,20 +50,22 @@ async def update_ingredient(ingredient_id: str, ing: IngredientCreate, current_u
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.ingredients.update_one({"id": ingredient_id}, {"$set": {
+    q = {"id": ingredient_id, **tenant_query(current_user)}
+    result = await db.ingredients.update_one(q, {"$set": {
         "name": ing.name, "unit": ing.unit, "current_stock": ing.current_stock,
         "min_stock": ing.min_stock, "cost_per_unit": ing.cost_per_unit
     }})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Ingredient not found")
-    updated = await db.ingredients.find_one({"id": ingredient_id}, {"_id": 0})
+    updated = await db.ingredients.find_one(q, {"_id": 0})
     return updated
 
 @router.delete("/ingredients/{ingredient_id}")
 async def delete_ingredient(ingredient_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    result = await db.ingredients.delete_one({"id": ingredient_id})
+    q = {"id": ingredient_id, **tenant_query(current_user)}
+    result = await db.ingredients.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Not found")
     return {"message": "Ingredient deleted"}
@@ -80,7 +84,7 @@ async def create_stock_transaction(tx: StockTransactionCreate, current_user: dic
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    ingredient = await db.ingredients.find_one({"id": tx.ingredient_id}, {"_id": 0})
+    ingredient = await db.ingredients.find_one({"id": tx.ingredient_id, **tenant_query(current_user)}, {"_id": 0})
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
     
@@ -106,6 +110,7 @@ async def create_stock_transaction(tx: StockTransactionCreate, current_user: dic
         "created_by": current_user['id'],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    stamp_restaurant_id(doc, current_user)
     await db.stock_transactions.insert_one(doc)
     doc.pop('_id', None)
     return doc
@@ -115,7 +120,7 @@ async def get_stock_transactions(ingredient_id: Optional[str] = None, date_from:
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    query = {}
+    query = {**tenant_query(current_user)}
     if ingredient_id:
         query["ingredient_id"] = ingredient_id
     if date_from:
@@ -135,7 +140,7 @@ async def get_inventory_summary(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    ingredients = await db.ingredients.find({}, {"_id": 0}).to_list(1000)
+    ingredients = await db.ingredients.find(tenant_query(current_user), {"_id": 0}).to_list(1000)
     summary = []
     for ing in ingredients:
         txs = await db.stock_transactions.find({"ingredient_id": ing['id']}, {"_id": 0}).to_list(10000)
@@ -172,14 +177,14 @@ async def set_recipe(recipe: RecipeCreate, current_user: dict = Depends(get_curr
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    menu_item = await db.menu_items.find_one({"id": recipe.menu_item_id}, {"_id": 0})
+    menu_item = await db.menu_items.find_one({"id": recipe.menu_item_id, **tenant_query(current_user)}, {"_id": 0})
     if not menu_item:
         raise HTTPException(status_code=404, detail="Menu item not found")
     
     # Build recipe with ingredient names
     recipe_items = []
     for ri in recipe.ingredients:
-        ing = await db.ingredients.find_one({"id": ri.ingredient_id}, {"_id": 0})
+        ing = await db.ingredients.find_one({"id": ri.ingredient_id, **tenant_query(current_user)}, {"_id": 0})
         if not ing:
             continue
         recipe_items.append({
@@ -189,15 +194,18 @@ async def set_recipe(recipe: RecipeCreate, current_user: dict = Depends(get_curr
             "quantity": ri.quantity
         })
     
-    # Upsert recipe
+    # Upsert recipe (tenant-scoped)
+    recipe_set = {
+        "menu_item_id": recipe.menu_item_id,
+        "menu_item_name": menu_item['name'],
+        "ingredients": recipe_items,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if current_user.get('restaurant_id'):
+        recipe_set['restaurant_id'] = current_user.get('restaurant_id')
     await db.recipes.update_one(
-        {"menu_item_id": recipe.menu_item_id},
-        {"$set": {
-            "menu_item_id": recipe.menu_item_id,
-            "menu_item_name": menu_item['name'],
-            "ingredients": recipe_items,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }},
+        {"menu_item_id": recipe.menu_item_id, **tenant_query(current_user)},
+        {"$set": recipe_set},
         upsert=True
     )
     
@@ -207,21 +215,21 @@ async def set_recipe(recipe: RecipeCreate, current_user: dict = Depends(get_curr
 async def get_all_recipes(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    recipes = await db.recipes.find({}, {"_id": 0}).to_list(1000)
+    recipes = await db.recipes.find(tenant_query(current_user), {"_id": 0}).to_list(1000)
     return recipes
 
 @router.get("/recipes/{menu_item_id}")
 async def get_recipe(menu_item_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    recipe = await db.recipes.find_one({"menu_item_id": menu_item_id}, {"_id": 0})
+    recipe = await db.recipes.find_one({"menu_item_id": menu_item_id, **tenant_query(current_user)}, {"_id": 0})
     return recipe or {"menu_item_id": menu_item_id, "ingredients": []}
 
 @router.delete("/recipes/{menu_item_id}")
 async def delete_recipe(menu_item_id: str, current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    await db.recipes.delete_one({"menu_item_id": menu_item_id})
+    await db.recipes.delete_one({"menu_item_id": menu_item_id, **tenant_query(current_user)})
     return {"message": "Recipe deleted"}
 
 # Staff Analytics

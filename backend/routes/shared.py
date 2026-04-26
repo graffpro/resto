@@ -103,3 +103,45 @@ async def notify_order_update(order_data: dict, event_type: str):
     elif event_type == "order_ready":
         await manager.broadcast_to_role(message, "waiter")
     await manager.broadcast_to_role(message, "admin")
+
+
+# ==================== MULTI-TENANT HELPERS ====================
+from models import UserRole
+
+def tenant_query(current_user: dict) -> dict:
+    """Build a MongoDB filter that restricts access to the user's restaurant.
+    Owners (super-admins) bypass the filter and see all tenants.
+    """
+    if not current_user:
+        return {}
+    if current_user.get('role') == UserRole.OWNER:
+        return {}
+    rid = current_user.get('restaurant_id')
+    if not rid:
+        # Defensive: if somehow missing, return an impossible filter to avoid leaks
+        return {"restaurant_id": "__none__"}
+    return {"restaurant_id": rid}
+
+def stamp_restaurant_id(doc: dict, current_user: dict) -> dict:
+    """Ensure a document carries the tenant's restaurant_id before persisting."""
+    if current_user and current_user.get('restaurant_id') and not doc.get('restaurant_id'):
+        doc['restaurant_id'] = current_user.get('restaurant_id')
+    return doc
+
+async def get_restaurant_id_for_table(table_id: str):
+    t = await db.tables.find_one({"id": table_id}, {"_id": 0, "restaurant_id": 1})
+    return t.get('restaurant_id') if t else None
+
+async def get_restaurant_id_for_session(session_id_or_token: str):
+    s = await db.table_sessions.find_one(
+        {"$or": [{"id": session_id_or_token}, {"session_token": session_id_or_token}]},
+        {"_id": 0, "restaurant_id": 1, "table_id": 1}
+    )
+    if not s:
+        return None
+    if s.get('restaurant_id'):
+        return s.get('restaurant_id')
+    # Fallback: derive from table
+    if s.get('table_id'):
+        return await get_restaurant_id_for_table(s['table_id'])
+    return None

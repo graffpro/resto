@@ -1,12 +1,12 @@
 """Venues, Tables, Sessions routes"""
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from typing import List, Optional
 from datetime import datetime, timezone
 import uuid
 from database import db
-from auth import get_current_user
+from auth import get_current_user, get_current_user_optional
 from models import UserRole, Venue, VenueCreate, Table, TableCreate, TableSession, OrderStatus
-from routes.shared import generate_qr_code
+from routes.shared import generate_qr_code, tenant_query, stamp_restaurant_id, get_restaurant_id_for_table
 from routes.services import deactivate_session_timed_services
 from ws_manager import manager
 
@@ -17,15 +17,22 @@ async def create_venue(venue: VenueCreate, current_user: dict = Depends(get_curr
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    venue_obj = Venue(**venue.model_dump())
+    venue_obj = Venue(**venue.model_dump(), restaurant_id=current_user.get('restaurant_id'))
     doc = venue_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    stamp_restaurant_id(doc, current_user)
     await db.venues.insert_one(doc)
     return venue_obj
 
 @router.get("/venues", response_model=List[Venue])
-async def get_venues():
-    venues = await db.venues.find({}, {"_id": 0}).to_list(1000)
+async def get_venues(restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
+    # Authenticated calls are tenant-scoped; public calls (no auth) require explicit restaurant_id.
+    query = {}
+    if current_user:
+        query.update(tenant_query(current_user))
+    elif restaurant_id:
+        query["restaurant_id"] = restaurant_id
+    venues = await db.venues.find(query, {"_id": 0}).to_list(1000)
     for venue in venues:
         if isinstance(venue['created_at'], str):
             venue['created_at'] = datetime.fromisoformat(venue['created_at'])
@@ -36,12 +43,13 @@ async def update_venue(venue_id: str, venue: VenueCreate, current_user: dict = D
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    existing = await db.venues.find_one({"id": venue_id}, {"_id": 0})
+    q = {"id": venue_id, **tenant_query(current_user)}
+    existing = await db.venues.find_one(q, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Venue not found")
     
-    await db.venues.update_one({"id": venue_id}, {"$set": venue.model_dump()})
-    updated = await db.venues.find_one({"id": venue_id}, {"_id": 0})
+    await db.venues.update_one(q, {"$set": venue.model_dump()})
+    updated = await db.venues.find_one(q, {"_id": 0})
     if isinstance(updated['created_at'], str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Venue(**updated)
@@ -51,7 +59,8 @@ async def delete_venue(venue_id: str, current_user: dict = Depends(get_current_u
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.venues.delete_one({"id": venue_id})
+    q = {"id": venue_id, **tenant_query(current_user)}
+    result = await db.venues.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Venue not found")
     return {"message": "Venue deleted"}
@@ -68,19 +77,25 @@ async def create_table(table: TableCreate, current_user: dict = Depends(get_curr
         id=table_id,
         table_number=table.table_number,
         venue_id=table.venue_id,
-        qr_code=qr_code
+        qr_code=qr_code,
+        restaurant_id=current_user.get('restaurant_id')
     )
     
     doc = table_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
+    stamp_restaurant_id(doc, current_user)
     await db.tables.insert_one(doc)
     return table_obj
 
 @router.get("/tables", response_model=List[Table])
-async def get_tables(venue_id: Optional[str] = None):
+async def get_tables(venue_id: Optional[str] = None, restaurant_id: Optional[str] = Query(None), current_user: Optional[dict] = Depends(get_current_user_optional)):
     query = {}
     if venue_id:
         query["venue_id"] = venue_id
+    if current_user:
+        query.update(tenant_query(current_user))
+    elif restaurant_id:
+        query["restaurant_id"] = restaurant_id
     
     tables = await db.tables.find(query, {"_id": 0}).to_list(1000)
     for table in tables:
@@ -93,12 +108,13 @@ async def update_table(table_id: str, table: TableCreate, current_user: dict = D
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    existing = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    q = {"id": table_id, **tenant_query(current_user)}
+    existing = await db.tables.find_one(q, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Table not found")
     
-    await db.tables.update_one({"id": table_id}, {"$set": {"table_number": table.table_number, "venue_id": table.venue_id}})
-    updated = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    await db.tables.update_one(q, {"$set": {"table_number": table.table_number, "venue_id": table.venue_id}})
+    updated = await db.tables.find_one(q, {"_id": 0})
     if isinstance(updated['created_at'], str):
         updated['created_at'] = datetime.fromisoformat(updated['created_at'])
     return Table(**updated)
@@ -109,7 +125,8 @@ async def delete_table(table_id: str, current_user: dict = Depends(get_current_u
     if current_user['role'] not in [UserRole.OWNER, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    result = await db.tables.delete_one({"id": table_id})
+    q = {"id": table_id, **tenant_query(current_user)}
+    result = await db.tables.delete_one(q)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Table not found")
     return {"message": "Table deleted"}
@@ -208,11 +225,14 @@ async def start_session(table_id: str, request: Request = None):
     session_token = str(uuid.uuid4())
     session = TableSession(
         table_id=table_id,
-        session_token=session_token
+        session_token=session_token,
+        restaurant_id=table.get('restaurant_id')
     )
     
     doc = session.model_dump()
     doc['started_at'] = doc['started_at'].isoformat()
+    if table.get('restaurant_id') and not doc.get('restaurant_id'):
+        doc['restaurant_id'] = table.get('restaurant_id')
     if device_id:
         doc['device_id'] = device_id
         doc['device_last_active'] = datetime.now(timezone.utc).isoformat()
@@ -238,8 +258,9 @@ async def unlock_session_device(session_id: str, current_user: dict = Depends(ge
     return {"message": "Cihaz kilidi açıldı"}
 
 @router.get("/sessions/active")
-async def get_active_sessions():
-    sessions = await db.table_sessions.find({"is_active": True}, {"_id": 0}).to_list(1000)
+async def get_active_sessions(current_user: dict = Depends(get_current_user)):
+    sessions_filter = {"is_active": True, **tenant_query(current_user)}
+    sessions = await db.table_sessions.find(sessions_filter, {"_id": 0}).to_list(1000)
     
     if not sessions:
         return []

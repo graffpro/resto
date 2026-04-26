@@ -74,10 +74,23 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 - [x] **Number input bug fixed** — empty string allowed in all number fields
 - [x] **entrypoint.sh safe** — no longer deletes existing DB data on restart
 
+### Phase 5 (Current Session - Apr 2026)
+- [x] **Multi-tenant data isolation (P0 fix)** — every collection now carries `restaurant_id` and every API endpoint filters/stamps it
+  - Models updated: `Venue`, `Table`, `TableSession`, `Category`, `MenuItem`, `Order` carry `restaurant_id`
+  - Helpers: `tenant_query(current_user)` and `stamp_restaurant_id(doc, current_user)` in `routes/shared.py`
+  - Authenticated GET endpoints scope by `current_user.restaurant_id` (owners bypass)
+  - Public endpoints (`/categories`, `/menu-items`, `/settings`, `/stations`, `/discounts/active`, `/menus`, `/venues`, `/tables`, `/tables/available`) accept `restaurant_id` query param
+  - Customer page derives `restaurant_id` from the table on session start and passes it to all menu APIs
+  - Per-tenant `settings` document keyed by `restaurant_id` (auto-created on first read)
+  - One-time startup migration stamps legacy data with the original admin's tenant id
+- [x] Bug fix: `/api/orders/kitchen` was missing its `@router.get` decorator — restored
+- [x] Bug fix: `routes/inventory.py` was missing `timedelta` import; `routes/services.py` was missing `APP_NAME` import
+
 ## Pending / Upcoming Tasks
+- P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache
 - P1: WhatsApp/Twilio Integration (daily sales reports)
 - P1: iOS build (requires Mac + Apple Developer account)
-- P2: server.py Refactoring (2900+ lines → routes/)
+- P2: server.py Refactoring (DONE — already in routes/)
 - P3: Multi-language support
 - P3: Domain + SSL configuration
 - P3: Play Store publication

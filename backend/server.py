@@ -89,7 +89,86 @@ async def startup_event():
             logger.info("Owner created: graff")
     except Exception as e:
         logger.error(f"Owner auto-create: {e}")
+    # ==================== MULTI-TENANT MIGRATION ====================
+    # Ensure every legacy document (before multi-tenant support) is stamped
+    # with a restaurant_id so the new tenant filter does not leak/hide data.
+    try:
+        await migrate_legacy_restaurant_id()
+    except Exception as e:
+        logger.error(f"Multi-tenant migration error: {e}")
     asyncio.create_task(check_timed_services_loop())
+
+async def migrate_legacy_restaurant_id():
+    """One-time migration: stamp legacy data (created before multi-tenant
+    support was added) with the restaurant_id of the original admin tenant.
+
+    Strategy:
+      * Pick the oldest non-owner user (admin) as the legacy tenant anchor.
+      * If that user has a restaurant_id, reuse it; otherwise create a
+        Legacy Restaurant and assign it to all admin/staff users with no
+        restaurant_id.
+      * Update orphan documents in venues / tables / table_sessions /
+        categories / menu_items / orders / waiter_calls / timed_services /
+        discounts / stations / ingredients / recipes / stock_transactions /
+        reservations / expenses / menus / files so that they belong to that
+        legacy tenant.
+    """
+    # Find a legacy tenant anchor (prefer "emin" if present)
+    legacy_user = await db.users.find_one(
+        {"role": {"$in": ["admin"]}, "restaurant_id": {"$ne": None, "$exists": True}},
+        {"_id": 0}
+    )
+    legacy_rid = legacy_user.get('restaurant_id') if legacy_user else None
+
+    if not legacy_rid:
+        # No tenant exists yet - look for any admin without restaurant_id and
+        # create one for them.
+        orphan_admin = await db.users.find_one(
+            {"role": "admin", "$or": [{"restaurant_id": None}, {"restaurant_id": {"$exists": False}}]},
+            {"_id": 0}
+        )
+        if orphan_admin:
+            legacy_rid = str(uuid.uuid4())
+            await db.restaurants.insert_one({
+                "id": legacy_rid,
+                "name": "Legacy Restoran",
+                "is_active": True,
+                "created_by": orphan_admin.get('id'),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            logger.info(f"Created legacy restaurant {legacy_rid} for orphan admin {orphan_admin.get('username')}")
+
+    if not legacy_rid:
+        logger.info("Migration skipped: no admin/tenant found yet.")
+        return
+
+    # Stamp orphan staff users (admin/kitchen/waiter/bar) with the legacy tenant
+    staff_filter = {
+        "role": {"$in": ["admin", "kitchen", "waiter", "bar"]},
+        "$or": [{"restaurant_id": None}, {"restaurant_id": {"$exists": False}}]
+    }
+    staff_res = await db.users.update_many(staff_filter, {"$set": {"restaurant_id": legacy_rid}})
+    if staff_res.modified_count:
+        logger.info(f"Migration: stamped {staff_res.modified_count} legacy staff users with restaurant {legacy_rid}")
+
+    # Stamp orphan documents across all multi-tenant collections
+    collections = [
+        "venues", "tables", "table_sessions", "categories", "menu_items",
+        "orders", "waiter_calls", "timed_services", "discounts", "stations",
+        "ingredients", "recipes", "stock_transactions", "reservations",
+        "expenses", "menus", "files", "settings"
+    ]
+    orphan_filter = {"$or": [{"restaurant_id": None}, {"restaurant_id": {"$exists": False}}]}
+    total = 0
+    for coll in collections:
+        try:
+            res = await db[coll].update_many(orphan_filter, {"$set": {"restaurant_id": legacy_rid}})
+            if res.modified_count:
+                total += res.modified_count
+                logger.info(f"Migration: stamped {res.modified_count} {coll} → {legacy_rid}")
+        except Exception as e:
+            logger.error(f"Migration {coll}: {e}")
+    logger.info(f"Multi-tenant migration completed. Total docs migrated: {total}")
 
 async def check_timed_services_loop():
     """Check timed services every 30s. Only notify once per expired service."""
