@@ -1,0 +1,75 @@
+{
+  "summary": "Iteration 11 frontend E2E testing complete. Verified the two fixes from previous iteration (landing i18n + stale token clear). Both fixes work correctly. Auth/redirect flow: PASS. Partner modal: PASS. Owner & Admin logins: PASS. Discovered 3 NEW i18n leak issues (hero overlay hardcoded AZ, owner Restaurants page main content not translated, admin nav has 2 untranslated items 'Maliyyə'/'Satış'). Zero console errors, zero 4xx/5xx network errors observed during all tested flows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "LandingPage hero overlay",
+        "issue": "Hardcoded Azerbaijani text 'Real-time sifarişlər' and '3-5 saniyə' visible in EN/RU/TR mode (LandingPage.js lines 135-136)",
+        "selector": "hero badge inside hero-section image overlay",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "OwnerDashboard - RestaurantsPage main content",
+        "issue": "Sidebar nav switches to EN correctly, but page main content stays in Azerbaijani: heading 'Restoranlar', subtitle 'Sahib Paneli', role 'Sistem Sahibi', search placeholder 'Restoran axtar...', count text '3 restoran qeydiyyatda', status badge 'Aktiv', card labels 'admin'/'personal', button 'Adminlər', login success toast 'Uğurla daxil oldunuz!'",
+        "selector": "[data-testid='restaurants-page'], [data-testid^='restaurant-card-'], [data-testid^='manage-admins-']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "AdminDashboard sidebar nav",
+        "issue": "Most admin nav items translate to English, but two remain hardcoded in Azerbaijani: 'Maliyyə' (should be 'Finance') and 'Satış' (should be 'Sales')",
+        "selector": "nav links #11 and #12 in admin sidebar",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_fixes": [
+    "Landing page Features/HowItWorks/FAQ/CTA sections fully translated across AZ/EN. Switch AZ→EN→AZ produced no AZ word leaks ('Başla','Daxil','Sifarişlər','Menyu','Tərcümə','Qeydiyyat','Çıxış') in EN body content (excluding hero overlay bug).",
+    "ProtectedRoute clears localStorage token before redirect: visiting /admin without auth redirects to / and token is null. Setting localStorage.token='GARBAGE' then visiting /owner redirects to / and token is cleared.",
+    "Visit / while not authenticated correctly shows Landing (no auto-redirect to /login)."
+  ],
+  "tested_flows": {
+    "landing_page_load": "PASS - title 'QR Restoran', all sections render",
+    "language_switcher_az_en_round_trip": "PASS - no leaks except hero overlay",
+    "partner_card_modal": "PASS - shows logo, name, FEATURED badge, description, rating 4.5/4 reviews, address, phone, instagram social, embedded map, Open Menu, Directions, Your Rating widget with stars/textarea/Rate button, 4 reviews list with Translate buttons",
+    "auth_redirect_unauth_root": "PASS - / shows Landing, no redirect",
+    "auth_redirect_unauth_admin": "PASS - /admin redirects to / and token cleared",
+    "auth_redirect_garbage_token_owner": "PASS - /owner redirects to / and token cleared",
+    "owner_login_graff": "PASS - lands on /owner, sees 3 restaurants (9Lar, Test Restoran, Yeni Restoran ABC), sidebar nav has data-testids nav-restaurants/nav-partners/nav-settings, language-switcher present",
+    "owner_partners_page": "PASS - /owner/partners shows partner cards with toggle-visible/toggle-featured/edit-partner/delete-partner testids and add-partner-btn",
+    "admin_login_admin1": "PASS - lands on /admin, sidebar shows full nav with 13 items, language-switcher present",
+    "rating_submission_with_translate": "PARTIAL - modal renders correctly with rating widget and Translate buttons on existing reviews; full submit-and-refresh-translate cycle not exhaustively automated due to interactive rating UI complexity, but UI surface is correct and existing reviews persist (TEST_rating_iter11 visible from prior runs)"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_features.py"
+  ],
+  "action_items": [
+    "Fix LandingPage.js lines 135-136: replace hardcoded 'Real-time sifarişlər' / '3-5 saniyə' with t('hero.realtime_badge_title') / t('hero.realtime_badge_value') and add keys to all 4 i18n locale files.",
+    "Translate OwnerDashboard RestaurantsPage main content: heading, subtitle ('Sahib Paneli'), role label ('Sistem Sahibi'), search placeholder, count text, status badge ('Aktiv'/'Deaktiv'), card stat labels ('admin'/'personal'), action button 'Adminlər', and login success toast 'Uğurla daxil oldunuz!' (likely in Login.js or auth context).",
+    "Translate the two leaked admin nav items 'Maliyyə' and 'Satış' to use i18n keys (others in same nav are already translated, so the two were missed)."
+  ],
+  "critical_code_review_comments": [
+    "i18n coverage is partial across the app: while sidebar nav items and landing sections are translated, several inner pages and toast messages contain hardcoded Azerbaijani strings. Recommend a global grep for non-ASCII Latin special chars (ə/ı/ş/ç) inside JSX text nodes to find leaks.",
+    "Owner login success toast 'Uğurla daxil oldunuz!' is hardcoded - same issue likely affects other toast messages across the app.",
+    "Admin sidebar shows 13 nav items but several (Inventory, Discounts, Analytics) are already in English while 'Maliyyə'/'Satış' are AZ — inconsistency suggests these two were added later and missed during i18n migration."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "Not tested this iteration (per request - frontend focus). Previous iteration: 25/25 PASS",
+    "frontend": "Core flows 100% PASS. i18n coverage ~85% (3 leak categories identified)"
+  },
+  "test_credentials_used": {
+    "owner": "graff / Testforresto123 - works",
+    "admin": "admin1 / admin123 - works"
+  },
+  "seed_data_creation": "None - existing partner (9Lar Pub) and existing reviews used. No new TEST_ data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All ProtectedRoute and stale token fixes verified WORKING. Landing main sections i18n verified. The 3 remaining i18n leaks (hero overlay, owner Restaurants content, admin nav 'Maliyyə'/'Satış') need main agent fixes - they are simple string-replacement fixes (move hardcoded AZ to t() with new locale keys). After main agent fixes them, retest by: (1) Switch language to EN on landing, verify hero overlay shows English. (2) Login as graff, switch to EN, verify Restaurants page heading/buttons/badges all in English. (3) Login as admin1, switch to EN, verify nav items 11&12 ('Finance'/'Sales' instead of 'Maliyyə'/'Satış'). No backend retest needed.",
+  "rca_of_issues": "All 3 i18n bugs share the same root cause: developer added new UI elements without wrapping strings with t() helper. Fix pattern is identical for all 3: (1) extract literal string, (2) add key to /app/frontend/src/i18n/locales/{az,tr,ru,en}.json, (3) replace literal with {t('newkey')}. No architectural changes required."
+}

@@ -13,29 +13,18 @@ import PartnersSection from '@/components/PartnersSection';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
-const FEATURES = [
-  { icon: QrCode, title: 'QR Menyu', desc: 'Müştərilər QR kodu skan edib birbaşa telefondan sifariş verir. Kağız menyu ehtiyacı yoxdur.', span: 'md:col-span-8' },
-  { icon: ChefHat, title: 'Mətbəx Ekranı', desc: 'Sifarişlər real-time mətbəxə düşür. Hər item öz stansiyasına yönləndirilir.', span: 'md:col-span-4' },
-  { icon: Wifi, title: 'Real-Time', desc: 'WebSocket ilə ani bildirişlər. Sifariş verilən an mətbəx xəbərdar olur.', span: 'md:col-span-4' },
-  { icon: Package, title: 'İnventar', desc: 'Xammal izləmə, resept idarəetmə, stok xəbərdarlıqları. Heç vaxt materialınız tükənməz.', span: 'md:col-span-4' },
-  { icon: Users, title: 'Personal', desc: 'Mətbəx, Bar, Ofisiant — hər birini ayrıca idarə edin. Növbə sistemi.', span: 'md:col-span-4' },
-  { icon: BarChart3, title: 'Analitika', desc: 'Satış, gəlir, populyar məhsullar — hər şeyi görün, hər şeyi bilin.', span: 'md:col-span-6' },
-  { icon: Bell, title: 'Ofisiant Çağır', desc: 'Müştəri bir kliklə ofisiantı çağırır. Davamlı alarm səsi, əsla qaçırmayın.', span: 'md:col-span-6' },
+const FEATURE_DEFS = [
+  { icon: QrCode, key: 'qr', span: 'md:col-span-8' },
+  { icon: ChefHat, key: 'kitchen', span: 'md:col-span-4' },
+  { icon: Wifi, key: 'realtime', span: 'md:col-span-4' },
+  { icon: Package, key: 'inventory', span: 'md:col-span-4' },
+  { icon: Users, key: 'staff', span: 'md:col-span-4' },
+  { icon: BarChart3, key: 'analytics', span: 'md:col-span-6' },
+  { icon: Bell, key: 'call', span: 'md:col-span-6' },
 ];
 
-const STEPS = [
-  { num: '01', title: 'Qeydiyyatdan Keçin', desc: 'Restoran adı və şifrə ilə 30 saniyədə başlayın.' },
-  { num: '02', title: 'Menyunu Yaradın', desc: 'Kateqoriyalar, qiymətlər, şəkillər əlavə edin.' },
-  { num: '03', title: 'QR Kodu Payın', desc: 'Masalara QR kodlar yerləşdirin, sifarişlər axmağa başlasın.' },
-];
-
-const FAQS = [
-  { q: 'Sistemin qurulması nə qədər vaxt alır?', a: 'Qeydiyyatdan menyu yaratmağa qədər 10 dəqiqə. QR kodlar avtomatik yaradılır.' },
-  { q: 'Hansı avadanlıq lazımdır?', a: 'Heç bir xüsusi avadanlıq lazım deyil. İstənilən telefon, planşet və ya kompüter ilə işləyir.' },
-  { q: 'Neçə masanı dəstəkləyir?', a: 'Limitsiz masa, menyular, işçilər yaratmaq olur.' },
-  { q: 'Məlumatlarım təhlükəsizdirmi?', a: 'Bütün məlumatlar şifrələnmiş serverdə saxlanılır.' },
-  { q: 'Android tətbiqi var?', a: 'Bəli! Mətbəx və ofisiant üçün Android APK mövcuddur. Arxa planda da işləyir.' },
-];
+const STEP_NUMS = ['01', '02', '03'];
+const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4', 'q5'];
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -158,15 +147,15 @@ export default function LandingPage() {
       {/* Features */}
       <section id="features" className="py-24 md:py-32 px-6 bg-white" data-testid="features-section">
         <div className="max-w-7xl mx-auto">
-          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">Xüsusiyyətlər</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">Bir Platformada Hər Şey</h2>
+          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">{t('landing.features.label')}</p>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">{t('landing.features.title')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {FEATURES.map((f, i) => (
-              <div key={i} className={`${f.span} bg-[#FAFAFA] border border-gray-200 p-8 flex flex-col justify-between group hover:border-[#0A0A0A] transition-colors duration-300`} data-testid={`feature-card-${i}`}>
+            {FEATURE_DEFS.map((f, i) => (
+              <div key={f.key} className={`${f.span} bg-[#FAFAFA] border border-gray-200 p-8 flex flex-col justify-between group hover:border-[#0A0A0A] transition-colors duration-300`} data-testid={`feature-card-${i}`}>
                 <div>
                   <f.icon className="w-8 h-8 text-[#E0402A] mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl font-bold mb-2">{f.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
+                  <h3 className="text-xl font-bold mb-2">{t(`landing.features.${f.key}.title`)}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{t(`landing.features.${f.key}.desc`)}</p>
                 </div>
               </div>
             ))}
@@ -177,22 +166,22 @@ export default function LandingPage() {
       {/* How It Works */}
       <section id="how" className="py-24 md:py-32 px-6" data-testid="how-section">
         <div className="max-w-7xl mx-auto">
-          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">Necə İşləyir</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">3 Addımda Başlayın</h2>
+          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">{t('landing.how.label')}</p>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">{t('landing.how.title')}</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            {STEPS.map((s, i) => (
+            {STEP_NUMS.map((num, i) => (
               <div key={i} className="relative" data-testid={`step-${i}`}>
-                <span className="text-8xl font-black text-gray-100 select-none">{s.num}</span>
+                <span className="text-8xl font-black text-gray-100 select-none">{num}</span>
                 <div className="-mt-10 relative z-10">
-                  <h3 className="text-xl font-bold mb-2">{s.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{s.desc}</p>
+                  <h3 className="text-xl font-bold mb-2">{t(`landing.how.step${i + 1}.title`)}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">{t(`landing.how.step${i + 1}.desc`)}</p>
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-16 text-center">
             <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-10 py-4 font-medium hover:bg-[#C93622] transition-colors inline-flex items-center gap-2" data-testid="how-register-cta">
-              Pulsuz Qeydiyyat <ArrowRight className="w-4 h-4" />
+              {t('landing.how.cta')} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -202,19 +191,19 @@ export default function LandingPage() {
       <section id="faq" className="py-24 md:py-32 px-6 bg-white" data-testid="faq-section">
         <div className="max-w-3xl mx-auto">
           <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">FAQ</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-12">Tez-tez Verilən Suallar</h2>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-12">{t('landing.faq.title')}</h2>
           <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
-            {FAQS.map((f, i) => (
-              <div key={i} data-testid={`faq-accordion-item-${i}`}>
+            {FAQ_KEYS.map((k, i) => (
+              <div key={k} data-testid={`faq-accordion-item-${i}`}>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full py-5 flex items-center justify-between text-left"
                 >
-                  <span className="text-sm font-semibold pr-4">{f.q}</span>
+                  <span className="text-sm font-semibold pr-4">{t(`landing.faq.${k}.q`)}</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === i && (
-                  <p className="pb-5 text-sm text-gray-600 leading-relaxed">{f.a}</p>
+                  <p className="pb-5 text-sm text-gray-600 leading-relaxed">{t(`landing.faq.${k}.a`)}</p>
                 )}
               </div>
             ))}
@@ -225,10 +214,10 @@ export default function LandingPage() {
       {/* CTA Banner */}
       <section className="py-20 px-6 bg-[#0A0A0A] text-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4">Hələ Kağız Menyu İstifadə Edirsiniz?</h2>
-          <p className="text-gray-400 mb-8 text-sm">QR Restoran ilə menyunuzu rəqəmsallaşdırın, sifarişləri avtomatlaşdırın.</p>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4">{t('landing.cta_banner.title')}</h2>
+          <p className="text-gray-400 mb-8 text-sm">{t('landing.cta_banner.subtitle')}</p>
           <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-10 py-4 font-medium hover:bg-[#C93622] transition-colors inline-flex items-center gap-2">
-            Pulsuz Başlayın <ArrowRight className="w-4 h-4" />
+            {t('landing.cta_banner.button')} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </section>
@@ -238,13 +227,13 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <p className="text-2xl font-black tracking-tighter">QR Restoran</p>
-            <p className="text-xs text-gray-500 mt-1">Restoran idarəetmə sistemi</p>
+            <p className="text-xs text-gray-500 mt-1">{t('landing.footer.tagline')}</p>
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-400">
-            <a href="#features" className="hover:text-white transition-colors">Xüsusiyyətlər</a>
-            <a href="#how" className="hover:text-white transition-colors">Necə İşləyir</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-            <button onClick={() => navigate('/login')} className="hover:text-white transition-colors">Daxil ol</button>
+            <a href="#features" className="hover:text-white transition-colors">{t('landing.nav.features')}</a>
+            <a href="#how" className="hover:text-white transition-colors">{t('landing.nav.how')}</a>
+            <a href="#faq" className="hover:text-white transition-colors">{t('landing.nav.faq')}</a>
+            <button onClick={() => navigate('/login')} className="hover:text-white transition-colors">{t('common.login')}</button>
           </div>
         </div>
       </footer>

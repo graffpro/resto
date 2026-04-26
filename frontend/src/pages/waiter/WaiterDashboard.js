@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
 import { RefreshCw, CheckCircle, LogOut, Clock, Wifi, WifiOff, Bell, BellRing, Volume2, VolumeX } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { initAudio, startContinuousAlarm } from '@/utils/notifications';
 import { sendLocalNotification, vibrateDevice, isNativeApp } from '@/utils/capacitor';
 
@@ -16,6 +18,7 @@ const API = `${BACKEND_URL}/api`;
 
 function WaiterContent() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const { isConnected, lastMessage } = useWebSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -208,7 +211,7 @@ function WaiterContent() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 gap-3">
           <div>
-            <h1 className="heading-font text-lg sm:text-xl font-medium text-[#181C1A] tracking-tight mb-1">{az.waiterOrders}</h1>
+            <h1 className="heading-font text-lg sm:text-xl font-medium text-[#181C1A] tracking-tight mb-1">{t('dashboard.waiter')}</h1>
             <div className="flex items-center gap-2">
               <p className="text-sm text-[#5C665F]">{user?.full_name}</p>
               {isConnected ? (
@@ -218,12 +221,13 @@ function WaiterContent() {
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap items-center">
+            <LanguageSwitcher />
             <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md text-xs sm:text-sm px-3">
               <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Yenile</span>
             </Button>
             <Button onClick={logout} variant="outline" className="rounded-md text-xs sm:text-sm px-3">
-              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">{az.logout}</span>
+              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">{t('common.logout')}</span>
             </Button>
           </div>
         </div>
@@ -302,9 +306,9 @@ function WaiterContent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {orders.map(({ order, table, venue }) => {
               const statusConfig = {
-                pending: { ring: 'ring-yellow-400', badge: 'bg-yellow-100 text-yellow-800', label: az.pending, timeField: 'ordered_at', timeLabel: 'Sifaris' },
-                preparing: { ring: 'ring-orange-400', badge: 'bg-orange-100 text-orange-800', label: az.preparing, timeField: 'preparing_started_at', timeLabel: 'Hazirliq' },
-                ready: { ring: 'ring-green-400', badge: 'bg-green-100 text-green-800', label: az.ready, timeField: 'ready_at', timeLabel: 'Hazir' },
+                pending: { ring: 'ring-yellow-400', badge: 'bg-yellow-100 text-yellow-800', label: t('orders.pending'), timeField: 'ordered_at', timeLabel: 'Sifaris' },
+                preparing: { ring: 'ring-orange-400', badge: 'bg-orange-100 text-orange-800', label: t('orders.preparing'), timeField: 'preparing_started_at', timeLabel: 'Hazirliq' },
+                ready: { ring: 'ring-green-400', badge: 'bg-green-100 text-green-800', label: t('orders.ready'), timeField: 'ready_at', timeLabel: 'Hazir' },
               };
               const cfg = statusConfig[order.status] || statusConfig.pending;
               return (

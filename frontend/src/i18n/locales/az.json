@@ -15,7 +15,69 @@
     "address": "Ünvan",
     "rating": "Reytinq",
     "near_you": "Yaxınlıqda",
-    "featured": "Önə Çıxan"
+    "featured": "Önə Çıxan",
+    "add": "Əlavə et",
+    "confirm": "Təsdiqlə",
+    "yes": "Bəli",
+    "no": "Xeyr",
+    "name": "Ad",
+    "price": "Qiymət",
+    "quantity": "Miqdar",
+    "total": "Cəmi",
+    "status": "Status",
+    "actions": "Əməliyyatlar",
+    "back": "Geri",
+    "continue": "Davam et",
+    "settings": "Parametrlər"
+  },
+  "dashboard": {
+    "admin": "Admin Paneli",
+    "owner": "Sahib Paneli",
+    "kitchen": "Mətbəx",
+    "waiter": "Ofisiant",
+    "bar": "Bar"
+  },
+  "nav": {
+    "venues": "Salonlar",
+    "tables": "Masalar",
+    "menu": "Menyu",
+    "menus": "Menyular",
+    "categories": "Kateqoriyalar",
+    "orders": "Sifarişlər",
+    "active_orders": "Aktiv Sifarişlər",
+    "history": "Tarixçə",
+    "reservations": "Rezervlər",
+    "users": "İstifadəçilər",
+    "discounts": "Endirimlər",
+    "inventory": "Anbar",
+    "expenses": "Xərclər",
+    "analytics": "Analitika",
+    "stations": "Stansiyalar",
+    "timed_services": "Vaxtlı Xidmətlər",
+    "restaurants": "Restoranlar",
+    "partners": "Partnyorlar"
+  },
+  "orders": {
+    "pending": "Gözləyir",
+    "preparing": "Hazırlanır",
+    "ready": "Hazırdır",
+    "delivered": "Çatdırıldı",
+    "cancelled": "Ləğv edildi",
+    "accept": "Qəbul et",
+    "start": "Başla",
+    "deliver": "Çatdır",
+    "table": "Masa",
+    "order_number": "Sifariş №",
+    "no_active_orders": "Aktiv sifariş yoxdur"
+  },
+  "kitchen": {
+    "new_order": "Yeni sifariş",
+    "preparing_now": "İndi hazırlanır",
+    "alarm_active": "Alarm aktiv"
+  },
+  "waiter": {
+    "ready_to_deliver": "Çatdırılmaq üçün hazır",
+    "call_received": "Çağırış alındı"
   },
   "landing": {
     "nav": {
@@ -52,15 +114,39 @@
       "original": "Orijinal"
     },
     "features": {
-      "title": "Hər şey bir platformada"
+      "label": "Xüsusiyyətlər",
+      "title": "Bir Platformada Hər Şey",
+      "qr": { "title": "QR Menyu", "desc": "Müştərilər QR kodu skan edib birbaşa telefondan sifariş verir. Kağız menyu ehtiyacı yoxdur." },
+      "kitchen": { "title": "Mətbəx Ekranı", "desc": "Sifarişlər real-time mətbəxə düşür. Hər item öz stansiyasına yönləndirilir." },
+      "realtime": { "title": "Real-Time", "desc": "WebSocket ilə ani bildirişlər. Sifariş verilən an mətbəx xəbərdar olur." },
+      "inventory": { "title": "İnventar", "desc": "Xammal izləmə, resept idarəetmə, stok xəbərdarlıqları. Heç vaxt materialınız tükənməz." },
+      "staff": { "title": "Personal", "desc": "Mətbəx, Bar, Ofisiant — hər birini ayrıca idarə edin. Növbə sistemi." },
+      "analytics": { "title": "Analitika", "desc": "Satış, gəlir, populyar məhsullar — hər şeyi görün, hər şeyi bilin." },
+      "call": { "title": "Ofisiant Çağır", "desc": "Müştəri bir kliklə ofisiantı çağırır. Davamlı alarm səsi, əsla qaçırmayın." }
     },
     "how": {
-      "title": "Necə işləyir?"
+      "label": "Necə İşləyir",
+      "title": "3 Addımda Başlayın",
+      "cta": "Pulsuz Qeydiyyat",
+      "step1": { "title": "Qeydiyyatdan Keçin", "desc": "Restoran adı və şifrə ilə 30 saniyədə başlayın." },
+      "step2": { "title": "Menyunu Yaradın", "desc": "Kateqoriyalar, qiymətlər, şəkillər əlavə edin." },
+      "step3": { "title": "QR Kodu Payın", "desc": "Masalara QR kodlar yerləşdirin, sifarişlər axmağa başlasın." }
     },
     "faq": {
-      "title": "Tez-tez verilən suallar"
+      "title": "Tez-tez Verilən Suallar",
+      "q1": { "q": "Sistemin qurulması nə qədər vaxt alır?", "a": "Qeydiyyatdan menyu yaratmağa qədər 10 dəqiqə. QR kodlar avtomatik yaradılır." },
+      "q2": { "q": "Hansı avadanlıq lazımdır?", "a": "Heç bir xüsusi avadanlıq lazım deyil. İstənilən telefon, planşet və ya kompüter ilə işləyir." },
+      "q3": { "q": "Neçə masanı dəstəkləyir?", "a": "Limitsiz masa, menyular, işçilər yaratmaq olur." },
+      "q4": { "q": "Məlumatlarım təhlükəsizdirmi?", "a": "Bütün məlumatlar şifrələnmiş serverdə saxlanılır." },
+      "q5": { "q": "Android tətbiqi var?", "a": "Bəli! Mətbəx və ofisiant üçün Android APK mövcuddur. Arxa planda da işləyir." }
+    },
+    "cta_banner": {
+      "title": "Hələ Kağız Menyu İstifadə Edirsiniz?",
+      "subtitle": "QR Restoran ilə menyunuzu rəqəmsallaşdırın, sifarişləri avtomatlaşdırın.",
+      "button": "Pulsuz Başlayın"
     },
     "footer": {
+      "tagline": "Restoran idarəetmə sistemi",
       "copyright": "© 2026 QR Restoran. Bütün hüquqlar qorunur."
     }
   },

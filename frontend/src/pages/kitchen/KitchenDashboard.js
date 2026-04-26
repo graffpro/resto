@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import axios from 'axios';
 import { RefreshCw, Clock, CheckCircle, LogOut, Wifi, WifiOff, Phone, Volume2, VolumeX, Filter } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import az from '@/translations/az';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { initAudio, startContinuousAlarm } from '@/utils/notifications';
 import { sendLocalNotification, vibrateDevice, isNativeApp } from '@/utils/capacitor';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
@@ -18,6 +20,7 @@ const API = `${BACKEND_URL}/api`;
 
 function KitchenContent() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const { isConnected, lastMessage } = useWebSocket();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,8 +160,8 @@ function KitchenContent() {
   };
 
   const getStatusBadge = (status) => {
-    if (status === 'pending') return <Badge className="bg-yellow-100 text-yellow-800">{az.pending}</Badge>;
-    if (status === 'preparing') return <Badge className="bg-orange-100 text-orange-800">{az.preparing}</Badge>;
+    if (status === 'pending') return <Badge className="bg-yellow-100 text-yellow-800">{t('orders.pending')}</Badge>;
+    if (status === 'preparing') return <Badge className="bg-orange-100 text-orange-800">{t('orders.preparing')}</Badge>;
     return <Badge className="bg-green-100 text-green-800">{status}</Badge>;
   };
 
@@ -209,7 +212,7 @@ function KitchenContent() {
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 gap-3">
           <div>
-            <h1 className="heading-font text-lg sm:text-xl font-medium text-[#181C1A] tracking-tight mb-1">{az.kitchenOrders}</h1>
+            <h1 className="heading-font text-lg sm:text-xl font-medium text-[#181C1A] tracking-tight mb-1">{t('dashboard.kitchen')}</h1>
             <div className="flex items-center gap-2">
               <p className="text-sm text-[#5C665F]">{user?.full_name}</p>
               {isConnected ? (
@@ -228,11 +231,12 @@ function KitchenContent() {
               </select>
             </div>
             <VoiceCallButton targetRole="admin" />
+            <LanguageSwitcher />
             <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md text-xs sm:text-sm px-3">
               <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Yenile</span>
             </Button>
             <Button onClick={logout} variant="outline" className="rounded-md text-xs sm:text-sm px-3">
-              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">{az.logout}</span>
+              <LogOut className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">{t('common.logout')}</span>
             </Button>
           </div>
         </div>
@@ -289,7 +293,7 @@ function KitchenContent() {
                       data-testid={`start-preparing-${order.id}`}
                     >
                       <Clock className="w-4 h-4 mr-2" />
-                      {az.startPreparing}
+                      {t('orders.start')}
                     </Button>
                   )}
 
@@ -300,7 +304,7 @@ function KitchenContent() {
                       data-testid={`mark-ready-${order.id}`}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {az.markAsReady}
+                      {t('orders.ready')}
                     </Button>
                   )}
                 </CardContent>

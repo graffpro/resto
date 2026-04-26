@@ -1,8 +1,10 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone, Smartphone, Download, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import az from '@/translations/az';
 import AdminPinGuard from '@/components/AdminPinGuard';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
@@ -28,23 +30,24 @@ function ProtectedPage({ children, sectionName }) {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
-    { to: '/admin', icon: Table2, label: az.activeTables, protected: false },
-    { to: '/admin/reservations', icon: Calendar, label: 'Rezervasiyalar', protected: false },
-    { to: '/admin/venues-tables', icon: MapPin, label: 'Məkan & Masalar', protected: false },
-    { to: '/admin/menu-management', icon: UtensilsCrossed, label: 'Menyu', protected: true },
-    { to: '/admin/users', icon: Users, label: az.users, protected: true },
+    { to: '/admin', icon: Table2, label: t('nav.tables'), protected: false },
+    { to: '/admin/reservations', icon: Calendar, label: t('nav.reservations'), protected: false },
+    { to: '/admin/venues-tables', icon: MapPin, label: `${t('nav.venues')} & ${t('nav.tables')}`, protected: false },
+    { to: '/admin/menu-management', icon: UtensilsCrossed, label: t('nav.menu'), protected: true },
+    { to: '/admin/users', icon: Users, label: t('nav.users'), protected: true },
     { to: '/admin/staff', icon: Award, label: 'Personal', protected: true },
-    { to: '/admin/inventory', icon: Package, label: 'İnventar', protected: true },
-    { to: '/admin/expenses', icon: DollarSign, label: 'Xərclər', protected: true },
-    { to: '/admin/discounts', icon: Tag, label: 'Endirimlər', protected: true },
-    { to: '/admin/analytics', icon: LayoutDashboard, label: az.analytics, protected: true },
+    { to: '/admin/inventory', icon: Package, label: t('nav.inventory'), protected: true },
+    { to: '/admin/expenses', icon: DollarSign, label: t('nav.expenses'), protected: true },
+    { to: '/admin/discounts', icon: Tag, label: t('nav.discounts'), protected: true },
+    { to: '/admin/analytics', icon: LayoutDashboard, label: t('nav.analytics'), protected: true },
     { to: '/admin/financial-report', icon: BarChart3, label: 'Maliyyə', protected: true },
     { to: '/admin/sales-statistics', icon: ShoppingCart, label: 'Satış', protected: true },
-    { to: '/admin/settings', icon: Settings, label: 'Ayarlar', protected: true },
+    { to: '/admin/settings', icon: Settings, label: t('common.settings'), protected: true },
   ];
 
   return (
@@ -143,8 +146,13 @@ export default function AdminDashboard() {
 
             {/* Logout */}
             <Button onClick={logout} variant="ghost" className="w-full justify-start text-[#8A948D] hover:text-white hover:bg-white/5 rounded-lg h-9 text-xs mt-2" data-testid="admin-logout-button">
-              <LogOut className="w-3.5 h-3.5 mr-2" /> {az.logout}
+              <LogOut className="w-3.5 h-3.5 mr-2" /> {t('common.logout')}
             </Button>
+
+            {/* Language switcher */}
+            <div className="mt-2">
+              <LanguageSwitcher variant="dark" />
+            </div>
           </div>
         </aside>
 

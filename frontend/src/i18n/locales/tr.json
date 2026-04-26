@@ -15,7 +15,69 @@
     "address": "Adres",
     "rating": "Puan",
     "near_you": "Yakınımda",
-    "featured": "Öne Çıkanlar"
+    "featured": "Öne Çıkanlar",
+    "add": "Ekle",
+    "confirm": "Onayla",
+    "yes": "Evet",
+    "no": "Hayır",
+    "name": "Ad",
+    "price": "Fiyat",
+    "quantity": "Miktar",
+    "total": "Toplam",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "back": "Geri",
+    "continue": "Devam",
+    "settings": "Ayarlar"
+  },
+  "dashboard": {
+    "admin": "Admin Paneli",
+    "owner": "Sahip Paneli",
+    "kitchen": "Mutfak",
+    "waiter": "Garson",
+    "bar": "Bar"
+  },
+  "nav": {
+    "venues": "Salonlar",
+    "tables": "Masalar",
+    "menu": "Menü",
+    "menus": "Menüler",
+    "categories": "Kategoriler",
+    "orders": "Siparişler",
+    "active_orders": "Aktif Siparişler",
+    "history": "Geçmiş",
+    "reservations": "Rezervasyonlar",
+    "users": "Kullanıcılar",
+    "discounts": "İndirimler",
+    "inventory": "Depo",
+    "expenses": "Giderler",
+    "analytics": "Analitik",
+    "stations": "İstasyonlar",
+    "timed_services": "Zamanlı Hizmetler",
+    "restaurants": "Restoranlar",
+    "partners": "Partnerler"
+  },
+  "orders": {
+    "pending": "Bekliyor",
+    "preparing": "Hazırlanıyor",
+    "ready": "Hazır",
+    "delivered": "Teslim Edildi",
+    "cancelled": "İptal Edildi",
+    "accept": "Kabul Et",
+    "start": "Başlat",
+    "deliver": "Teslim Et",
+    "table": "Masa",
+    "order_number": "Sipariş №",
+    "no_active_orders": "Aktif sipariş yok"
+  },
+  "kitchen": {
+    "new_order": "Yeni sipariş",
+    "preparing_now": "Şu an hazırlanıyor",
+    "alarm_active": "Alarm aktif"
+  },
+  "waiter": {
+    "ready_to_deliver": "Teslime hazır",
+    "call_received": "Çağrı alındı"
   },
   "landing": {
     "nav": {
@@ -52,15 +114,39 @@
       "original": "Orijinal"
     },
     "features": {
-      "title": "Her şey tek platformda"
+      "label": "Özellikler",
+      "title": "Her şey tek platformda",
+      "qr": { "title": "QR Menü", "desc": "Müşteriler QR'ı tarayıp doğrudan telefondan sipariş verir. Kâğıt menüye gerek yok." },
+      "kitchen": { "title": "Mutfak Ekranı", "desc": "Siparişler gerçek zamanlı mutfağa düşer. Her ürün kendi istasyonuna yönlendirilir." },
+      "realtime": { "title": "Gerçek Zamanlı", "desc": "WebSocket ile anlık bildirimler. Sipariş anında mutfak haberdar olur." },
+      "inventory": { "title": "Envanter", "desc": "Ham madde takibi, reçete yönetimi, stok uyarıları. Stoğunuz hiç bitmez." },
+      "staff": { "title": "Personel", "desc": "Mutfak, bar, garson — her birini ayrı yönetin. Vardiya sistemi." },
+      "analytics": { "title": "Analitik", "desc": "Satış, gelir, popüler ürünler — her şeyi görün, her şeyi bilin." },
+      "call": { "title": "Garson Çağır", "desc": "Müşteri tek tıkla garsonu çağırır. Sürekli alarm sesiyle hiç kaçırmazsınız." }
     },
     "how": {
-      "title": "Nasıl çalışır?"
+      "label": "Nasıl Çalışır",
+      "title": "3 Adımda Başlayın",
+      "cta": "Ücretsiz Kayıt",
+      "step1": { "title": "Kayıt Olun", "desc": "Restoran adı ve şifre ile 30 saniyede başlayın." },
+      "step2": { "title": "Menüyü Oluşturun", "desc": "Kategoriler, fiyatlar, görseller ekleyin." },
+      "step3": { "title": "QR Kodu Paylaşın", "desc": "Masalara QR kod yerleştirin, siparişler akmaya başlasın." }
     },
     "faq": {
-      "title": "Sıkça Sorulan Sorular"
+      "title": "Sıkça Sorulan Sorular",
+      "q1": { "q": "Sistemin kurulumu ne kadar sürer?", "a": "Kayıttan menüye kadar 10 dakika. QR kodlar otomatik üretilir." },
+      "q2": { "q": "Hangi ekipman gerekli?", "a": "Özel bir ekipman gerekmez. Her telefon, tablet veya bilgisayarla çalışır." },
+      "q3": { "q": "Kaç masa destekliyor?", "a": "Sınırsız masa, menü ve personel oluşturabilirsiniz." },
+      "q4": { "q": "Verilerim güvende mi?", "a": "Tüm veriler şifreli sunucuda saklanır." },
+      "q5": { "q": "Android uygulaması var mı?", "a": "Evet! Mutfak ve garson için Android APK mevcut. Arka planda da çalışır." }
+    },
+    "cta_banner": {
+      "title": "Hâlâ Kağıt Menü mü Kullanıyorsunuz?",
+      "subtitle": "QR Restoran ile menünüzü dijitalleştirin, siparişleri otomatikleştirin.",
+      "button": "Ücretsiz Başla"
     },
     "footer": {
+      "tagline": "Restoran yönetim sistemi",
       "copyright": "© 2026 QR Restoran. Tüm hakları saklıdır."
     }
   },

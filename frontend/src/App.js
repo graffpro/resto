@@ -33,7 +33,15 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Stale localStorage token may exist if no API call has fired yet to
+    // trigger the 401 interceptor — clear it so the next visit is clean.
+    try {
+      if (localStorage.getItem('token')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    } catch {}
+    return <Navigate to="/" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

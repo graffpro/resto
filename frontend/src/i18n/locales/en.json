@@ -15,7 +15,69 @@
     "address": "Address",
     "rating": "Rating",
     "near_you": "Near You",
-    "featured": "Featured"
+    "featured": "Featured",
+    "add": "Add",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "name": "Name",
+    "price": "Price",
+    "quantity": "Qty",
+    "total": "Total",
+    "status": "Status",
+    "actions": "Actions",
+    "back": "Back",
+    "continue": "Continue",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "admin": "Admin Panel",
+    "owner": "Owner Panel",
+    "kitchen": "Kitchen",
+    "waiter": "Waiter",
+    "bar": "Bar"
+  },
+  "nav": {
+    "venues": "Venues",
+    "tables": "Tables",
+    "menu": "Menu",
+    "menus": "Menus",
+    "categories": "Categories",
+    "orders": "Orders",
+    "active_orders": "Active Orders",
+    "history": "History",
+    "reservations": "Reservations",
+    "users": "Users",
+    "discounts": "Discounts",
+    "inventory": "Inventory",
+    "expenses": "Expenses",
+    "analytics": "Analytics",
+    "stations": "Stations",
+    "timed_services": "Timed Services",
+    "restaurants": "Restaurants",
+    "partners": "Partners"
+  },
+  "orders": {
+    "pending": "Pending",
+    "preparing": "Preparing",
+    "ready": "Ready",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "accept": "Accept",
+    "start": "Start",
+    "deliver": "Deliver",
+    "table": "Table",
+    "order_number": "Order №",
+    "no_active_orders": "No active orders"
+  },
+  "kitchen": {
+    "new_order": "New order",
+    "preparing_now": "Preparing now",
+    "alarm_active": "Alarm active"
+  },
+  "waiter": {
+    "ready_to_deliver": "Ready to deliver",
+    "call_received": "Call received"
   },
   "landing": {
     "nav": {
@@ -52,15 +114,39 @@
       "original": "Original"
     },
     "features": {
-      "title": "Everything in one platform"
+      "label": "Features",
+      "title": "Everything in one platform",
+      "qr": { "title": "QR Menu", "desc": "Guests scan a QR code and order straight from their phone. No paper menus needed." },
+      "kitchen": { "title": "Kitchen Display", "desc": "Orders hit the kitchen in real time. Each item is routed to its own station." },
+      "realtime": { "title": "Real-Time", "desc": "Instant WebSocket notifications. The kitchen knows the moment an order is placed." },
+      "inventory": { "title": "Inventory", "desc": "Ingredient tracking, recipes, and stock alerts. Never run out of supplies again." },
+      "staff": { "title": "Staff", "desc": "Kitchen, bar, waiter — manage every role separately. Built-in shift system." },
+      "analytics": { "title": "Analytics", "desc": "Sales, revenue, top items — see everything, know everything." },
+      "call": { "title": "Call Waiter", "desc": "Guests call a waiter with one tap. Persistent alarm sound — you'll never miss it." }
     },
     "how": {
-      "title": "How it works"
+      "label": "How It Works",
+      "title": "Get Started in 3 Steps",
+      "cta": "Sign Up Free",
+      "step1": { "title": "Sign Up", "desc": "Restaurant name and password — be live in 30 seconds." },
+      "step2": { "title": "Create Your Menu", "desc": "Add categories, prices, and photos." },
+      "step3": { "title": "Share the QR", "desc": "Place QR codes on the tables and watch the orders flow in." }
     },
     "faq": {
-      "title": "Frequently Asked Questions"
+      "title": "Frequently Asked Questions",
+      "q1": { "q": "How long does setup take?", "a": "From signup to a live menu — 10 minutes. QR codes are generated automatically." },
+      "q2": { "q": "What hardware do I need?", "a": "No special hardware required. Works on any phone, tablet, or computer." },
+      "q3": { "q": "How many tables are supported?", "a": "Unlimited tables, menus, and staff accounts." },
+      "q4": { "q": "Is my data secure?", "a": "All data is stored on encrypted servers." },
+      "q5": { "q": "Is there an Android app?", "a": "Yes! An Android APK for kitchen and waiter that runs in the background." }
+    },
+    "cta_banner": {
+      "title": "Still Using Paper Menus?",
+      "subtitle": "Digitize your menu and automate orders with QR Restoran.",
+      "button": "Start Free"
     },
     "footer": {
+      "tagline": "Restaurant management system",
       "copyright": "© 2026 QR Restoran. All rights reserved."
     }
   },

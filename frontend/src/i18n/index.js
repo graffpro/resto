@@ -31,9 +31,9 @@ i18n
   });
 
 export const LANGUAGES = [
-  { code: 'az', label: 'Azərbaycan', flag: '🇦🇿' },
-  { code: 'tr', label: 'Türkiye', flag: '🇹🇷' },
-  { code: 'ru', label: 'Россия', flag: '🇷🇺' },
+  { code: 'az', label: 'Azərbaycanca', flag: '🇦🇿' },
+  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
 ];
 

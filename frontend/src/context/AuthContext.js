@@ -22,13 +22,40 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    
+
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+      try {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
+  }, []);
+
+  // Auto-logout on 401 from backend (stale token, deactivated account, etc.)
+  // The interceptor must NOT trigger on the login endpoint itself.
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      (res) => res,
+      (error) => {
+        const status = error?.response?.status;
+        const url = error?.config?.url || '';
+        if ((status === 401 || status === 403) && !url.includes('/auth/login')) {
+          // Stale or invalid token → clear and let routing naturally fall back to landing/login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          delete axios.defaults.headers.common['Authorization'];
+          setToken(null);
+          setUser(null);
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(id);
   }, []);
 
   const login = async (username, password) => {
