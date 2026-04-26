@@ -94,6 +94,9 @@ async def get_tables(venue_id: Optional[str] = None, restaurant_id: Optional[str
         query["venue_id"] = venue_id
     if current_user:
         query.update(tenant_query(current_user))
+        # Owner can additionally narrow by restaurant_id (multi-tenant management UI).
+        if current_user.get('role') == UserRole.OWNER and restaurant_id:
+            query["restaurant_id"] = restaurant_id
     elif restaurant_id:
         query["restaurant_id"] = restaurant_id
     

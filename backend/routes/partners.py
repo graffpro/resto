@@ -18,6 +18,12 @@ from models import UserRole
 router = APIRouter()
 
 
+class SocialLink(BaseModel):
+    platform: str  # instagram, facebook, tiktok, youtube, x, telegram, linkedin, threads, website, other
+    url: str
+    label: Optional[str] = ""  # optional custom label for "other"
+
+
 class PartnerCreate(BaseModel):
     restaurant_id: str
     name: str
@@ -26,11 +32,14 @@ class PartnerCreate(BaseModel):
     cover_url: Optional[str] = ""
     address: Optional[str] = ""
     phone: Optional[str] = ""
+    # Legacy single-field socials (kept for backward compatibility on read)
     instagram: Optional[str] = ""
     facebook: Optional[str] = ""
     whatsapp: Optional[str] = ""
     website: Optional[str] = ""
-    menu_table_id: Optional[str] = None  # for "Open Menu" deep-link
+    # New: dynamic list of social links — preferred way
+    social_links: Optional[List[SocialLink]] = []
+    menu_table_id: Optional[str] = None  # auto-populated from first table of restaurant
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     is_featured: bool = False
@@ -49,6 +58,7 @@ class PartnerUpdate(BaseModel):
     facebook: Optional[str] = None
     whatsapp: Optional[str] = None
     website: Optional[str] = None
+    social_links: Optional[List[SocialLink]] = None
     menu_table_id: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -157,6 +167,18 @@ async def create_partner(data: PartnerCreate, current_user: dict = Depends(get_c
         raise HTTPException(status_code=400, detail="Bu restoran artıq partnyordur")
 
     doc = data.model_dump()
+
+    # Auto-pick menu_table_id: take first available table of the restaurant if not provided.
+    # The owner doesn't need to copy/paste UUIDs; the partner is already in our system.
+    if not doc.get("menu_table_id"):
+        first_table = await db.tables.find_one(
+            {"restaurant_id": data.restaurant_id},
+            {"_id": 0, "id": 1},
+            sort=[("created_at", 1)],
+        )
+        if first_table:
+            doc["menu_table_id"] = first_table.get("id")
+
     doc.update({
         "id": str(uuid.uuid4()),
         "rating_avg": 0.0,

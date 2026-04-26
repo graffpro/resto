@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Sparkles, Eye, EyeOff, Plus, Trash2, Edit2, Star, MapPin, ImagePlus } from 'lucide-react';
+import {
+  Sparkles, Eye, EyeOff, Plus, Trash2, Edit2, Star, MapPin, ImagePlus,
+  Upload, Loader2, X as XIcon, MapPinned, Instagram, Facebook, Music2,
+  Youtube, Send, Linkedin, Twitter, Globe, MessageCircle, Link2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +13,21 @@ import { Textarea } from '@/components/ui/textarea';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+const PLATFORMS = [
+  { key: 'instagram', label: 'Instagram', Icon: Instagram, placeholder: 'https://www.instagram.com/...' },
+  { key: 'facebook', label: 'Facebook', Icon: Facebook, placeholder: 'https://www.facebook.com/...' },
+  { key: 'tiktok', label: 'TikTok', Icon: Music2, placeholder: 'https://www.tiktok.com/@...' },
+  { key: 'youtube', label: 'YouTube', Icon: Youtube, placeholder: 'https://www.youtube.com/@...' },
+  { key: 'x', label: 'X (Twitter)', Icon: Twitter, placeholder: 'https://x.com/...' },
+  { key: 'telegram', label: 'Telegram', Icon: Send, placeholder: 'https://t.me/...' },
+  { key: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle, placeholder: '+994...' },
+  { key: 'linkedin', label: 'LinkedIn', Icon: Linkedin, placeholder: 'https://www.linkedin.com/...' },
+  { key: 'website', label: 'Sayt', Icon: Globe, placeholder: 'https://...' },
+  { key: 'other', label: 'Digər', Icon: Link2, placeholder: 'https://...' },
+];
+
+const platformMeta = (key) => PLATFORMS.find((p) => p.key === key) || PLATFORMS[PLATFORMS.length - 1];
 
 const EMPTY_FORM = {
   restaurant_id: '',
@@ -18,15 +37,26 @@ const EMPTY_FORM = {
   cover_url: '',
   address: '',
   phone: '',
-  instagram: '',
-  facebook: '',
-  whatsapp: '',
-  website: '',
+  social_links: [],
   menu_table_id: '',
   latitude: '',
   longitude: '',
   is_featured: false,
   is_visible: true,
+};
+
+// Convert legacy single-fields (instagram/facebook/whatsapp/website) → social_links
+const toFormSocialLinks = (p) => {
+  const list = Array.isArray(p.social_links) ? [...p.social_links] : [];
+  const seen = new Set(list.map((s) => `${s.platform}::${s.url}`));
+  const pushIfNew = (platform, url) => {
+    if (url && !seen.has(`${platform}::${url}`)) list.push({ platform, url, label: '' });
+  };
+  pushIfNew('instagram', p.instagram);
+  pushIfNew('facebook', p.facebook);
+  pushIfNew('whatsapp', p.whatsapp);
+  pushIfNew('website', p.website);
+  return list;
 };
 
 export default function PartnersPage() {
@@ -37,6 +67,10 @@ export default function PartnersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState({ logo: false, cover: false });
+  const [autoTableInfo, setAutoTableInfo] = useState(''); // hint shown under restaurant select
+  const logoInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +91,7 @@ export default function PartnersPage() {
   const startCreate = () => {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setAutoTableInfo('');
     setShowForm(true);
   };
 
@@ -67,8 +102,76 @@ export default function PartnersPage() {
       ...p,
       latitude: p.latitude ?? '',
       longitude: p.longitude ?? '',
+      social_links: toFormSocialLinks(p),
     });
+    setAutoTableInfo(p.menu_table_id ? 'Menyu masası avtomatik təyin edilib.' : '');
     setShowForm(true);
+  };
+
+  // When a restaurant is picked, auto-fetch first table id and pre-fill name
+  const onRestSelect = async (rid) => {
+    const r = eligible.find((x) => x.id === rid);
+    setForm((f) => ({ ...f, restaurant_id: rid, name: f.name || (r?.name || '') }));
+    if (!rid) { setAutoTableInfo(''); return; }
+    try {
+      const res = await axios.get(`${API}/tables`, {
+        headers: auth(),
+        params: { restaurant_id: rid },
+      });
+      const list = res.data || [];
+      if (list.length > 0) {
+        const sorted = [...list].sort((a, b) => {
+          const an = parseInt(a.table_number, 10);
+          const bn = parseInt(b.table_number, 10);
+          if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+          return String(a.table_number || '').localeCompare(String(b.table_number || ''));
+        });
+        const first = sorted[0];
+        setForm((f) => ({ ...f, menu_table_id: first.id }));
+        setAutoTableInfo(`Menyu avtomatik bağlandı: Masa #${first.table_number}`);
+      } else {
+        setAutoTableInfo('Bu restoranda hələ masa yoxdur — menyu linki sonra avtomatik bağlanacaq.');
+      }
+    } catch {
+      setAutoTableInfo('');
+    }
+  };
+
+  const uploadImage = async (file, kind) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Şəkil 5MB-dan kiçik olmalıdır'); return; }
+    setUploading((u) => ({ ...u, [kind]: true }));
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await axios.post(`${API}/upload/image`, fd, {
+        headers: { ...auth(), 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data?.url || '';
+      // Build absolute URL so it works on the public landing page too
+      const absolute = url.startsWith('http') ? url : `${process.env.REACT_APP_BACKEND_URL || ''}${url}`;
+      setForm((f) => ({ ...f, [`${kind}_url`]: absolute }));
+      toast.success(kind === 'logo' ? 'Logo yükləndi' : 'Cover yükləndi');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Yükləmə xətası');
+    } finally {
+      setUploading((u) => ({ ...u, [kind]: false }));
+    }
+  };
+
+  const addSocialLink = (platform = 'instagram') => {
+    setForm((f) => ({ ...f, social_links: [...(f.social_links || []), { platform, url: '', label: '' }] }));
+  };
+
+  const updateSocialLink = (idx, patch) => {
+    setForm((f) => ({
+      ...f,
+      social_links: (f.social_links || []).map((s, i) => (i === idx ? { ...s, ...patch } : s)),
+    }));
+  };
+
+  const removeSocialLink = (idx) => {
+    setForm((f) => ({ ...f, social_links: (f.social_links || []).filter((_, i) => i !== idx) }));
   };
 
   const submit = async (e) => {
@@ -77,8 +180,21 @@ export default function PartnersPage() {
     if (!form.name) { toast.error('Ad daxil edin'); return; }
     setSaving(true);
     try {
+      // Sanitize social links: drop empty rows
+      const cleanLinks = (form.social_links || [])
+        .filter((s) => s.url && s.url.trim())
+        .map((s) => ({ platform: s.platform || 'other', url: s.url.trim(), label: s.label || '' }));
+
+      // Backwards-compat: also write the legacy single-fields so existing public UI keeps working
+      const pickFirst = (key) => cleanLinks.find((s) => s.platform === key)?.url || '';
+
       const payload = {
         ...form,
+        social_links: cleanLinks,
+        instagram: pickFirst('instagram'),
+        facebook: pickFirst('facebook'),
+        whatsapp: pickFirst('whatsapp'),
+        website: pickFirst('website'),
         latitude: form.latitude === '' ? null : Number(form.latitude),
         longitude: form.longitude === '' ? null : Number(form.longitude),
       };
@@ -112,9 +228,9 @@ export default function PartnersPage() {
     } catch { toast.error('Xəta'); }
   };
 
-  const onRestSelect = (rid) => {
-    const r = eligible.find((x) => x.id === rid);
-    setForm((f) => ({ ...f, restaurant_id: rid, name: f.name || (r?.name || '') }));
+  const openGoogleMaps = () => {
+    // Quick helper: open Google Maps in a new tab so the user can copy the share link
+    window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -194,7 +310,7 @@ export default function PartnersPage() {
           <form
             onSubmit={submit}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl bg-white rounded-2xl p-6 my-8 space-y-3"
+            className="w-full max-w-2xl bg-white rounded-2xl p-6 my-8 space-y-4"
             data-testid="partner-form"
           >
             <h2 className="text-xl font-black">{editing ? 'Partnyoru redaktə et' : 'Yeni Partnyor'}</h2>
@@ -212,6 +328,9 @@ export default function PartnersPage() {
                   <option value="">Seçin...</option>
                   {eligible.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
+                {autoTableInfo && (
+                  <p className="text-[11px] text-emerald-700 mt-1">{autoTableInfo}</p>
+                )}
               </div>
             )}
 
@@ -231,59 +350,138 @@ export default function PartnersPage() {
               <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="partner-form-description" />
             </div>
 
+            {/* LOGO + COVER UPLOAD */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Logo URL</Label>
-                <Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} data-testid="partner-form-logo" />
+                <Label>Logo</Label>
+                <div className="mt-1 flex items-center gap-3">
+                  <div className="w-20 h-20 rounded-xl border border-stone-200 bg-stone-50 overflow-hidden grid place-items-center shrink-0">
+                    {form.logo_url
+                      ? <img src={form.logo_url} alt="logo" className="w-full h-full object-cover" />
+                      : <ImagePlus className="text-stone-300" size={22} />}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => uploadImage(e.target.files?.[0], 'logo')}
+                      data-testid="partner-form-logo-file"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploading.logo}>
+                      {uploading.logo ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Upload className="w-4 h-4 mr-1" />}
+                      {form.logo_url ? 'Dəyişdir' : 'Yüklə'}
+                    </Button>
+                    {form.logo_url && (
+                      <button type="button" onClick={() => setForm({ ...form, logo_url: '' })} className="text-[11px] text-red-600 hover:underline self-start">
+                        <XIcon size={11} className="inline mr-0.5" /> Sil
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div>
-                <Label>Cover URL (banner)</Label>
-                <Input value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} data-testid="partner-form-cover" />
+                <Label>Cover (banner)</Label>
+                <div className="mt-1 flex items-center gap-3">
+                  <div className="w-32 h-20 rounded-xl border border-stone-200 bg-stone-50 overflow-hidden grid place-items-center shrink-0">
+                    {form.cover_url
+                      ? <img src={form.cover_url} alt="cover" className="w-full h-full object-cover" />
+                      : <ImagePlus className="text-stone-300" size={22} />}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => uploadImage(e.target.files?.[0], 'cover')}
+                      data-testid="partner-form-cover-file"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={() => coverInputRef.current?.click()} disabled={uploading.cover}>
+                      {uploading.cover ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Upload className="w-4 h-4 mr-1" />}
+                      {form.cover_url ? 'Dəyişdir' : 'Yüklə'}
+                    </Button>
+                    {form.cover_url && (
+                      <button type="button" onClick={() => setForm({ ...form, cover_url: '' })} className="text-[11px] text-red-600 hover:underline self-start">
+                        <XIcon size={11} className="inline mr-0.5" /> Sil
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* ADDRESS — Google Maps link */}
             <div>
-              <Label>Ünvan</Label>
-              <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} data-testid="partner-form-address" />
+              <div className="flex items-center justify-between mb-1">
+                <Label>Ünvan / Google Maps linki</Label>
+                <button type="button" onClick={openGoogleMaps} className="text-[11px] text-[#C05C3D] hover:underline inline-flex items-center gap-1">
+                  <MapPinned size={12} /> Google Maps-da aç
+                </button>
+              </div>
+              <Input
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Mətn ünvan və ya https://maps.app.goo.gl/... linkini yapışdırın"
+                data-testid="partner-form-address"
+              />
+              <p className="text-[11px] text-stone-500 mt-1">Google Maps-da yeri tapın → "Paylaş" → "Linki kopyala" → bura yapışdırın. Xəritə avtomatik göstəriləcək.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label>Latitude</Label>
-                <Input type="number" step="any" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} data-testid="partner-form-lat" />
-              </div>
-              <div>
-                <Label>Longitude</Label>
-                <Input type="number" step="any" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} data-testid="partner-form-lng" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label>Instagram URL</Label>
-                <Input value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} data-testid="partner-form-instagram" />
-              </div>
-              <div>
-                <Label>Facebook URL</Label>
-                <Input value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} data-testid="partner-form-facebook" />
-              </div>
-              <div>
-                <Label>WhatsApp (telefon)</Label>
-                <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="+994..." data-testid="partner-form-whatsapp" />
-              </div>
-              <div>
-                <Label>Sayt</Label>
-                <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} data-testid="partner-form-website" />
-              </div>
-            </div>
-
+            {/* SOCIAL LINKS — dynamic */}
             <div>
-              <Label>Menyu masa ID (public menyu üçün)</Label>
-              <Input value={form.menu_table_id} onChange={(e) => setForm({ ...form, menu_table_id: e.target.value })} placeholder="UUID" data-testid="partner-form-menu-table" />
-              <p className="text-[11px] text-stone-500 mt-1">"Menyunu Gör" düyməsi /table/{'<id>'} ünvanına yönləndirir.</p>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Sosial şəbəkələr & linklər</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => addSocialLink('instagram')} data-testid="partner-form-add-social">
+                  <Plus className="w-4 h-4 mr-1" /> Əlavə et
+                </Button>
+              </div>
+              {(form.social_links || []).length === 0 ? (
+                <p className="text-[12px] text-stone-500 italic">Hələ link yoxdur. "Əlavə et" düyməsi ilə Instagram, TikTok, YouTube və s. əlavə edə bilərsiniz.</p>
+              ) : (
+                <div className="space-y-2">
+                  {(form.social_links || []).map((s, i) => {
+                    const meta = platformMeta(s.platform);
+                    const Icon = meta.Icon;
+                    return (
+                      <div key={i} className="flex items-center gap-2" data-testid={`partner-social-row-${i}`}>
+                        <div className="w-9 h-9 rounded-lg bg-stone-100 grid place-items-center shrink-0">
+                          <Icon size={16} className="text-stone-700" />
+                        </div>
+                        <select
+                          value={s.platform}
+                          onChange={(e) => updateSocialLink(i, { platform: e.target.value })}
+                          className="border border-stone-200 rounded-md px-2 py-2 text-sm bg-white"
+                        >
+                          {PLATFORMS.map((p) => (
+                            <option key={p.key} value={p.key}>{p.label}</option>
+                          ))}
+                        </select>
+                        <Input
+                          value={s.url}
+                          onChange={(e) => updateSocialLink(i, { url: e.target.value })}
+                          placeholder={meta.placeholder}
+                          className="flex-1"
+                          data-testid={`partner-social-url-${i}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSocialLink(i)}
+                          className="w-9 h-9 grid place-items-center rounded-lg bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-600 shrink-0"
+                          data-testid={`partner-social-remove-${i}`}
+                          aria-label="Sil"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 pt-1">
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.is_visible} onChange={(e) => setForm({ ...form, is_visible: e.target.checked })} data-testid="partner-form-visible" />
                 Saytda göstər

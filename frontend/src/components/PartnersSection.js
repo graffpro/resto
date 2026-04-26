@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X, Languages } from 'lucide-react';
+import { Star, MapPin, Phone, Instagram, Facebook, MessageCircle, ExternalLink, Globe, Sparkles, Navigation, X, Languages, Music2, Youtube, Send, Linkedin, Twitter, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
@@ -142,13 +142,15 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
     }
   };
 
+  // If address is a Google Maps URL, prefer it directly for both the "open" link and embed.
+  const addressIsUrl = typeof partner.address === 'string' && partner.address.startsWith('http');
   const mapsHref = partner.latitude && partner.longitude
     ? `https://www.google.com/maps/search/?api=1&query=${partner.latitude},${partner.longitude}`
-    : (partner.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(partner.address)}` : null);
+    : (partner.address ? (addressIsUrl ? partner.address : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(partner.address)}`) : null);
 
   const mapEmbed = (partner.latitude && partner.longitude)
     ? `https://maps.google.com/maps?q=${partner.latitude},${partner.longitude}&z=15&output=embed`
-    : (partner.address ? `https://maps.google.com/maps?q=${encodeURIComponent(partner.address)}&z=15&output=embed` : null);
+    : (partner.address && !addressIsUrl ? `https://maps.google.com/maps?q=${encodeURIComponent(partner.address)}&z=15&output=embed` : null);
 
   return (
     <div
@@ -203,10 +205,23 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
           {/* Contact details */}
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
             {partner.address && (
-              <div className="flex items-start gap-2">
-                <MapPin size={16} className="text-[#E0402A] mt-0.5 shrink-0" />
-                <span className="text-stone-700">{partner.address}</span>
-              </div>
+              partner.address.startsWith('http') ? (
+                <a
+                  href={partner.address}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-2 text-stone-700 hover:text-[#E0402A]"
+                  data-testid="partner-address-link"
+                >
+                  <MapPin size={16} className="text-[#E0402A] mt-0.5 shrink-0" />
+                  <span className="underline truncate">{t('landing.partners.open_on_map', 'Xəritədə aç')}</span>
+                </a>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-[#E0402A] mt-0.5 shrink-0" />
+                  <span className="text-stone-700">{partner.address}</span>
+                </div>
+              )
             )}
             {partner.phone && (
               <a href={`tel:${partner.phone}`} className="flex items-center gap-2 text-stone-700 hover:text-[#E0402A]">
@@ -216,27 +231,53 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
           </div>
 
           {/* Socials */}
-          <div className="flex items-center gap-2">
-            {partner.instagram && (
-              <a href={partner.instagram} target="_blank" rel="noreferrer" className="w-10 h-10 grid place-items-center rounded-full bg-stone-100 hover:bg-stone-200 transition-colors" data-testid="partner-instagram">
-                <Instagram size={16} />
-              </a>
-            )}
-            {partner.facebook && (
-              <a href={partner.facebook} target="_blank" rel="noreferrer" className="w-10 h-10 grid place-items-center rounded-full bg-stone-100 hover:bg-stone-200 transition-colors" data-testid="partner-facebook">
-                <Facebook size={16} />
-              </a>
-            )}
-            {partner.whatsapp && (
-              <a href={`https://wa.me/${(partner.whatsapp || '').replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 grid place-items-center rounded-full bg-stone-100 hover:bg-stone-200 transition-colors" data-testid="partner-whatsapp">
-                <MessageCircle size={16} />
-              </a>
-            )}
-            {partner.website && (
-              <a href={partner.website} target="_blank" rel="noreferrer" className="w-10 h-10 grid place-items-center rounded-full bg-stone-100 hover:bg-stone-200 transition-colors" data-testid="partner-website">
-                <Globe size={16} />
-              </a>
-            )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(() => {
+              const SOCIAL_ICONS = {
+                instagram: Instagram,
+                facebook: Facebook,
+                tiktok: Music2,
+                youtube: Youtube,
+                x: Twitter,
+                telegram: Send,
+                linkedin: Linkedin,
+                whatsapp: MessageCircle,
+                website: Globe,
+                other: Link2,
+              };
+              const dynamic = Array.isArray(partner.social_links) ? partner.social_links : [];
+              // Build a deduped list: prefer dynamic; fall back to legacy single fields
+              const seen = new Set(dynamic.map((s) => `${s.platform}::${s.url}`));
+              const merged = [...dynamic];
+              const pushLegacy = (platform, url) => {
+                if (url && !seen.has(`${platform}::${url}`)) merged.push({ platform, url });
+              };
+              pushLegacy('instagram', partner.instagram);
+              pushLegacy('facebook', partner.facebook);
+              pushLegacy('whatsapp', partner.whatsapp);
+              pushLegacy('website', partner.website);
+              return merged
+                .filter((s) => s && s.url)
+                .map((s, i) => {
+                  const Icon = SOCIAL_ICONS[s.platform] || Link2;
+                  const href = s.platform === 'whatsapp'
+                    ? `https://wa.me/${(s.url || '').replace(/[^\d]/g, '')}`
+                    : s.url;
+                  return (
+                    <a
+                      key={`${s.platform}-${i}`}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={s.label || s.platform}
+                      className="w-10 h-10 grid place-items-center rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                      data-testid={`partner-social-${s.platform}`}
+                    >
+                      <Icon size={16} />
+                    </a>
+                  );
+                });
+            })()}
           </div>
 
           {/* Map */}

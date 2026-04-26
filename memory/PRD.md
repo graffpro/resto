@@ -108,6 +108,14 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Partner Form UX overhaul (2026-02)** — Owner panel `/owner/partners` redesign per user request:
+  - Logo & Cover URL → file upload (uses existing `/api/upload/image`, 5MB limit, preview thumbnails, change/remove)
+  - **Sayt** field removed (now part of dynamic social links list)
+  - **Menyu masa ID** field hidden — auto-populated on restaurant select (first table by `created_at`); existing partners keep their `menu_table_id`
+  - **Ünvan** accepts Google Maps share links (`https://maps.app.goo.gl/...`); public detail modal shows clickable "Xəritədə aç" link instead of raw URL
+  - **Sosial şəbəkələr** is now a dynamic list — unlimited entries with platform selector: Instagram, Facebook, **TikTok**, YouTube, X, Telegram, WhatsApp, LinkedIn, Sayt, Digər. Backend stores `social_links: List[{platform, url, label}]` (legacy `instagram/facebook/whatsapp/website` fields kept for back-compat)
+  - Latitude/Longitude fields hidden (rarely needed; map embed works from address text)
+  - `GET /api/tables?restaurant_id=X` now respects the param for OWNER role (was being ignored)
 - [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
 
 ## Pending / Upcoming Tasks
