@@ -27,6 +27,25 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
   const [chosen, setChosen] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  const loadReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const res = await axios.get(`${API}/partner-restaurants/${partner.id}/ratings?limit=50`);
+      setReviews(res.data || []);
+    } catch {
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partner.id]);
 
   const submitRating = async () => {
     if (!chosen) {
@@ -40,6 +59,12 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
       setChosen(0);
       setComment('');
       onRated?.(res.data);
+      // Prepend new review to the list optimistically
+      if (res.data?.rating) {
+        setReviews((list) => [res.data.rating, ...list]);
+      } else {
+        loadReviews();
+      }
     } catch {
       toast.error('Error');
     } finally {
@@ -220,6 +245,39 @@ function PartnerDetailModal({ partner, onClose, onRated }) {
             >
               {t('landing.partners.rate_now')}
             </button>
+          </div>
+
+          {/* Existing reviews list */}
+          <div data-testid="partner-reviews-list">
+            <p className="text-sm font-semibold text-stone-800 mb-3">
+              {t('landing.partners.ratings_count', { count: partner.ratings_count || 0 })}
+            </p>
+            {loadingReviews ? (
+              <div className="space-y-2">
+                <div className="h-12 rounded-lg bg-stone-100 animate-pulse" />
+                <div className="h-12 rounded-lg bg-stone-100 animate-pulse" />
+              </div>
+            ) : reviews.length === 0 ? (
+              <p className="text-xs text-stone-500 italic">—</p>
+            ) : (
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {reviews.map((r) => (
+                  <div key={r.id} className="rounded-lg border border-stone-200 p-3 bg-white" data-testid={`partner-review-${r.id}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <StarsDisplay value={r.stars} size={13} />
+                      <span className="text-[10px] text-stone-400">
+                        {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
+                      </span>
+                    </div>
+                    {r.comment && r.comment.trim() ? (
+                      <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap break-words">{r.comment}</p>
+                    ) : (
+                      <p className="text-xs text-stone-400 italic">—</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
