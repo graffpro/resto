@@ -198,7 +198,7 @@ export default function RestaurantsPage() {
           <p className="text-xs text-[#8A948D] mt-0.5">{t('owner_panel.registered_count', { count: restaurants.length })}</p>
         </div>
         <Button onClick={() => { setForm(emptyForm); setShowCreate(true); }} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs h-9 px-4 rounded-xl" data-testid="create-restaurant-btn">
-          <Plus className="w-3.5 h-3.5 mr-1.5" /> Yeni Restoran
+          <Plus className="w-3.5 h-3.5 mr-1.5" /> {t('dialogs.new_restaurant')}
         </Button>
       </div>
 
@@ -266,23 +266,23 @@ export default function RestaurantsPage() {
       {/* Create Restaurant Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader><DialogTitle className="heading-font text-base font-medium">Yeni Restoran</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="heading-font text-base font-medium">{t('dialogs.new_restaurant')}</DialogTitle></DialogHeader>
           <form onSubmit={handleCreate} className="space-y-3">
-            <div><Label className="text-xs text-[#5C665F]">Ad *</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="restaurant-name-input" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Ünvan</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.name_required')}</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="restaurant-name-input" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.address')}</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs text-[#5C665F]">Telefon</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.phone')}</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.whatsapp')}</Label><Input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             </div>
-            <div><Label className="text-xs text-[#5C665F]">E-poçt</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Açıqlama</Label><Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.email')}</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.description')}</Label><Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs text-[#5C665F]">Vergi (%)</Label><Input type="number" value={form.tax_percentage} onChange={e => setForm({...form, tax_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">Xidmət haqqı (%)</Label><Input type="number" value={form.service_charge_percentage} onChange={e => setForm({...form, service_charge_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.tax_pct')}</Label><Input type="number" value={form.tax_percentage} onChange={e => setForm({...form, tax_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.service_pct')}</Label><Input type="number" value={form.service_charge_percentage} onChange={e => setForm({...form, service_charge_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             </div>
             <div className="flex justify-end gap-2 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreate(false)} className="rounded-xl">Ləğv et</Button>
-              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl" data-testid="submit-restaurant">Yarat</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreate(false)} className="rounded-xl">{t('dialogs.cancel')}</Button>
+              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl" data-testid="submit-restaurant">{t('dialogs.create')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -291,23 +291,23 @@ export default function RestaurantsPage() {
       {/* Edit Restaurant Dialog */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
         <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader><DialogTitle className="heading-font text-base font-medium">Restoranı Redaktə Et</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="heading-font text-base font-medium">{t('dialogs.edit_restaurant')}</DialogTitle></DialogHeader>
           <form onSubmit={handleEdit} className="space-y-3">
-            <div><Label className="text-xs text-[#5C665F]">Ad *</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Ünvan</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.name_required')}</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.address')}</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs text-[#5C665F]">Telefon</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.phone')}</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.whatsapp')}</Label><Input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             </div>
-            <div><Label className="text-xs text-[#5C665F]">E-poçt</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Açıqlama</Label><Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.email')}</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.description')}</Label><Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs text-[#5C665F]">Vergi (%)</Label><Input type="number" value={form.tax_percentage} onChange={e => setForm({...form, tax_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-              <div><Label className="text-xs text-[#5C665F]">Xidmət haqqı (%)</Label><Input type="number" value={form.service_charge_percentage} onChange={e => setForm({...form, service_charge_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.tax_pct')}</Label><Input type="number" value={form.tax_percentage} onChange={e => setForm({...form, tax_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+              <div><Label className="text-xs text-[#5C665F]">{t('dialogs.service_pct')}</Label><Input type="number" value={form.service_charge_percentage} onChange={e => setForm({...form, service_charge_percentage: parseFloat(e.target.value) || 0})} className="h-9 text-sm mt-1 rounded-xl" /></div>
             </div>
             <div className="flex justify-end gap-2 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowEdit(false)} className="rounded-xl">Ləğv et</Button>
-              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl">Yadda saxla</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowEdit(false)} className="rounded-xl">{t('dialogs.cancel')}</Button>
+              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl">{t('dialogs.save')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -318,15 +318,15 @@ export default function RestaurantsPage() {
         <DialogContent className="max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="heading-font text-base font-medium flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#C05C3D]" /> {selectedRestaurant?.name} - Adminlər
+              <Shield className="w-4 h-4 text-[#C05C3D]" /> {selectedRestaurant?.name} - {t('owner_panel.manage_admins')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Button size="sm" onClick={() => { setAdminForm(emptyAdminForm); setShowCreateAdmin(true); }} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs h-8 rounded-xl" data-testid="create-admin-btn">
-              <UserPlus className="w-3.5 h-3.5 mr-1" /> Yeni Admin
+              <UserPlus className="w-3.5 h-3.5 mr-1" /> {t('dialogs.new_admin')}
             </Button>
             {admins.length === 0 ? (
-              <div className="text-center py-10 text-sm text-[#8A948D]">Bu restoran üçün admin yoxdur</div>
+              <div className="text-center py-10 text-sm text-[#8A948D]">{t('dialogs.no_admins')}</div>
             ) : (
               <div className="space-y-2">
                 {admins.map(admin => {
@@ -374,14 +374,14 @@ export default function RestaurantsPage() {
       {/* Create Admin Dialog */}
       <Dialog open={showCreateAdmin} onOpenChange={setShowCreateAdmin}>
         <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader><DialogTitle className="heading-font text-base font-medium">Yeni Admin</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="heading-font text-base font-medium">{t('dialogs.new_admin')}</DialogTitle></DialogHeader>
           <form onSubmit={handleCreateAdmin} className="space-y-3">
-            <div><Label className="text-xs text-[#5C665F]">Ad Soyad *</Label><Input value={adminForm.full_name} onChange={e => setAdminForm({...adminForm, full_name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-fullname-input" /></div>
-            <div><Label className="text-xs text-[#5C665F]">İstifadəçi adı *</Label><Input value={adminForm.username} onChange={e => setAdminForm({...adminForm, username: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-username-input" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Şifrə *</Label><Input type="password" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-password-input" /></div>
-            <div><Label className="text-xs text-[#5C665F]">PIN Kodu</Label><Input value={adminForm.admin_pin} onChange={e => setAdminForm({...adminForm, admin_pin: e.target.value})} placeholder="4 rəqəmli PIN" maxLength={6} className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-pin-input" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.full_name')} *</Label><Input value={adminForm.full_name} onChange={e => setAdminForm({...adminForm, full_name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-fullname-input" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.username')} *</Label><Input value={adminForm.username} onChange={e => setAdminForm({...adminForm, username: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-username-input" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.password')} *</Label><Input type="password" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-password-input" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.admin_pin')}</Label><Input value={adminForm.admin_pin} onChange={e => setAdminForm({...adminForm, admin_pin: e.target.value})} maxLength={6} className="h-9 text-sm mt-1 rounded-xl" data-testid="admin-pin-input" /></div>
             <div>
-              <Label className="text-xs text-[#5C665F] flex items-center gap-1"><Clock className="w-3 h-3" /> Müddət</Label>
+              <Label className="text-xs text-[#5C665F] flex items-center gap-1"><Clock className="w-3 h-3" /> {t('dialogs.search_period')}</Label>
               <div className="grid grid-cols-3 gap-1.5 mt-1.5">
                 {TIME_PERIODS.map(p => (
                   <button key={p.days} type="button" onClick={() => selectPeriod(p.days)}
@@ -390,11 +390,11 @@ export default function RestaurantsPage() {
                   </button>
                 ))}
               </div>
-              {adminForm.expires_at && <p className="text-[10px] text-[#8A948D] mt-1">Son tarix: {adminForm.expires_at}</p>}
+              {adminForm.expires_at && <p className="text-[10px] text-[#8A948D] mt-1">{t('dialogs.expires_at')}: {adminForm.expires_at}</p>}
             </div>
             <div className="flex justify-end gap-2 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateAdmin(false)} className="rounded-xl">Ləğv et</Button>
-              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl" data-testid="submit-admin">Yarat</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateAdmin(false)} className="rounded-xl">{t('dialogs.cancel')}</Button>
+              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl" data-testid="submit-admin">{t('dialogs.create')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -403,13 +403,13 @@ export default function RestaurantsPage() {
       {/* Edit Admin Dialog */}
       <Dialog open={showEditAdmin} onOpenChange={setShowEditAdmin}>
         <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader><DialogTitle className="heading-font text-base font-medium">Admini Redaktə Et</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="heading-font text-base font-medium">{t('dialogs.edit_admin')}</DialogTitle></DialogHeader>
           <form onSubmit={handleEditAdmin} className="space-y-3">
-            <div><Label className="text-xs text-[#5C665F]">Ad Soyad *</Label><Input value={adminForm.full_name} onChange={e => setAdminForm({...adminForm, full_name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" /></div>
-            <div><Label className="text-xs text-[#5C665F]">Yeni Şifrə (boş buraxın dəyişməmək üçün)</Label><Input type="password" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
-            <div><Label className="text-xs text-[#5C665F]">PIN Kodu</Label><Input value={adminForm.admin_pin} onChange={e => setAdminForm({...adminForm, admin_pin: e.target.value})} placeholder="4 rəqəmli PIN" maxLength={6} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.full_name')} *</Label><Input value={adminForm.full_name} onChange={e => setAdminForm({...adminForm, full_name: e.target.value})} required className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.password')}</Label><Input type="password" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} className="h-9 text-sm mt-1 rounded-xl" /></div>
+            <div><Label className="text-xs text-[#5C665F]">{t('dialogs.admin_pin')}</Label><Input value={adminForm.admin_pin} onChange={e => setAdminForm({...adminForm, admin_pin: e.target.value})} maxLength={6} className="h-9 text-sm mt-1 rounded-xl" /></div>
             <div>
-              <Label className="text-xs text-[#5C665F] flex items-center gap-1"><Clock className="w-3 h-3" /> Müddəti uzat</Label>
+              <Label className="text-xs text-[#5C665F] flex items-center gap-1"><Clock className="w-3 h-3" /> {t('dialogs.search_period')}</Label>
               <div className="grid grid-cols-3 gap-1.5 mt-1.5">
                 {TIME_PERIODS.map(p => (
                   <button key={p.days} type="button" onClick={() => selectPeriod(p.days)}
@@ -418,11 +418,11 @@ export default function RestaurantsPage() {
                   </button>
                 ))}
               </div>
-              {adminForm.expires_at && <p className="text-[10px] text-[#8A948D] mt-1">Son tarix: {adminForm.expires_at}</p>}
+              {adminForm.expires_at && <p className="text-[10px] text-[#8A948D] mt-1">{t('dialogs.expires_at')}: {adminForm.expires_at}</p>}
             </div>
             <div className="flex justify-end gap-2 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowEditAdmin(false)} className="rounded-xl">Ləğv et</Button>
-              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl">Yadda saxla</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowEditAdmin(false)} className="rounded-xl">{t('dialogs.cancel')}</Button>
+              <Button type="submit" size="sm" className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-xl">{t('dialogs.save')}</Button>
             </div>
           </form>
         </DialogContent>

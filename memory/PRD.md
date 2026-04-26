@@ -106,6 +106,8 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 - [x] **i18n full coverage** — Landing (Hero overlay, Features, Steps, FAQ, CTA, Footer), Admin nav (Finance/Sales/Staff), Owner panel (RestaurantsPage heading/search/badges/buttons, OwnerDashboard sidebar role labels), Login success toast — all switched to `t()` with new keys in `landing.features.*`, `landing.how.step{1-3}`, `landing.faq.q{1-5}`, `landing.cta_banner.*`, `admin.*`, `owner_panel.*`. Language native names: **Azərbaycanca / Türkçe / Русский / English**.
 - [x] **Dashboard LanguageSwitcher** — added to Admin sidebar (dark variant), Owner sidebar (dark), Kitchen header, Waiter header.
 
+- [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
+
 ## Pending / Upcoming Tasks
 - P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache
 - P1: WhatsApp/Twilio Integration (daily sales reports)
