@@ -37,6 +37,23 @@
     "waiter": "Waiter",
     "bar": "Bar"
   },
+  "admin": {
+    "financial_report": "Finance",
+    "sales_stats": "Sales",
+    "staff": "Staff"
+  },
+  "owner_panel": {
+    "title": "Owner Panel",
+    "role": "System Owner",
+    "search_restaurant": "Search restaurant...",
+    "registered_count": "{{count}} restaurants registered",
+    "active": "Active",
+    "inactive": "Inactive",
+    "admins_count": "admins",
+    "staff_count": "staff",
+    "manage_admins": "Admins",
+    "login_success": "Logged in successfully!"
+  },
   "nav": {
     "venues": "Venues",
     "tables": "Tables",
@@ -95,7 +112,9 @@
       "cta_login": "Log In",
       "feature_1": "Unlimited tables",
       "feature_2": "Android APK included",
-      "feature_3": "Real-time notifications"
+      "feature_3": "Real-time notifications",
+      "realtime_label": "Real-time orders",
+      "realtime_value": "3-5 seconds"
     },
     "partners": {
       "section_label": "Partner Restaurants",

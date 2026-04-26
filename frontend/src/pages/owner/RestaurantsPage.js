@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { Plus, Store, Users, Power, Pencil, UserPlus, Shield, Calendar, Clock, Search, Trash2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ function getDaysLeft(dateStr) {
 }
 
 export default function RestaurantsPage() {
+  const { t } = useTranslation();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -192,8 +194,8 @@ export default function RestaurantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">Restoranlar</h2>
-          <p className="text-xs text-[#8A948D] mt-0.5">{restaurants.length} restoran qeydiyyatda</p>
+          <h2 className="heading-font text-xl font-medium text-[#181C1A] tracking-tight">{t('nav.restaurants')}</h2>
+          <p className="text-xs text-[#8A948D] mt-0.5">{t('owner_panel.registered_count', { count: restaurants.length })}</p>
         </div>
         <Button onClick={() => { setForm(emptyForm); setShowCreate(true); }} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white text-xs h-9 px-4 rounded-xl" data-testid="create-restaurant-btn">
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Yeni Restoran
@@ -203,7 +205,7 @@ export default function RestaurantsPage() {
       {/* Search */}
       <div className="relative mb-5">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A948D]" />
-        <Input placeholder="Restoran axtar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-white border-[#E6E5DF] rounded-xl" data-testid="search-restaurants" />
+        <Input placeholder={t('owner_panel.search_restaurant')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-white border-[#E6E5DF] rounded-xl" data-testid="search-restaurants" />
       </div>
 
       {/* Grid */}
@@ -227,24 +229,24 @@ export default function RestaurantsPage() {
                   </div>
                 </div>
                 <Badge className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.is_active ? 'bg-[#3E6A4B]/10 text-[#3E6A4B]' : 'bg-[#B74134]/10 text-[#B74134]'}`}>
-                  {r.is_active ? 'Aktiv' : 'Deaktiv'}
+                  {r.is_active ? t('owner_panel.active') : t('owner_panel.inactive')}
                 </Badge>
               </div>
 
               <div className="flex gap-4 mb-4 py-3 border-y border-[#E6E5DF]/60">
                 <div className="flex items-center gap-1.5 text-xs text-[#5C665F]">
                   <Shield className="w-3.5 h-3.5 text-[#C05C3D]" />
-                  <span>{r.admin_count || 0} admin</span>
+                  <span>{r.admin_count || 0} {t('owner_panel.admins_count')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[#5C665F]">
                   <Users className="w-3.5 h-3.5 text-[#4A6B8C]" />
-                  <span>{r.staff_count || 0} personal</span>
+                  <span>{r.staff_count || 0} {t('owner_panel.staff_count')}</span>
                 </div>
               </div>
 
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" onClick={() => openAdmins(r)} className="flex-1 h-8 text-xs rounded-xl border-[#E6E5DF] hover:bg-[#F9F9F7]" data-testid={`manage-admins-${r.id}`}>
-                  <UserPlus className="w-3.5 h-3.5 mr-1" /> Adminlər
+                  <UserPlus className="w-3.5 h-3.5 mr-1" /> {t('owner_panel.manage_admins')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-8 w-8 p-0 rounded-xl border-[#E6E5DF]" data-testid={`edit-restaurant-${r.id}`}>
                   <Pencil className="w-3.5 h-3.5" />

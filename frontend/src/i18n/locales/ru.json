@@ -37,6 +37,23 @@
     "waiter": "Официант",
     "bar": "Бар"
   },
+  "admin": {
+    "financial_report": "Финансы",
+    "sales_stats": "Продажи",
+    "staff": "Персонал"
+  },
+  "owner_panel": {
+    "title": "Панель владельца",
+    "role": "Владелец системы",
+    "search_restaurant": "Поиск ресторана...",
+    "registered_count": "{{count}} ресторанов зарегистрировано",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "admins_count": "админов",
+    "staff_count": "сотрудников",
+    "manage_admins": "Админы",
+    "login_success": "Вы успешно вошли!"
+  },
   "nav": {
     "venues": "Залы",
     "tables": "Столы",
@@ -95,7 +112,9 @@
       "cta_login": "Войти",
       "feature_1": "Без лимита столов",
       "feature_2": "Android APK включён",
-      "feature_3": "Уведомления в реальном времени"
+      "feature_3": "Уведомления в реальном времени",
+      "realtime_label": "Заказы в реальном времени",
+      "realtime_value": "3-5 секунд"
     },
     "partners": {
       "section_label": "Рестораны-партнёры",

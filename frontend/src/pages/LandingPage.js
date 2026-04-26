@@ -132,8 +132,8 @@ export default function LandingPage() {
                   <Wifi className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Real-time sifarişlər</p>
-                  <p className="text-sm font-bold">3-5 saniyə</p>
+                  <p className="text-xs text-gray-500">{t('landing.hero.realtime_label')}</p>
+                  <p className="text-sm font-bold">{t('landing.hero.realtime_value')}</p>
                 </div>
               </div>
             </div>

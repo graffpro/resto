@@ -37,6 +37,23 @@
     "waiter": "Garson",
     "bar": "Bar"
   },
+  "admin": {
+    "financial_report": "Finans",
+    "sales_stats": "Satış",
+    "staff": "Personel"
+  },
+  "owner_panel": {
+    "title": "Sahip Paneli",
+    "role": "Sistem Sahibi",
+    "search_restaurant": "Restoran ara...",
+    "registered_count": "{{count}} restoran kayıtlı",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "admins_count": "yönetici",
+    "staff_count": "personel",
+    "manage_admins": "Yöneticiler",
+    "login_success": "Başarıyla giriş yaptınız!"
+  },
   "nav": {
     "venues": "Salonlar",
     "tables": "Masalar",
@@ -95,7 +112,9 @@
       "cta_login": "Giriş Yap",
       "feature_1": "Sınırsız masa",
       "feature_2": "Android APK dahil",
-      "feature_3": "Anlık bildirimler"
+      "feature_3": "Anlık bildirimler",
+      "realtime_label": "Gerçek zamanlı siparişler",
+      "realtime_value": "3-5 saniye"
     },
     "partners": {
       "section_label": "Partner Restoranlar",

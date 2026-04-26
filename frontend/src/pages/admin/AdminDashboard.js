@@ -40,13 +40,13 @@ export default function AdminDashboard() {
     { to: '/admin/venues-tables', icon: MapPin, label: `${t('nav.venues')} & ${t('nav.tables')}`, protected: false },
     { to: '/admin/menu-management', icon: UtensilsCrossed, label: t('nav.menu'), protected: true },
     { to: '/admin/users', icon: Users, label: t('nav.users'), protected: true },
-    { to: '/admin/staff', icon: Award, label: 'Personal', protected: true },
+    { to: '/admin/staff', icon: Award, label: t('admin.staff'), protected: true },
     { to: '/admin/inventory', icon: Package, label: t('nav.inventory'), protected: true },
     { to: '/admin/expenses', icon: DollarSign, label: t('nav.expenses'), protected: true },
     { to: '/admin/discounts', icon: Tag, label: t('nav.discounts'), protected: true },
     { to: '/admin/analytics', icon: LayoutDashboard, label: t('nav.analytics'), protected: true },
-    { to: '/admin/financial-report', icon: BarChart3, label: 'Maliyyə', protected: true },
-    { to: '/admin/sales-statistics', icon: ShoppingCart, label: 'Satış', protected: true },
+    { to: '/admin/financial-report', icon: BarChart3, label: t('admin.financial_report'), protected: true },
+    { to: '/admin/sales-statistics', icon: ShoppingCart, label: t('admin.sales_stats'), protected: true },
     { to: '/admin/settings', icon: Settings, label: t('common.settings'), protected: true },
   ];
 

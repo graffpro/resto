@@ -37,6 +37,23 @@
     "waiter": "Ofisiant",
     "bar": "Bar"
   },
+  "admin": {
+    "financial_report": "Maliyyə",
+    "sales_stats": "Satış",
+    "staff": "Personal"
+  },
+  "owner_panel": {
+    "title": "Sahib Paneli",
+    "role": "Sistem Sahibi",
+    "search_restaurant": "Restoran axtar...",
+    "registered_count": "{{count}} restoran qeydiyyatda",
+    "active": "Aktiv",
+    "inactive": "Deaktiv",
+    "admins_count": "admin",
+    "staff_count": "personal",
+    "manage_admins": "Adminlər",
+    "login_success": "Uğurla daxil oldunuz!"
+  },
   "nav": {
     "venues": "Salonlar",
     "tables": "Masalar",
@@ -95,7 +112,9 @@
       "cta_login": "Daxil ol",
       "feature_1": "Limitsiz masa",
       "feature_2": "Android APK daxil",
-      "feature_3": "Real-time bildirişlər"
+      "feature_3": "Real-time bildirişlər",
+      "realtime_label": "Real-time sifarişlər",
+      "realtime_value": "3-5 saniyə"
     },
     "partners": {
       "section_label": "Partnyor Restoranlar",

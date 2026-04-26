@@ -102,6 +102,9 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - Owner Dashboard: new `/owner/partners` page — visible/hidden + featured toggles, full edit form
 
 - [x] **Comment translation** — `POST /api/translate` powered by Emergent LLM (Gemini 2.5 Flash). Each review card has a "Tərcümə et" button that translates the comment to the user's UI language (az/tr/ru/en). Cache stored in `db.translation_cache` to avoid repeated LLM calls.
+- [x] **P0 Fix: resto.az → /login redirect bug** — `ProtectedRoute` now redirects unauthenticated users to `/` (Landing Page) instead of `/login`. Stale `localStorage.token` is cleared before redirect. Axios 401/403 interceptor in `AuthContext` auto-clears expired tokens.
+- [x] **i18n full coverage** — Landing (Hero overlay, Features, Steps, FAQ, CTA, Footer), Admin nav (Finance/Sales/Staff), Owner panel (RestaurantsPage heading/search/badges/buttons, OwnerDashboard sidebar role labels), Login success toast — all switched to `t()` with new keys in `landing.features.*`, `landing.how.step{1-3}`, `landing.faq.q{1-5}`, `landing.cta_banner.*`, `admin.*`, `owner_panel.*`. Language native names: **Azərbaycanca / Türkçe / Русский / English**.
+- [x] **Dashboard LanguageSwitcher** — added to Admin sidebar (dark variant), Owner sidebar (dark), Kitchen header, Waiter header.
 
 ## Pending / Upcoming Tasks
 - P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import az from '@/translations/az';
 import { Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     const result = await login(username, password);
     if (result.success) {
-      toast.success('Uğurla daxil oldunuz!');
+      toast.success(t('owner_panel.login_success'));
       navigate('/');
     } else {
       toast.error(result.error || az.invalidCredentials);

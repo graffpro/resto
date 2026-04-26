@@ -36,7 +36,7 @@ export default function OwnerDashboard() {
               />
               <div>
                 <h1 className="heading-font text-base font-medium text-white">QR Restoran</h1>
-                <p className="text-[10px] text-[#8A948D]">Sahib Paneli</p>
+                <p className="text-[10px] text-[#8A948D]">{t('owner_panel.title')}</p>
               </div>
             </div>
 
@@ -48,7 +48,7 @@ export default function OwnerDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-white">{user?.full_name}</p>
-                  <p className="text-[10px] text-[#C05C3D]">Sistem Sahibi</p>
+                  <p className="text-[10px] text-[#C05C3D]">{t('owner_panel.role')}</p>
                 </div>
               </div>
             </div>
