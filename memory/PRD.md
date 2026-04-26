@@ -108,8 +108,18 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
+
 ## Pending / Upcoming Tasks
-- P0 (NEXT): Root domain (`resto.az`) aggressively redirects `/` to `/login` — investigate frontend routing/cache
+- P0 (NEXT): Online Payment integration (Stripe / Pulpal) — let customers pay by phone
+- P0 (NEXT): Loyalty Points System (Sədaqət Proqramı) — CRM, phone verification, stamp card UI
+- P1: Real-Time Dashboard TV Screen — large-screen live stats UI for owners
+- P1: AI Menu Assistant — chat UI with smart recommendations
+- P1: Promo Codes / Discount Coupons — extend `discounts` collection
+- P1: Customer Web Push Notifications — VAPID + Service Worker
+- P2: Auto Backup (Dropbox/GDrive) — cron job mongodump + upload
+- P2: Delivery Module (Yandex/Wolt) — address picker + courier tracking
+- P2: Staff Performance Gamification — leaderboards from `staff_performance`
 - P1: WhatsApp/Twilio Integration (daily sales reports)
 - P1: Translate remaining dashboards (Admin/Kitchen/Waiter UI) — currently only Landing is translated
 - P1: iOS build (requires Mac + Apple Developer account)

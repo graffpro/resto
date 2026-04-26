@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends nginx superviso
 
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+# Install emergentintegrations (Emergent's private package, not on PyPI)
+RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 
 COPY backend/ ./backend/
 COPY --from=frontend-build /app/frontend/build /var/www/html
