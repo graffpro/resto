@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { Calendar, Users, Clock, MessageSquare, Loader2, X, Check, User } from 'lucide-react';
@@ -19,6 +20,7 @@ for (let h = 11; h <= 23; h++) {
 }
 
 export default function ReservationModal({ open, onClose, restaurantId, restaurantName }) {
+  const { t } = useTranslation();
   const { customer, token } = useCustomerAuth();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null); // reservation object on success
@@ -62,7 +64,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
   const submit = async (e) => {
     e.preventDefault();
     if (!form.customer_name || !form.customer_phone || !form.reservation_date) {
-      toast.error('Bütün vacib sahələri doldurun'); return;
+      toast.error(t('reservation.fill_required')); return;
     }
     setBusy(true);
     try {
@@ -72,10 +74,10 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
         { restaurant_id: restaurantId, ...form, guest_count: Number(form.guest_count) },
         { headers },
       );
-      toast.success('Rezerv qəbul edildi!');
+      toast.success(t('reservation.success_title'));
       setDone(res.data.reservation);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Rezerv xətası');
+      toast.error(err?.response?.data?.detail || t('reservation.error'));
     } finally { setBusy(false); }
   };
 
@@ -99,8 +101,8 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
             <X size={16} />
           </button>
           <Calendar className="w-7 h-7 mb-2" />
-          <h2 className="text-xl font-black">Rezerv Et</h2>
-          <p className="text-white/80 text-sm mt-1">{restaurantName || 'Restorana yer ayırın'}</p>
+          <h2 className="text-xl font-black">{t('reservation.title')}</h2>
+          <p className="text-white/80 text-sm mt-1">{restaurantName || t('reservation.subtitle')}</p>
         </div>
 
         {done ? (
@@ -108,19 +110,19 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
             <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 grid place-items-center">
               <Check className="w-8 h-8 text-emerald-600" />
             </div>
-            <h3 className="text-lg font-black">Rezerv qəbul edildi!</h3>
+            <h3 className="text-lg font-black">{t('reservation.success_title')}</h3>
             <div className="text-sm text-stone-600 space-y-1 bg-stone-50 rounded-xl p-4 text-left">
-              <p><strong>Tarix:</strong> {done.reservation_date} · {done.reservation_time}</p>
-              <p><strong>Qonaq sayı:</strong> {done.guest_count}</p>
-              <p><strong>Status:</strong> <span className="text-amber-600 font-semibold">Gözləyir (təsdiq üçün)</span></p>
+              <p><strong>{t('reservation.success_date')}:</strong> {done.reservation_date} · {done.reservation_time}</p>
+              <p><strong>{t('reservation.success_guests')}:</strong> {done.guest_count}</p>
+              <p><strong>{t('reservation.success_status')}:</strong> <span className="text-amber-600 font-semibold">{t('reservation.status_pending')}</span></p>
             </div>
-            <p className="text-xs text-stone-500">Restoran sizinlə tezliklə əlaqə saxlayacaq.</p>
-            <Button onClick={onClose} className="w-full bg-[#E0402A] hover:bg-[#C93622]">Bağla</Button>
+            <p className="text-xs text-stone-500">{t('reservation.success_hint')}</p>
+            <Button onClick={onClose} className="w-full bg-[#E0402A] hover:bg-[#C93622]">{t('reservation.close')}</Button>
           </div>
         ) : (
           <form onSubmit={submit} className="p-6 space-y-4">
             <div>
-              <Label className="flex items-center gap-1.5"><User size={13} /> Adınız *</Label>
+              <Label className="flex items-center gap-1.5"><User size={13} /> {t('reservation.name_label')} *</Label>
               <Input
                 value={form.customer_name}
                 onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
@@ -129,7 +131,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
               />
             </div>
             <div>
-              <Label>Telefon *</Label>
+              <Label>{t('reservation.phone_label')} *</Label>
               <div className="phone-input-wrapper mt-1">
                 <PhoneInput
                   international
@@ -141,7 +143,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
               </div>
             </div>
             <div>
-              <Label>Email (istəyə bağlı)</Label>
+              <Label>{t('reservation.email_label')}</Label>
               <Input
                 type="email"
                 value={form.customer_email}
@@ -152,7 +154,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="flex items-center gap-1.5"><Calendar size={13} /> Tarix *</Label>
+                <Label className="flex items-center gap-1.5"><Calendar size={13} /> {t('reservation.date_label')} *</Label>
                 <Input
                   type="date"
                   value={form.reservation_date}
@@ -163,7 +165,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
                 />
               </div>
               <div>
-                <Label className="flex items-center gap-1.5"><Clock size={13} /> Saat *</Label>
+                <Label className="flex items-center gap-1.5"><Clock size={13} /> {t('reservation.time_label')} *</Label>
                 <select
                   value={form.reservation_time}
                   onChange={(e) => setForm({ ...form, reservation_time: e.target.value })}
@@ -171,13 +173,13 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
                   required
                   data-testid="reservation-time"
                 >
-                  {TIME_SLOTS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TIME_SLOTS.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
                 </select>
               </div>
             </div>
 
             <div>
-              <Label className="flex items-center gap-1.5"><Users size={13} /> Qonaq sayı *</Label>
+              <Label className="flex items-center gap-1.5"><Users size={13} /> {t('reservation.guests_label')} *</Label>
               <div className="grid grid-cols-7 gap-1.5 mt-1">
                 {[1, 2, 3, 4, 5, 6, 8].map((n) => (
                   <button
@@ -208,12 +210,12 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
             </div>
 
             <div>
-              <Label className="flex items-center gap-1.5"><MessageSquare size={13} /> Xüsusi istək (istəyə bağlı)</Label>
+              <Label className="flex items-center gap-1.5"><MessageSquare size={13} /> {t('reservation.notes_label')}</Label>
               <Textarea
                 rows={2}
                 value={form.special_requests}
                 onChange={(e) => setForm({ ...form, special_requests: e.target.value })}
-                placeholder="Pəncərə yanı, ad günü tortu və s."
+                placeholder={t('reservation.notes_placeholder')}
                 data-testid="reservation-notes"
               />
             </div>
@@ -225,7 +227,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
               data-testid="reservation-submit"
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Rezervi göndər
+              {t('reservation.submit')}
             </Button>
           </form>
         )}

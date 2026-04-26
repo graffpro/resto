@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { Mail, Loader2, ArrowRight, X, KeyRound, Check } from 'lucide-react';
@@ -17,6 +18,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
  * Step 2: enter 6-digit code → verify → JWT token
  */
 export default function CustomerAuthModal({ open, onClose, onSuccess }) {
+  const { t } = useTranslation();
   const { setAuth } = useCustomerAuth();
   const [step, setStep] = useState('contact'); // contact | otp
   const [email, setEmail] = useState('');
@@ -44,8 +46,8 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
 
   const sendOtp = async (e) => {
     e?.preventDefault?.();
-    if (!email) { toast.error('Email yazın'); return; }
-    if (!name) { toast.error('Adınızı yazın'); return; }
+    if (!email) { toast.error(t('customer_auth.email')); return; }
+    if (!name) { toast.error(t('customer_auth.name')); return; }
     setBusy(true);
     try {
       await axios.post(`${API}/customer/auth/send-otp`, {
@@ -53,18 +55,18 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
         name: name.trim(),
         phone: phone || null,
       });
-      toast.success('Doğrulama kodu emailə göndərildi');
+      toast.success(t('customer_auth.code_sent'));
       setStep('otp');
       setResendIn(60);
       setTimeout(() => codeInputRef.current?.focus(), 100);
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Email göndərmə xətası');
+      toast.error(err?.response?.data?.detail || 'Email error');
     } finally { setBusy(false); }
   };
 
   const verifyOtp = async (e) => {
     e?.preventDefault?.();
-    if (!code || code.length < 6) { toast.error('6 rəqəmli kod yazın'); return; }
+    if (!code || code.length < 6) { toast.error('Code'); return; }
     setBusy(true);
     try {
       const res = await axios.post(`${API}/customer/auth/verify-otp`, {
@@ -72,11 +74,11 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
         code: code.trim(),
       });
       setAuth(res.data.token, res.data.customer);
-      toast.success(`Xoş gəlmisiniz, ${res.data.customer.name || res.data.customer.email}!`);
+      toast.success(t('customer_auth.welcome', { name: res.data.customer.name || res.data.customer.email }));
       onSuccess?.(res.data.customer);
       onClose?.();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Kod yoxlanmadı');
+      toast.error(err?.response?.data?.detail || 'Verify error');
     } finally { setBusy(false); }
   };
 
@@ -103,12 +105,12 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
             {step === 'contact' ? <Mail className="w-5 h-5 text-amber-300" /> : <KeyRound className="w-5 h-5 text-amber-300" />}
           </div>
           <h2 className="text-xl font-black">
-            {step === 'contact' ? 'Hesab aç və ya daxil ol' : 'Kodu daxil edin'}
+            {step === 'contact' ? t('customer_auth.title_login') : t('customer_auth.title_otp')}
           </h2>
           <p className="text-stone-400 text-sm mt-1">
             {step === 'contact'
-              ? 'Email + telefon ilə bir dəqiqəlik qeydiyyat'
-              : `${email} ünvanına göndərilən 6 rəqəmli kodu yazın`}
+              ? t('customer_auth.subtitle_login')
+              : t('customer_auth.subtitle_otp', { email })}
           </p>
         </div>
 
@@ -116,7 +118,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
           {step === 'contact' ? (
             <form onSubmit={sendOtp} className="space-y-4">
               <div>
-                <Label htmlFor="cust-name">Ad</Label>
+                <Label htmlFor="cust-name">{t('customer_auth.name')}</Label>
                 <Input
                   id="cust-name"
                   value={name}
@@ -127,7 +129,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                 />
               </div>
               <div>
-                <Label htmlFor="cust-email">Email</Label>
+                <Label htmlFor="cust-email">{t('customer_auth.email')}</Label>
                 <Input
                   id="cust-email"
                   type="email"
@@ -139,7 +141,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                 />
               </div>
               <div>
-                <Label>Telefon (istəyə bağlı)</Label>
+                <Label>{t('customer_auth.phone_optional')}</Label>
                 <div className="phone-input-wrapper mt-1">
                   <PhoneInput
                     international
@@ -151,7 +153,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   />
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  Tezliklə WhatsApp OTP də əlavə olunacaq
+                  {t('customer_auth.phone_hint')}
                 </p>
               </div>
               <Button
@@ -161,22 +163,22 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                 data-testid="customer-auth-send-otp"
               >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Doğrulama kodu göndər <ArrowRight className="w-4 h-4 ml-2" />
+                {t('customer_auth.send_code')} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <p className="text-[11px] text-stone-500 text-center pt-2">
-                Davam etməklə xidmət şərtləri ilə razılaşırsınız.
+                {t('customer_auth.terms')}
               </p>
             </form>
           ) : (
             <form onSubmit={verifyOtp} className="space-y-4">
               <div>
-                <Label htmlFor="cust-otp">6 rəqəmli kod</Label>
+                <Label htmlFor="cust-otp">{t('customer_auth.code_placeholder')}</Label>
                 <Input
                   id="cust-otp"
                   ref={codeInputRef}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="• • • • • •"
+                  placeholder={t('customer_auth.code_placeholder')}
                   className="text-center text-2xl tracking-[0.5em] font-mono h-14"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -191,7 +193,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                 data-testid="customer-auth-verify"
               >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
-                Təsdiqlə
+                {t('customer_auth.verify')}
               </Button>
               <div className="flex items-center justify-between text-xs">
                 <button
@@ -199,7 +201,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   onClick={() => setStep('contact')}
                   className="text-stone-600 hover:text-stone-900"
                 >
-                  ← Email-i dəyişdir
+                  ← {t('customer_auth.change_email')}
                 </button>
                 <button
                   type="button"
@@ -208,7 +210,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   className="text-[#C05C3D] hover:text-[#A04C30] disabled:text-stone-400 disabled:cursor-not-allowed"
                   data-testid="customer-auth-resend"
                 >
-                  {resendIn > 0 ? `Yenidən göndər (${resendIn}s)` : 'Yenidən göndər'}
+                  {resendIn > 0 ? t('customer_auth.resend_in', { s: resendIn }) : t('customer_auth.resend')}
                 </button>
               </div>
             </form>

@@ -108,6 +108,14 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Sound Effect + WebSocket Push + i18n + Phone Input (2026-02)**:
+  - **Web Audio bell** (`/app/frontend/src/utils/sound.js`) — iki tonlu "ding-ding" zəng (E6 + G6 + A5 afterglow), heç bir external fayl tələb etmir
+  - **Real-time WebSocket broadcast**: `POST /api/public/delivery-orders` yaradılan kimi `{type: "new_delivery_order"}` mesajı `admin` və `waiter` rollarına push olunur
+  - `AdminDashboard`-da yeni `NewOrderListener` komponenti — `useWebSocket()` hook-u dinləyir, sifariş gələndə `playOrderBell()` + 6 saniyəlik toast (`🛵 Yeni çatdırılma · {name} · {total} ₼`)
+  - `WebSocketProvider role="admin"` AdminDashboard-u örtür
+  - **Beynəlxalq nömrə input** Restoran qeydiyyat formuna əlavə olundu (`react-phone-number-input` AZ default, bayraq + ölkə kodu)
+  - **i18n yenilənmə**: 4 dilə (az/en/ru/tr) yeni keys əlavə olundu — `customer_auth`, `reservation`, `delivery`, `delivery_orders`, `public_menu` (~80 yeni key per dil)
+  - Customer-facing komponentlər tam tərcümə olundu: `CustomerAuthModal`, `ReservationModal`, `DeliveryCheckoutModal`, `PublicMenuPage` (toast-lar, label-lar, placeholder-lar, success ekranları)
 - [x] **Admin Çatdırılma Plitkası + İdarə Səhifəsi (2026-02)**:
   - Yeni route `/admin/delivery` → `DeliveryOrdersPage.js`
   - Admin home-da yeni yaşıl `Çatdırılma` plitkası (size: md, Truck ikon, DELIVERY subtitle, badge "X aktiv")

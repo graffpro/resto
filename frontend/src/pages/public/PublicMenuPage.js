@@ -69,7 +69,7 @@ export default function PublicMenuPage() {
       }
       return [...curr, { menu_item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
     });
-    toast.success(`${item.name} səbətə əlavə olundu`, { duration: 1500 });
+    toast.success(t('delivery.added_to_cart', { name: item.name }), { duration: 1500 });
   };
 
   const cartCount = cart.reduce((s, it) => s + it.quantity, 0);
@@ -128,7 +128,7 @@ export default function PublicMenuPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-950 grid place-items-center text-stone-400">
-        <div className="text-sm">{t('common.loading', 'Yüklənir...')}</div>
+        <div className="text-sm">{t('public_menu.loading')}</div>
       </div>
     );
   }
@@ -160,7 +160,7 @@ export default function PublicMenuPage() {
               className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/40 backdrop-blur text-xs font-semibold hover:bg-black/60"
               data-testid="public-menu-back"
             >
-              <ArrowLeft size={14} /> Geri
+              <ArrowLeft size={14} /> {t('public_menu.back')}
             </Link>
             <div className="flex items-center gap-2">
               {isAuthenticated ? (
@@ -171,7 +171,7 @@ export default function PublicMenuPage() {
                   data-testid="public-menu-logout"
                   title={customer?.email}
                 >
-                  <User size={13} /> {customer?.name?.split(' ')[0] || 'Hesab'} <LogOut size={12} className="opacity-60" />
+                  <User size={13} /> {customer?.name?.split(' ')[0] || t('customer_auth.account')} <LogOut size={12} className="opacity-60" />
                 </button>
               ) : (
                 <button
@@ -180,7 +180,7 @@ export default function PublicMenuPage() {
                   className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/40 backdrop-blur text-xs font-semibold hover:bg-black/60"
                   data-testid="public-menu-login"
                 >
-                  <LogIn size={13} /> Daxil ol
+                  <LogIn size={13} /> {t('customer_auth.login')}
                 </button>
               )}
               <LanguageSwitcher variant="dark" />
@@ -227,7 +227,7 @@ export default function PublicMenuPage() {
                 className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white/10 hover:bg-white/15 text-xs font-semibold"
                 data-testid="public-menu-directions"
               >
-                <Navigation size={13} /> {t('landing.partners.directions', 'Yol göstər')}
+                <Navigation size={13} /> {t('public_menu.directions')}
               </a>
             )}
             {partner?.phone && (
@@ -244,13 +244,13 @@ export default function PublicMenuPage() {
               className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-amber-400/15 text-amber-300 hover:bg-amber-400/25 text-xs font-semibold"
               data-testid="public-menu-reserve"
             >
-              <Calendar size={13} /> Rezerv et
+              <Calendar size={13} /> {t('public_menu.reserve')}
             </button>
             <button
               type="button"
               onClick={() => {
                 if (cart.length === 0) {
-                  toast.info('Çatdırılma üçün menyudan yeməyi səbətə əlavə edin');
+                  toast.info(t('delivery.select_first'));
                   return;
                 }
                 setShowDelivery(true);
@@ -258,7 +258,7 @@ export default function PublicMenuPage() {
               className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/25 text-xs font-semibold"
               data-testid="public-menu-delivery"
             >
-              <Truck size={13} /> Çatdırılma {cartCount > 0 && `(${cartCount})`}
+              <Truck size={13} /> {t('public_menu.delivery')} {cartCount > 0 && `(${cartCount})`}
             </button>
             {partner?.menu_table_id && (
               <Link
@@ -266,7 +266,7 @@ export default function PublicMenuPage() {
                 className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-[#E0402A] hover:bg-[#C93622] text-xs font-semibold"
                 data-testid="public-menu-order"
               >
-                <Info size={13} /> Restoranda sifariş ver
+                <Info size={13} /> {t('public_menu.order_in_restaurant')}
               </Link>
             )}
           </div>
@@ -281,7 +281,7 @@ export default function PublicMenuPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Yeməklərdə axtar..."
+              placeholder={t('public_menu.search')}
               className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-stone-500 focus-visible:ring-amber-400"
               data-testid="public-menu-search"
             />
@@ -293,7 +293,7 @@ export default function PublicMenuPage() {
                 activeCat === 'all' ? 'bg-amber-400 text-stone-900' : 'bg-white/5 text-stone-300 hover:bg-white/10'
               }`}
             >
-              Hamısı
+              {t('public_menu.all')}
             </button>
             {categories.map((cat) => (
               <button
@@ -395,7 +395,7 @@ export default function PublicMenuPage() {
               {cartCount}
             </span>
           </div>
-          Sifariş ver · {cartTotal.toFixed(2)} ₼
+          {t('delivery.place_order')} · {cartTotal.toFixed(2)} ₼
         </button>
       )}
 

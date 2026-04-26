@@ -10,7 +10,10 @@ import DashboardTopBar from '@/components/layouts/DashboardTopBar';
 import TileHome from '@/components/layouts/TileHome';
 import AdminPinGuard from '@/components/AdminPinGuard';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
+import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
 import { VoiceCallButton, VoiceCallOverlay } from '@/components/VoiceCallUI';
+import { playOrderBell } from '@/utils/sound';
+import { toast } from 'sonner';
 import ActiveTablesPage from './ActiveTablesPage';
 import AdminUsersPage from './AdminUsersPage';
 import ProfessionalAnalytics from './ProfessionalAnalytics';
@@ -92,39 +95,58 @@ function SubPageWrap({ children }) {
   return <div className="px-3 sm:px-5 py-6 pt-4 max-w-screen-2xl mx-auto min-w-0">{children}</div>;
 }
 
+function NewOrderListener() {
+  const { lastMessage } = useWebSocket() || {};
+  useEffect(() => {
+    if (!lastMessage) return;
+    if (lastMessage.type === 'new_delivery_order') {
+      const d = lastMessage.data || {};
+      playOrderBell();
+      toast.success(
+        `🛵 Yeni çatdırılma · ${d.customer_name || ''} · ${d.total || ''} ₼`,
+        { duration: 6000 },
+      );
+    }
+  }, [lastMessage]);
+  return null;
+}
+
 export default function AdminDashboard() {
   return (
     <VoiceCallProvider myRole="admin">
-      <div className="min-h-screen bg-[#F4F5F2]">
-        <VoiceCallOverlay />
-        <DashboardTopBar
-          homePath="/admin"
-          roleLabel="Admin"
-          showApk
-          extra={
-            <div className="hidden md:flex items-center">
-              <VoiceCallButton targetRole="kitchen" />
-            </div>
-          }
-        />
-        <Routes>
-          <Route path="/" element={<AdminHome />} />
-          <Route path="/tables" element={<SubPageWrap><ActiveTablesPage /></SubPageWrap>} />
-          <Route path="/delivery" element={<SubPageWrap><DeliveryOrdersPage /></SubPageWrap>} />
-          <Route path="/reservations" element={<SubPageWrap><ReservationsPage /></SubPageWrap>} />
-          <Route path="/venues-tables" element={<SubPageWrap><VenuesTablesPage /></SubPageWrap>} />
-          <Route path="/users" element={<SubPageWrap><ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/staff" element={<SubPageWrap><ProtectedPage sectionName="Personal"><StaffManagementPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/inventory" element={<SubPageWrap><ProtectedPage sectionName="İnventar"><InventoryPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/expenses" element={<SubPageWrap><ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/analytics" element={<SubPageWrap><ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage></SubPageWrap>} />
-          <Route path="/financial-report" element={<SubPageWrap><ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/discounts" element={<SubPageWrap><ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/sales-statistics" element={<SubPageWrap><ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/menu-management" element={<SubPageWrap><ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage></SubPageWrap>} />
-          <Route path="/settings" element={<SubPageWrap><ProtectedPage sectionName="Ayarlar"><SettingsPage /></ProtectedPage></SubPageWrap>} />
-        </Routes>
-      </div>
+      <WebSocketProvider role="admin">
+        <div className="min-h-screen bg-[#F4F5F2]">
+          <VoiceCallOverlay />
+          <NewOrderListener />
+          <DashboardTopBar
+            homePath="/admin"
+            roleLabel="Admin"
+            showApk
+            extra={
+              <div className="hidden md:flex items-center">
+                <VoiceCallButton targetRole="kitchen" />
+              </div>
+            }
+          />
+          <Routes>
+            <Route path="/" element={<AdminHome />} />
+            <Route path="/tables" element={<SubPageWrap><ActiveTablesPage /></SubPageWrap>} />
+            <Route path="/delivery" element={<SubPageWrap><DeliveryOrdersPage /></SubPageWrap>} />
+            <Route path="/reservations" element={<SubPageWrap><ReservationsPage /></SubPageWrap>} />
+            <Route path="/venues-tables" element={<SubPageWrap><VenuesTablesPage /></SubPageWrap>} />
+            <Route path="/users" element={<SubPageWrap><ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/staff" element={<SubPageWrap><ProtectedPage sectionName="Personal"><StaffManagementPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/inventory" element={<SubPageWrap><ProtectedPage sectionName="İnventar"><InventoryPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/expenses" element={<SubPageWrap><ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/analytics" element={<SubPageWrap><ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage></SubPageWrap>} />
+            <Route path="/financial-report" element={<SubPageWrap><ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/discounts" element={<SubPageWrap><ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/sales-statistics" element={<SubPageWrap><ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/menu-management" element={<SubPageWrap><ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage></SubPageWrap>} />
+            <Route path="/settings" element={<SubPageWrap><ProtectedPage sectionName="Ayarlar"><SettingsPage /></ProtectedPage></SubPageWrap>} />
+          </Routes>
+        </div>
+      </WebSocketProvider>
     </VoiceCallProvider>
   );
 }

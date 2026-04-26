@@ -372,6 +372,29 @@ async def create_delivery_order(
     }
     await db.delivery_orders.insert_one(doc)
     doc.pop("_id", None)
+
+    # Broadcast to admin & waiter dashboards (real-time alert + sound)
+    try:
+        await ws_manager.broadcast_to_role({
+            "type": "new_delivery_order",
+            "data": {
+                "id": doc["id"],
+                "restaurant_id": doc["restaurant_id"],
+                "customer_name": doc["customer_name"],
+                "total": doc["total"],
+                "items_count": len(doc["items"]),
+                "delivery_address": doc["delivery_address"],
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }, "admin")
+        await ws_manager.broadcast_to_role({
+            "type": "new_delivery_order",
+            "data": {"id": doc["id"]},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }, "waiter")
+    except Exception as e:
+        logger.error("WebSocket broadcast failed: %s", e)
+
     return {"message": "Sifariş qəbul edildi", "order": doc, "track_url": f"/delivery/track/{doc['id']}"}
 
 
@@ -396,6 +419,7 @@ async def list_my_delivery_orders(current: dict = Depends(get_current_customer))
 from auth import get_current_user
 from models import UserRole
 from routes.shared import tenant_query
+from ws_manager import manager as ws_manager
 
 
 @router.get("/admin/delivery-orders")

@@ -8,6 +8,8 @@ import {
   ArrowRight, Check, ChevronDown, Menu, X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import PartnersSection from '@/components/PartnersSection';
 
@@ -299,15 +301,17 @@ export default function LandingPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Telefon (istəyə bağlı)</label>
-                <input
-                  type="tel"
-                  value={regForm.phone}
-                  onChange={e => setRegForm(p => ({ ...p, phone: e.target.value }))}
-                  className="w-full mt-1 px-4 py-3 border border-gray-300 text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none"
-                  placeholder="+994 XX XXX XX XX"
-                  data-testid="register-phone"
-                />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('landing.register.phone', 'Telefon (istəyə bağlı)')}</label>
+                <div className="phone-input-wrapper mt-1" style={{ height: 48 }}>
+                  <PhoneInput
+                    international
+                    defaultCountry="AZ"
+                    value={regForm.phone}
+                    onChange={(v) => setRegForm(p => ({ ...p, phone: v || '' }))}
+                    placeholder="+994 50 123 45 67"
+                    data-testid="register-phone"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
