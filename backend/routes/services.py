@@ -15,6 +15,91 @@ from ws_manager import manager
 
 router = APIRouter()
 
+@router.get("/admin/dashboard-stats")
+async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
+    """Lightweight counters used by the Admin tile-home page (live badges)."""
+    if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    tq = tenant_query(current_user)
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    today_end = (now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)).isoformat()
+    today_date = now.strftime("%Y-%m-%d")  # for fields that store date-only strings
+
+    # Active table sessions (is_active true)
+    active_tables = await db.table_sessions.count_documents({
+        **tq,
+        "is_active": True,
+    })
+
+    # Today's reservations (reservation_date stored as YYYY-MM-DD)
+    reservations_today = await db.reservations.count_documents({
+        **tq,
+        "reservation_date": today_date,
+    })
+
+    # Pending kitchen orders (preparing or queued)
+    pending_orders = await db.orders.count_documents({
+        **tq,
+        "status": {"$in": ["pending", "preparing", "ready"]},
+    })
+
+    # Active discounts (is_active true and not expired)
+    active_discounts = 0
+    try:
+        all_disc = await db.discounts.find({**tq, "is_active": True}, {"_id": 0}).to_list(1000)
+        now_iso = now.isoformat()
+        for d in all_disc:
+            end = d.get("end_date") or d.get("expires_at")
+            if not end or str(end) >= now_iso:
+                active_discounts += 1
+    except Exception:
+        active_discounts = 0
+
+    # Low-stock inventory items (qty <= reorder_threshold)
+    low_stock = 0
+    try:
+        items = await db.inventory_items.find(tq, {"_id": 0}).to_list(5000)
+        for it in items:
+            qty = it.get("current_quantity") or it.get("quantity") or 0
+            thr = it.get("reorder_threshold") or it.get("min_quantity") or 0
+            if thr and qty <= thr:
+                low_stock += 1
+    except Exception:
+        low_stock = 0
+
+    # Today's revenue (sum of closed sessions' totals today)
+    today_revenue = 0.0
+    try:
+        closed = await db.table_sessions.find({
+            **tq,
+            "status": "closed",
+            "closed_at": {"$gte": today_start, "$lt": today_end},
+        }, {"_id": 0, "final_total": 1, "total_amount": 1}).to_list(5000)
+        for s in closed:
+            today_revenue += float(s.get("final_total") or s.get("total_amount") or 0)
+    except Exception:
+        today_revenue = 0.0
+
+    # Total registered users (admin team size)
+    try:
+        users_count = await db.users.count_documents(tq)
+    except Exception:
+        users_count = 0
+
+    return {
+        "active_tables": active_tables,
+        "reservations_today": reservations_today,
+        "pending_orders": pending_orders,
+        "active_discounts": active_discounts,
+        "low_stock": low_stock,
+        "today_revenue": round(today_revenue, 2),
+        "users_count": users_count,
+    }
+
+
+
 @router.get("/analytics/detailed")
 async def get_detailed_analytics(current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:

@@ -1,4 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   Users, Table2, DollarSign, Calendar, BarChart3, Tag, ShoppingCart,
@@ -23,26 +25,51 @@ import StaffManagementPage from './StaffManagementPage';
 import InventoryPage from './InventoryPage';
 import SettingsPage from './SettingsPage';
 
+const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
+const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
 function ProtectedPage({ children, sectionName }) {
   return <AdminPinGuard sectionName={sectionName}>{children}</AdminPinGuard>;
 }
 
 function AdminHome() {
   const { t } = useTranslation();
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get(`${API}/admin/dashboard-stats`, { headers: auth() });
+        if (alive) setStats(res.data || {});
+      } catch {
+        if (alive) setStats({});
+      }
+    };
+    fetchStats();
+    const id = setInterval(fetchStats, 15000); // refresh every 15s
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  const fmtMoney = (v) => {
+    if (v === undefined || v === null) return null;
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}k ₼`;
+    return `${Math.round(v)} ₼`;
+  };
 
   // Vibrant Metro-style palette — mapped to "category" of the operation.
   // Live ops = warm reds/oranges, Money = greens, People = blues, System = neutral
   const tiles = [
-    { to: '/admin/tables',           label: t('nav.tables'),                Icon: Table2,           color: '#E0402A', subtitle: 'LIVE',         size: 'md', testid: 'tile-tables' },
-    { to: '/admin/reservations',     label: t('nav.reservations'),          Icon: Calendar,         color: '#F59E0B', subtitle: 'BOOK' },
-    { to: '/admin/menu-management',  label: t('nav.menu'),                  Icon: UtensilsCrossed,  color: '#EC4899', subtitle: 'KITCHEN' },
+    { to: '/admin/tables',           label: t('nav.tables'),                Icon: Table2,           color: '#E0402A', subtitle: 'LIVE',         size: 'md', testid: 'tile-tables', badge: stats?.active_tables ? `${stats.active_tables} aktiv` : null },
+    { to: '/admin/reservations',     label: t('nav.reservations'),          Icon: Calendar,         color: '#F59E0B', subtitle: 'BOOK',                                                badge: stats?.reservations_today ? `${stats.reservations_today} bu gün` : null },
+    { to: '/admin/menu-management',  label: t('nav.menu'),                  Icon: UtensilsCrossed,  color: '#EC4899', subtitle: 'KITCHEN',                                             badge: stats?.pending_orders ? `${stats.pending_orders} sifariş` : null },
     { to: '/admin/venues-tables',    label: t('nav.venues'),                Icon: MapPin,           color: '#A855F7', subtitle: 'VENUE' },
-    { to: '/admin/users',            label: t('nav.users'),                 Icon: Users,            color: '#0EA5E9', subtitle: 'TEAM' },
+    { to: '/admin/users',            label: t('nav.users'),                 Icon: Users,            color: '#0EA5E9', subtitle: 'TEAM',                                                badge: stats?.users_count ? `${stats.users_count}` : null },
     { to: '/admin/staff',            label: t('admin.staff'),               Icon: Award,            color: '#3B82F6', subtitle: 'STAFF' },
-    { to: '/admin/inventory',        label: t('nav.inventory'),             Icon: Package,          color: '#0891B2', subtitle: 'STOCK' },
+    { to: '/admin/inventory',        label: t('nav.inventory'),             Icon: Package,          color: '#0891B2', subtitle: 'STOCK',                                               badge: stats?.low_stock ? `⚠ ${stats.low_stock}` : null },
     { to: '/admin/expenses',         label: t('nav.expenses'),              Icon: DollarSign,       color: '#16A34A', subtitle: 'COSTS' },
-    { to: '/admin/discounts',        label: t('nav.discounts'),             Icon: Tag,              color: '#DC2626', subtitle: 'PROMO' },
-    { to: '/admin/analytics',        label: t('nav.analytics'),             Icon: LayoutDashboard,  color: '#10B981', subtitle: 'INSIGHTS', size: 'md', testid: 'tile-analytics' },
+    { to: '/admin/discounts',        label: t('nav.discounts'),             Icon: Tag,              color: '#DC2626', subtitle: 'PROMO',                                               badge: stats?.active_discounts ? `${stats.active_discounts} aktiv` : null },
+    { to: '/admin/analytics',        label: t('nav.analytics'),             Icon: LayoutDashboard,  color: '#10B981', subtitle: 'INSIGHTS', size: 'md', testid: 'tile-analytics',     badge: stats?.today_revenue ? fmtMoney(stats.today_revenue) : null },
     { to: '/admin/financial-report', label: t('admin.financial_report'),    Icon: BarChart3,        color: '#059669', subtitle: 'REPORT' },
     { to: '/admin/sales-statistics', label: t('admin.sales_stats'),         Icon: ShoppingCart,     color: '#22C55E', subtitle: 'SALES' },
     { to: '/admin/settings',         label: t('common.settings'),           Icon: Settings,         color: '#475569', subtitle: 'SYSTEM' },
