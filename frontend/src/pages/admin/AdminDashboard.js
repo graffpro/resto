@@ -1,11 +1,11 @@
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Table2, LogOut, DollarSign, Calendar, BarChart3, Tag, ShoppingCart, UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings, Phone, Smartphone, Download, Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import az from '@/translations/az';
+import {
+  Users, Table2, DollarSign, Calendar, BarChart3, Tag, ShoppingCart,
+  UtensilsCrossed, LayoutDashboard, MapPin, Award, Package, Settings,
+} from 'lucide-react';
+import DashboardTopBar from '@/components/layouts/DashboardTopBar';
+import TileHome from '@/components/layouts/TileHome';
 import AdminPinGuard from '@/components/AdminPinGuard';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
 import { VoiceCallButton, VoiceCallOverlay } from '@/components/VoiceCallUI';
@@ -27,154 +27,74 @@ function ProtectedPage({ children, sectionName }) {
   return <AdminPinGuard sectionName={sectionName}>{children}</AdminPinGuard>;
 }
 
-export default function AdminDashboard() {
-  const { user, logout } = useAuth();
-  const location = useLocation();
+function AdminHome() {
   const { t } = useTranslation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isActive = (path) => location.pathname === path;
 
-  const navItems = [
-    { to: '/admin', icon: Table2, label: t('nav.tables'), protected: false },
-    { to: '/admin/reservations', icon: Calendar, label: t('nav.reservations'), protected: false },
-    { to: '/admin/venues-tables', icon: MapPin, label: `${t('nav.venues')} & ${t('nav.tables')}`, protected: false },
-    { to: '/admin/menu-management', icon: UtensilsCrossed, label: t('nav.menu'), protected: true },
-    { to: '/admin/users', icon: Users, label: t('nav.users'), protected: true },
-    { to: '/admin/staff', icon: Award, label: t('admin.staff'), protected: true },
-    { to: '/admin/inventory', icon: Package, label: t('nav.inventory'), protected: true },
-    { to: '/admin/expenses', icon: DollarSign, label: t('nav.expenses'), protected: true },
-    { to: '/admin/discounts', icon: Tag, label: t('nav.discounts'), protected: true },
-    { to: '/admin/analytics', icon: LayoutDashboard, label: t('nav.analytics'), protected: true },
-    { to: '/admin/financial-report', icon: BarChart3, label: t('admin.financial_report'), protected: true },
-    { to: '/admin/sales-statistics', icon: ShoppingCart, label: t('admin.sales_stats'), protected: true },
-    { to: '/admin/settings', icon: Settings, label: t('common.settings'), protected: true },
+  // Vibrant Metro-style palette — mapped to "category" of the operation.
+  // Live ops = warm reds/oranges, Money = greens, People = blues, System = neutral
+  const tiles = [
+    { to: '/admin/tables',           label: t('nav.tables'),                Icon: Table2,           color: '#E0402A', subtitle: 'LIVE',         size: 'md', testid: 'tile-tables' },
+    { to: '/admin/reservations',     label: t('nav.reservations'),          Icon: Calendar,         color: '#F59E0B', subtitle: 'BOOK' },
+    { to: '/admin/menu-management',  label: t('nav.menu'),                  Icon: UtensilsCrossed,  color: '#EC4899', subtitle: 'KITCHEN' },
+    { to: '/admin/venues-tables',    label: t('nav.venues'),                Icon: MapPin,           color: '#A855F7', subtitle: 'VENUE' },
+    { to: '/admin/users',            label: t('nav.users'),                 Icon: Users,            color: '#0EA5E9', subtitle: 'TEAM' },
+    { to: '/admin/staff',            label: t('admin.staff'),               Icon: Award,            color: '#3B82F6', subtitle: 'STAFF' },
+    { to: '/admin/inventory',        label: t('nav.inventory'),             Icon: Package,          color: '#0891B2', subtitle: 'STOCK' },
+    { to: '/admin/expenses',         label: t('nav.expenses'),              Icon: DollarSign,       color: '#16A34A', subtitle: 'COSTS' },
+    { to: '/admin/discounts',        label: t('nav.discounts'),             Icon: Tag,              color: '#DC2626', subtitle: 'PROMO' },
+    { to: '/admin/analytics',        label: t('nav.analytics'),             Icon: LayoutDashboard,  color: '#10B981', subtitle: 'INSIGHTS', size: 'md', testid: 'tile-analytics' },
+    { to: '/admin/financial-report', label: t('admin.financial_report'),    Icon: BarChart3,        color: '#059669', subtitle: 'REPORT' },
+    { to: '/admin/sales-statistics', label: t('admin.sales_stats'),         Icon: ShoppingCart,     color: '#22C55E', subtitle: 'SALES' },
+    { to: '/admin/settings',         label: t('common.settings'),           Icon: Settings,         color: '#475569', subtitle: 'SYSTEM' },
   ];
 
   return (
+    <div className="px-3 sm:px-5 py-6 max-w-screen-2xl mx-auto">
+      <TileHome
+        tiles={tiles}
+        title={t('admin.title', 'Admin Panel')}
+        subtitle={t('admin.subtitle', 'Restoran əməliyyatlarını idarə et')}
+      />
+    </div>
+  );
+}
+
+function SubPageWrap({ children }) {
+  return <div className="px-3 sm:px-5 py-6 pt-4 max-w-screen-2xl mx-auto min-w-0">{children}</div>;
+}
+
+export default function AdminDashboard() {
+  return (
     <VoiceCallProvider myRole="admin">
-    <div className="min-h-screen bg-[#F9F9F7]">
-      <VoiceCallOverlay />
-      
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#1A251E] px-4 py-3 flex items-center justify-between">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white p-1">
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-        <h1 className="text-sm font-medium text-white">QR Restoran</h1>
-        <div className="w-5" />
-      </div>
-
-      {/* Backdrop */}
-      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setSidebarOpen(false)} />}
-
-      <div className="flex">
-        <aside className={`w-56 min-h-screen bg-[#1A251E] fixed left-0 top-0 z-30 transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-          <div className="flex flex-col h-full p-4">
-            {/* Logo */}
-            <div className="flex items-center gap-2.5 mb-6 px-1">
-              <img
-                src="https://static.prod-images.emergentagent.com/jobs/20b3b0d0-a719-4e8b-9738-9b8e7415233b/images/51e072b5ec80fc46021df0d71dbee36c21f565c5904af6647ff4730065da4795.png"
-                alt="Logo" className="w-8 h-8 rounded-lg"
-              />
-              <div>
-                <h1 className="heading-font text-sm font-medium text-white">QR Restoran</h1>
-                <p className="text-[10px] text-[#8A948D]">Admin</p>
-              </div>
-            </div>
-
-            {/* User */}
-            <div className="bg-white/5 rounded-xl p-2.5 mb-5 border border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-[#C05C3D] rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                  {user?.full_name?.charAt(0)?.toUpperCase() || 'A'}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-white truncate max-w-[120px]">{user?.full_name}</p>
-                  <p className="text-[10px] text-[#C05C3D]">Administrator</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Voice Call */}
-            <div className="bg-white/5 rounded-xl p-2.5 mb-4 border border-white/10">
-              <p className="text-[10px] text-[#8A948D] mb-2 flex items-center gap-1">
-                <Phone className="w-3 h-3" /> Səsli Zəng
-              </p>
+      <div className="min-h-screen bg-[#F4F5F2]">
+        <VoiceCallOverlay />
+        <DashboardTopBar
+          homePath="/admin"
+          roleLabel="Admin"
+          showApk
+          extra={
+            <div className="hidden md:flex items-center">
               <VoiceCallButton targetRole="kitchen" />
             </div>
-
-            {/* Nav */}
-            <nav className="space-y-0.5 flex-1 overflow-y-auto">
-              {navItems.map(item => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
-                    isActive(item.to)
-                      ? 'bg-[#C05C3D]/15 text-[#C05C3D]'
-                      : 'text-[#8A948D] hover:bg-white/5 hover:text-white'
-                  }`}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                >
-                  <item.icon className="w-4 h-4 shrink-0" />
-                  <span className="font-medium truncate">{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-
-            {/* APK Download */}
-            <button
-              onClick={() => {
-                const link = document.createElement('a');
-                link.href = '/qr-restoran.apk';
-                link.download = 'qr-restoran.apk';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30 text-emerald-400 hover:from-emerald-600/30 hover:to-teal-600/30 transition-all mt-2 w-full"
-              data-testid="download-apk-btn"
-            >
-              <Smartphone className="w-4 h-4 shrink-0" />
-              <div className="text-left">
-                <span className="font-semibold block">Android APK</span>
-                <span className="text-[9px] text-emerald-500/70">Mətbəx / Ofisiant üçün</span>
-              </div>
-              <Download className="w-3.5 h-3.5 ml-auto" />
-            </button>
-
-            {/* Logout */}
-            <Button onClick={logout} variant="ghost" className="w-full justify-start text-[#8A948D] hover:text-white hover:bg-white/5 rounded-lg h-9 text-xs mt-2" data-testid="admin-logout-button">
-              <LogOut className="w-3.5 h-3.5 mr-2" /> {t('common.logout')}
-            </Button>
-
-            {/* Language switcher */}
-            <div className="mt-2">
-              <LanguageSwitcher variant="dark" />
-            </div>
-          </div>
-        </aside>
-
-        <main className="lg:ml-56 flex-1 p-3 sm:p-6 pt-16 lg:pt-6 min-w-0">
-          <Routes>
-            <Route path="/" element={<ActiveTablesPage />} />
-            <Route path="/reservations" element={<ReservationsPage />} />
-            <Route path="/venues-tables" element={<VenuesTablesPage />} />
-            <Route path="/users" element={<ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage>} />
-            <Route path="/staff" element={<ProtectedPage sectionName="Personal"><StaffManagementPage /></ProtectedPage>} />
-            <Route path="/inventory" element={<ProtectedPage sectionName="İnventar"><InventoryPage /></ProtectedPage>} />
-            <Route path="/expenses" element={<ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage>} />
-            <Route path="/analytics" element={<ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage>} />
-            <Route path="/financial-report" element={<ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage>} />
-            <Route path="/discounts" element={<ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage>} />
-            <Route path="/sales-statistics" element={<ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage>} />
-            <Route path="/menu-management" element={<ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage>} />
-            <Route path="/settings" element={<ProtectedPage sectionName="Ayarlar"><SettingsPage /></ProtectedPage>} />
-          </Routes>
-        </main>
+          }
+        />
+        <Routes>
+          <Route path="/" element={<AdminHome />} />
+          <Route path="/tables" element={<SubPageWrap><ActiveTablesPage /></SubPageWrap>} />
+          <Route path="/reservations" element={<SubPageWrap><ReservationsPage /></SubPageWrap>} />
+          <Route path="/venues-tables" element={<SubPageWrap><VenuesTablesPage /></SubPageWrap>} />
+          <Route path="/users" element={<SubPageWrap><ProtectedPage sectionName="İstifadəçilər"><AdminUsersPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/staff" element={<SubPageWrap><ProtectedPage sectionName="Personal"><StaffManagementPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/inventory" element={<SubPageWrap><ProtectedPage sectionName="İnventar"><InventoryPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/expenses" element={<SubPageWrap><ProtectedPage sectionName="Xərclər"><ExpensesPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/analytics" element={<SubPageWrap><ProtectedPage sectionName="Analitika"><ProfessionalAnalytics /></ProtectedPage></SubPageWrap>} />
+          <Route path="/financial-report" element={<SubPageWrap><ProtectedPage sectionName="Maliyyə Hesabatı"><FinancialReportPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/discounts" element={<SubPageWrap><ProtectedPage sectionName="Endirimlər"><DiscountsPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/sales-statistics" element={<SubPageWrap><ProtectedPage sectionName="Satış Statistikası"><SalesStatisticsPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/menu-management" element={<SubPageWrap><ProtectedPage sectionName="Menyu İdarəetməsi"><MenuManagementPage /></ProtectedPage></SubPageWrap>} />
+          <Route path="/settings" element={<SubPageWrap><ProtectedPage sectionName="Ayarlar"><SettingsPage /></ProtectedPage></SubPageWrap>} />
+        </Routes>
       </div>
-    </div>
     </VoiceCallProvider>
   );
 }

@@ -108,6 +108,15 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Dashboard Metro-Tile Redesign (2026-02)** — Owner & Admin paneli tamamilə yeniləndi:
+  - Yan menyu (sidebar) silindi → əvəzində slim üst bar (logo, istifadəçi çipi, voice call, APK, dil, logout)
+  - Ana səhifə artıq parlaq Metro-tile grid (Windows Modern UI / ERP12 üslubu): yumuşaq köşəli kvadrat plitkalar, gradient overlay, grain texture, hover-də lift + glow ring
+  - Owner home: 3 plitka (Restoranlar, Partnyorlar, Ayarlar)
+  - Admin home: 13 plitka (Tables, Reservations, Menu, Venues, Users, Staff, Inventory, Expenses, Discounts, Analytics, Finance, Sales, Settings) — vibrant rəng paleti (qırmızı=Live, narıncı=Book, sarı=Costs, mavi=Team, yaşıl=Money, bənövşəyi=Venue və s.)
+  - Hər plitka subtitle (LIVE / BOOK / KITCHEN və s.) + böyük ikon + ad göstərir
+  - Sub-page açılanda yuxarıda "← 🏠 Ana səhifə" düyməsi avtomatik görünür
+  - Yeni komponent: `/app/frontend/src/components/layouts/TileHome.js` (reusable), `/app/frontend/src/components/layouts/DashboardTopBar.js`
+  - `/admin` route artıq tile home; əvvəlki `ActiveTablesPage` indi `/admin/tables` ünvanındadır
 - [x] **Partner Form UX overhaul (2026-02)** — Owner panel `/owner/partners` redesign per user request:
   - Logo & Cover URL → file upload (uses existing `/api/upload/image`, 5MB limit, preview thumbnails, change/remove)
   - **Sayt** field removed (now part of dynamic social links list)
