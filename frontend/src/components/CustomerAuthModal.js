@@ -89,7 +89,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
       data-testid="customer-auth-modal"
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl"
+        className="w-full sm:max-w-md bg-white text-stone-900 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative bg-gradient-to-br from-[#1A251E] to-[#0E1612] text-white p-6 sm:p-7">

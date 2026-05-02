@@ -30,7 +30,10 @@ OTP_MAX_ATTEMPTS = 5
 
 # ==================== EMAIL HELPER ====================
 async def _send_otp_email(email: str, code: str, lang: str = "az") -> None:
-    """Send OTP via Resend. Falls back to logging the code if API key missing."""
+    """Send OTP via Resend. Raises HTTPException 502 on Resend API failure so
+    the frontend can display a precise, actionable error (e.g. domain not
+    verified). Falls back to logging the code only when RESEND_API_KEY is missing.
+    """
     api_key = os.environ.get("RESEND_API_KEY")
     sender = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
     if not api_key:
@@ -76,11 +79,27 @@ async def _send_otp_email(email: str, code: str, lang: str = "az") -> None:
             "subject": f"QR Restoran — Doğrulama kodu: {code}",
             "html": html,
         }
-        await asyncio.to_thread(resend.Emails.send, params)
-        logger.info("OTP email sent to %s", email)
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        # Resend python SDK returns dict like {"id": "..."} on success; raises on hard errors.
+        if isinstance(result, dict) and result.get("id"):
+            logger.info("OTP email sent to %s (resend_id=%s)", email, result.get("id"))
+            return
+        # Some SDK versions return the full response object — treat non-error as success
+        logger.info("OTP email sent to %s (resend response: %s)", email, type(result).__name__)
     except Exception as e:
-        logger.error("Failed to send OTP email to %s: %s", email, e)
-        # Don't raise — registration continues even if email fails (OTP also logged)
+        msg = str(e)
+        logger.error("Failed to send OTP email to %s: %s", email, msg)
+        # Detect the most common Resend sandbox error and return a user-friendly message
+        if "only send testing emails" in msg.lower() or "verify a domain" in msg.lower():
+            raise HTTPException(
+                status_code=502,
+                detail=(
+                    "Email xidməti hazırda test rejimindədir. "
+                    "Yeni müştərilərə OTP göndərmək üçün resend.com/domains-da domenin təsdiqlənməsi lazımdır. "
+                    "(Email service is in sandbox mode — verify a domain on resend.com/domains to send to other recipients.)"
+                ),
+            )
+        raise HTTPException(status_code=502, detail=f"Email göndərilmədi: {msg[:180]}")
 
 
 # ==================== JWT HELPERS ====================

@@ -109,7 +109,7 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
       data-testid="delivery-modal"
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto"
+        className="w-full sm:max-w-md bg-white text-stone-900 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6">
@@ -136,22 +136,22 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
               <>
                 <div className="space-y-3 mb-5">
                   {cart.map((it, idx) => (
-                    <div key={`${it.menu_item_id}-${idx}`} className="flex items-center gap-3 p-3 rounded-xl bg-stone-50" data-testid={`cart-item-${idx}`}>
+                    <div key={`${it.menu_item_id}-${idx}`} className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 border border-stone-200" data-testid={`cart-item-${idx}`}>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate">{it.name}</p>
-                        <p className="text-xs text-stone-500">{it.price} ₼ × {it.quantity}</p>
+                        <p className="font-bold text-sm text-stone-900 truncate">{it.name}</p>
+                        <p className="text-xs text-stone-600 mt-0.5">{it.price} ₼ × {it.quantity} = <span className="font-bold text-[#E0402A]">{(it.price * it.quantity).toFixed(2)} ₼</span></p>
                       </div>
-                      <div className="flex items-center gap-1 bg-white rounded-full border border-stone-200 px-1">
-                        <button type="button" onClick={() => updateQty(idx, -1)} className="w-7 h-7 grid place-items-center hover:bg-stone-100 rounded-full" data-testid={`cart-qty-minus-${idx}`}>
-                          <Minus size={14} />
+                      <div className="flex items-center gap-0 bg-white rounded-full border-2 border-[#E0402A]/30 shadow-sm">
+                        <button type="button" onClick={() => updateQty(idx, -1)} className="w-10 h-10 grid place-items-center text-[#E0402A] hover:bg-[#E0402A] hover:text-white rounded-l-full font-black transition-colors" data-testid={`cart-qty-minus-${idx}`} aria-label="Minus">
+                          <Minus size={18} strokeWidth={3} />
                         </button>
-                        <span className="w-6 text-center text-sm font-bold">{it.quantity}</span>
-                        <button type="button" onClick={() => updateQty(idx, 1)} className="w-7 h-7 grid place-items-center hover:bg-stone-100 rounded-full" data-testid={`cart-qty-plus-${idx}`}>
-                          <Plus size={14} />
+                        <span className="w-9 text-center text-base font-black text-stone-900">{it.quantity}</span>
+                        <button type="button" onClick={() => updateQty(idx, 1)} className="w-10 h-10 grid place-items-center text-white bg-[#E0402A] hover:bg-[#C93622] rounded-r-full font-black transition-colors" data-testid={`cart-qty-plus-${idx}`} aria-label="Plus">
+                          <Plus size={18} strokeWidth={3} />
                         </button>
                       </div>
-                      <button type="button" onClick={() => removeItem(idx)} className="w-8 h-8 grid place-items-center text-stone-400 hover:text-red-600" data-testid={`cart-remove-${idx}`}>
-                        <Trash2 size={14} />
+                      <button type="button" onClick={() => removeItem(idx)} className="w-10 h-10 grid place-items-center text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" data-testid={`cart-remove-${idx}`} aria-label="Remove">
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   ))}

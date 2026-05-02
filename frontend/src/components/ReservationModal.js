@@ -88,7 +88,7 @@ export default function ReservationModal({ open, onClose, restaurantId, restaura
       data-testid="reservation-modal"
     >
       <div
-        className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto"
+        className="w-full sm:max-w-md bg-white text-stone-900 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative bg-gradient-to-br from-amber-500 to-orange-600 text-white p-6">

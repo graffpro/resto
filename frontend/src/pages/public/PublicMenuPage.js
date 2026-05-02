@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, MapPin, Phone, Star, Search, Sparkles, Info, Calendar, Truck, Navigation, ChevronRight,
-  Plus, ShoppingCart, LogIn, LogOut, User,
+  Plus, Minus, ShoppingCart, LogIn, LogOut, User,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,13 @@ export default function PublicMenuPage() {
     });
     toast.success(t('delivery.added_to_cart', { name: item.name }), { duration: 1500 });
   };
+
+  const decFromCart = (itemId) => {
+    setCart((curr) => curr
+      .map((c) => c.menu_item_id === itemId ? { ...c, quantity: c.quantity - 1 } : c)
+      .filter((c) => c.quantity > 0));
+  };
+  const qtyOf = (itemId) => cart.find((c) => c.menu_item_id === itemId)?.quantity || 0;
 
   const cartCount = cart.reduce((s, it) => s + it.quantity, 0);
   const cartTotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
@@ -323,7 +330,7 @@ export default function PublicMenuPage() {
                 <h2 className="text-lg font-black mb-3 text-stone-100">{cat.name}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {grouped[cat.id].map((it) => (
-                    <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} onAdd={addToCart} />
+                    <MenuItemCard key={it.id} item={it} qty={qtyOf(it.id)} onClick={() => setSelectedItem(it)} onAdd={addToCart} onDec={decFromCart} />
                   ))}
                 </div>
               </section>
@@ -331,7 +338,7 @@ export default function PublicMenuPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {filtered.map((it) => (
-              <MenuItemCard key={it.id} item={it} onClick={() => setSelectedItem(it)} onAdd={addToCart} />
+              <MenuItemCard key={it.id} item={it} qty={qtyOf(it.id)} onClick={() => setSelectedItem(it)} onAdd={addToCart} onDec={decFromCart} />
             ))}
           </div>
         )}
@@ -419,7 +426,7 @@ export default function PublicMenuPage() {
   );
 }
 
-function MenuItemCard({ item, onClick, onAdd }) {
+function MenuItemCard({ item, qty = 0, onClick, onAdd, onDec }) {
   return (
     <div
       className="group relative flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/5 transition-all"
@@ -441,15 +448,43 @@ function MenuItemCard({ item, onClick, onAdd }) {
           <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
         </button>
       )}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onAdd?.(item); }}
-        className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 grid place-items-center shrink-0 shadow-lg"
-        aria-label="Səbətə əlavə et"
-        data-testid={`public-menu-add-${item.id}`}
-      >
-        <Plus size={16} />
-      </button>
+      {qty > 0 ? (
+        <div
+          className="flex items-center gap-0 bg-emerald-600 rounded-full shrink-0 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+          data-testid={`public-menu-qty-${item.id}`}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDec?.(item.id); }}
+            className="w-9 h-9 grid place-items-center text-white hover:bg-emerald-700 rounded-l-full font-black transition-colors"
+            aria-label="Azalt"
+            data-testid={`public-menu-minus-${item.id}`}
+          >
+            <Minus size={16} strokeWidth={3} />
+          </button>
+          <span className="min-w-[1.75rem] px-1 text-center text-white text-sm font-black">{qty}</span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAdd?.(item); }}
+            className="w-9 h-9 grid place-items-center text-white hover:bg-emerald-700 rounded-r-full font-black transition-colors"
+            aria-label="Artır"
+            data-testid={`public-menu-plus-${item.id}`}
+          >
+            <Plus size={16} strokeWidth={3} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onAdd?.(item); }}
+          className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 grid place-items-center shrink-0 shadow-lg transition-colors"
+          aria-label="Səbətə əlavə et"
+          data-testid={`public-menu-add-${item.id}`}
+        >
+          <Plus size={18} strokeWidth={3} />
+        </button>
+      )}
     </div>
   );
 }
