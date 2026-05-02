@@ -122,76 +122,59 @@
     "call_received": "Çağırış alındı"
   },
   "landing": {
-    "nav": {
-      "partners": "Partnyor Restoranlar",
-      "features": "Xüsusiyyətlər",
-      "how": "Necə işləyir",
-      "faq": "FAQ"
-    },
     "hero": {
-      "badge": "Restoran üçün ağıllı QR sistemi",
-      "title_1": "Restoranınızı",
-      "title_2": "rəqəmsallaşdırın",
-      "subtitle": "QR menyu, real-time sifariş, mətbəx ekranı, inventar, analitika — hamısı bir yerdə. 10 dəqiqədə qurulur, ilk gündən satışları artırır.",
-      "cta_start": "Pulsuz Başla",
-      "cta_login": "Daxil ol",
-      "feature_1": "Limitsiz masa",
-      "feature_2": "Android APK daxil",
-      "feature_3": "Real-time bildirişlər",
-      "realtime_label": "Real-time sifarişlər",
-      "realtime_value": "3-5 saniyə"
+      "title": "Nə yemək istəyirsən?",
+      "subtitle": "Yaxındakı ən yaxşı restoranları kəşf et, menyusuna bax, rezerv et və ya evinə çatdırılma sifariş et.",
+      "search_placeholder": "Yemək və ya restoran axtar..."
     },
     "partners": {
-      "section_label": "Partnyor Restoranlar",
-      "title": "Bizim Partnyorlarımız",
-      "subtitle": "Sistemimizdən istifadə edən təsdiqlənmiş restoranlar. Menyularına baxın, ünvanlarını kəşf edin.",
-      "view_menu": "Menyunu Gör",
-      "directions": "Yol Tarifi",
-      "no_partners": "Hələ partnyor restoran yoxdur",
-      "filter_all": "Hamısı",
-      "filter_featured": "Önə Çıxanlar",
-      "filter_nearby": "Bu yaxınlarda",
-      "rate_now": "Qiymətləndir",
-      "your_rating": "Sizin reytinqiniz",
-      "ratings_count": "{{count}} rəy",
-      "translate": "Tərcümə et",
-      "original": "Orijinal"
-    },
-    "features": {
-      "label": "Xüsusiyyətlər",
-      "title": "Bir Platformada Hər Şey",
-      "qr": { "title": "QR Menyu", "desc": "Müştərilər QR kodu skan edib birbaşa telefondan sifariş verir. Kağız menyu ehtiyacı yoxdur." },
-      "kitchen": { "title": "Mətbəx Ekranı", "desc": "Sifarişlər real-time mətbəxə düşür. Hər item öz stansiyasına yönləndirilir." },
-      "realtime": { "title": "Real-Time", "desc": "WebSocket ilə ani bildirişlər. Sifariş verilən an mətbəx xəbərdar olur." },
-      "inventory": { "title": "İnventar", "desc": "Xammal izləmə, resept idarəetmə, stok xəbərdarlıqları. Heç vaxt materialınız tükənməz." },
-      "staff": { "title": "Personal", "desc": "Mətbəx, Bar, Ofisiant — hər birini ayrıca idarə edin. Növbə sistemi." },
-      "analytics": { "title": "Analitika", "desc": "Satış, gəlir, populyar məhsullar — hər şeyi görün, hər şeyi bilin." },
-      "call": { "title": "Ofisiant Çağır", "desc": "Müştəri bir kliklə ofisiantı çağırır. Davamlı alarm səsi, əsla qaçırmayın." }
+      "title": "Yaxındakı restoranlar",
+      "count_suffix": "restoran",
+      "no_partners": "Heç nə tapılmadı. Başqa kateqoriya seçin.",
+      "become_title": "Restoran sahibisiniz?",
+      "become_subtitle": "Platformamıza qoşul, menyunu onlayn təqdim et və yeni müştərilər qazan.",
+      "become_cta": "Partnyor ol",
+      "view_menu": "Menyunu aç",
+      "directions": "Yol tarifi",
+      "ratings_count": "{{count}} rəy"
     },
     "how": {
-      "label": "Necə İşləyir",
-      "title": "3 Addımda Başlayın",
-      "cta": "Pulsuz Qeydiyyat",
-      "step1": { "title": "Qeydiyyatdan Keçin", "desc": "Restoran adı və şifrə ilə 30 saniyədə başlayın." },
-      "step2": { "title": "Menyunu Yaradın", "desc": "Kateqoriyalar, qiymətlər, şəkillər əlavə edin." },
-      "step3": { "title": "QR Kodu Payın", "desc": "Masalara QR kodlar yerləşdirin, sifarişlər axmağa başlasın." }
+      "title": "Necə işləyir?",
+      "step1_title": "Restoranı seç",
+      "step1_desc": "Yuxarıdakı siyahıdan və ya masadakı QR-dən restoranı aç.",
+      "step2_title": "Menyuya bax",
+      "step2_desc": "Şəkillər, qiymətlər, təfərrüatlar bir toxunuşda.",
+      "step3_title": "Sifariş ver",
+      "step3_desc": "Masada ödə, yaxud evinə çatdırılma al — seçim sənin.",
+      "step4_title": "Ləzzət al",
+      "step4_desc": "Sifarişini real vaxtda izlə — yığcam və sürətli."
     },
     "faq": {
-      "title": "Tez-tez Verilən Suallar",
-      "q1": { "q": "Sistemin qurulması nə qədər vaxt alır?", "a": "Qeydiyyatdan menyu yaratmağa qədər 10 dəqiqə. QR kodlar avtomatik yaradılır." },
-      "q2": { "q": "Hansı avadanlıq lazımdır?", "a": "Heç bir xüsusi avadanlıq lazım deyil. İstənilən telefon, planşet və ya kompüter ilə işləyir." },
-      "q3": { "q": "Neçə masanı dəstəkləyir?", "a": "Limitsiz masa, menyular, işçilər yaratmaq olur." },
-      "q4": { "q": "Məlumatlarım təhlükəsizdirmi?", "a": "Bütün məlumatlar şifrələnmiş serverdə saxlanılır." },
-      "q5": { "q": "Android tətbiqi var?", "a": "Bəli! Mətbəx və ofisiant üçün Android APK mövcuddur. Arxa planda da işləyir." }
-    },
-    "cta_banner": {
-      "title": "Hələ Kağız Menyu İstifadə Edirsiniz?",
-      "subtitle": "QR Restoran ilə menyunuzu rəqəmsallaşdırın, sifarişləri avtomatlaşdırın.",
-      "button": "Pulsuz Başlayın"
+      "title": "Tez-tez verilən suallar",
+      "q1_q": "Necə sifariş verim?",
+      "q1_a": "Restoranı seç, menyudan yeməyi səbətə əlavə et, çatdırılma ünvanını yaz və təsdiqlə. Sifariş 25-35 dəqiqəyə qapında olur.",
+      "q2_q": "Ödənişi necə edə bilərəm?",
+      "q2_a": "Hazırda nağd və ya kuryerə kart ilə ödəyə bilərsən. Online ödəniş tezliklə əlavə olunacaq.",
+      "q3_q": "Masada sifariş verə bilərəmmi?",
+      "q3_a": "Bəli. Restoranda masadakı QR kodu skan et və birbaşa telefondan sifariş ver.",
+      "q4_q": "Rezerv necə işləyir?",
+      "q4_a": "Restoranın kartına girib Rezerv düyməsinə bas, tarix, saat və qonaq sayını seç. Restoran səninlə əlaqə saxlayıb təsdiqləyəcək.",
+      "q5_q": "Sifarişimi izləyə bilərəm?",
+      "q5_a": "Bəli. Profilindən bütün aktiv sifarişlərini və statuslarını (qəbul edildi → hazırlanır → yolda → çatdırıldı) real vaxtda görə bilərsən."
     },
     "footer": {
-      "tagline": "Restoran idarəetmə sistemi",
-      "copyright": "© 2026 QR Restoran. Bütün hüquqlar qorunur."
+      "about": "Restoranlar üçün menyu, rezerv və çatdırılma platforması.",
+      "links": "Linklər",
+      "contact": "Əlaqə"
+    },
+    "register": {
+      "title": "Yeni Restoran Qeydiyyatı",
+      "restaurant_name": "Restoran Adı",
+      "owner_name": "Adınız",
+      "username": "İstifadəçi",
+      "password": "Şifrə",
+      "submit": "Qeydiyyatdan Keç",
+      "have_account": "Hesabınız var?"
     }
   },
   "register": {

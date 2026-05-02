@@ -122,76 +122,59 @@
     "call_received": "Call received"
   },
   "landing": {
-    "nav": {
-      "partners": "Partner Restaurants",
-      "features": "Features",
-      "how": "How It Works",
-      "faq": "FAQ"
-    },
     "hero": {
-      "badge": "Smart QR system for restaurants",
-      "title_1": "Digitize",
-      "title_2": "your restaurant",
-      "subtitle": "QR menu, real-time orders, kitchen display, inventory, analytics — all in one. Set up in 10 minutes, grow sales from day one.",
-      "cta_start": "Start Free",
-      "cta_login": "Log In",
-      "feature_1": "Unlimited tables",
-      "feature_2": "Android APK included",
-      "feature_3": "Real-time notifications",
-      "realtime_label": "Real-time orders",
-      "realtime_value": "3-5 seconds"
+      "title": "What do you want to eat?",
+      "subtitle": "Discover the best nearby restaurants, browse their menus, make a reservation or order delivery to your door.",
+      "search_placeholder": "Search for a dish or restaurant..."
     },
     "partners": {
-      "section_label": "Partner Restaurants",
-      "title": "Our Partners",
-      "subtitle": "Verified restaurants using our system. Browse their menus and locations.",
-      "view_menu": "Open Menu",
+      "title": "Nearby restaurants",
+      "count_suffix": "restaurants",
+      "no_partners": "Nothing found. Try another category.",
+      "become_title": "Are you a restaurant owner?",
+      "become_subtitle": "Join our platform, showcase your menu online and win new customers.",
+      "become_cta": "Become a partner",
+      "view_menu": "Open menu",
       "directions": "Directions",
-      "no_partners": "No partner restaurants yet",
-      "filter_all": "All",
-      "filter_featured": "Featured",
-      "filter_nearby": "Nearby",
-      "rate_now": "Rate",
-      "your_rating": "Your rating",
-      "ratings_count": "{{count}} reviews",
-      "translate": "Translate",
-      "original": "Original"
-    },
-    "features": {
-      "label": "Features",
-      "title": "Everything in one platform",
-      "qr": { "title": "QR Menu", "desc": "Guests scan a QR code and order straight from their phone. No paper menus needed." },
-      "kitchen": { "title": "Kitchen Display", "desc": "Orders hit the kitchen in real time. Each item is routed to its own station." },
-      "realtime": { "title": "Real-Time", "desc": "Instant WebSocket notifications. The kitchen knows the moment an order is placed." },
-      "inventory": { "title": "Inventory", "desc": "Ingredient tracking, recipes, and stock alerts. Never run out of supplies again." },
-      "staff": { "title": "Staff", "desc": "Kitchen, bar, waiter — manage every role separately. Built-in shift system." },
-      "analytics": { "title": "Analytics", "desc": "Sales, revenue, top items — see everything, know everything." },
-      "call": { "title": "Call Waiter", "desc": "Guests call a waiter with one tap. Persistent alarm sound — you'll never miss it." }
+      "ratings_count": "{{count}} reviews"
     },
     "how": {
-      "label": "How It Works",
-      "title": "Get Started in 3 Steps",
-      "cta": "Sign Up Free",
-      "step1": { "title": "Sign Up", "desc": "Restaurant name and password — be live in 30 seconds." },
-      "step2": { "title": "Create Your Menu", "desc": "Add categories, prices, and photos." },
-      "step3": { "title": "Share the QR", "desc": "Place QR codes on the tables and watch the orders flow in." }
+      "title": "How does it work?",
+      "step1_title": "Pick a restaurant",
+      "step1_desc": "Choose from the list above or scan the QR code on your table.",
+      "step2_title": "Browse the menu",
+      "step2_desc": "Photos, prices and details — one tap away.",
+      "step3_title": "Place an order",
+      "step3_desc": "Pay at the table or order delivery to your home — it's up to you.",
+      "step4_title": "Enjoy",
+      "step4_desc": "Track your order in real time — fast and seamless."
     },
     "faq": {
-      "title": "Frequently Asked Questions",
-      "q1": { "q": "How long does setup take?", "a": "From signup to a live menu — 10 minutes. QR codes are generated automatically." },
-      "q2": { "q": "What hardware do I need?", "a": "No special hardware required. Works on any phone, tablet, or computer." },
-      "q3": { "q": "How many tables are supported?", "a": "Unlimited tables, menus, and staff accounts." },
-      "q4": { "q": "Is my data secure?", "a": "All data is stored on encrypted servers." },
-      "q5": { "q": "Is there an Android app?", "a": "Yes! An Android APK for kitchen and waiter that runs in the background." }
-    },
-    "cta_banner": {
-      "title": "Still Using Paper Menus?",
-      "subtitle": "Digitize your menu and automate orders with QR Restoran.",
-      "button": "Start Free"
+      "title": "Frequently asked questions",
+      "q1_q": "How do I place an order?",
+      "q1_a": "Pick a restaurant, add dishes to your cart, enter the delivery address and confirm. Your order will be at your door in 25-35 minutes.",
+      "q2_q": "How can I pay?",
+      "q2_a": "Currently you can pay by cash or card to the courier. Online payment is coming soon.",
+      "q3_q": "Can I order at the table?",
+      "q3_a": "Yes. At the restaurant, scan the QR code on your table and order directly from your phone.",
+      "q4_q": "How do reservations work?",
+      "q4_a": "Open a restaurant card, tap Reserve, and pick a date, time and number of guests. The restaurant will reach out to confirm shortly.",
+      "q5_q": "Can I track my order?",
+      "q5_a": "Yes. You can see all your active orders and their statuses (accepted → preparing → on the way → delivered) in real time from your profile."
     },
     "footer": {
-      "tagline": "Restaurant management system",
-      "copyright": "© 2026 QR Restoran. All rights reserved."
+      "about": "A menu, reservation and delivery platform for restaurants.",
+      "links": "Links",
+      "contact": "Contact"
+    },
+    "register": {
+      "title": "New Restaurant Registration",
+      "restaurant_name": "Restaurant Name",
+      "owner_name": "Your Name",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign Up",
+      "have_account": "Already have an account?"
     }
   },
   "register": {

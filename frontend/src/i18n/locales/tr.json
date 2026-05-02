@@ -122,76 +122,59 @@
     "call_received": "Çağrı alındı"
   },
   "landing": {
-    "nav": {
-      "partners": "Partner Restoranlar",
-      "features": "Özellikler",
-      "how": "Nasıl Çalışır",
-      "faq": "SSS"
-    },
     "hero": {
-      "badge": "Restoranlar için akıllı QR sistemi",
-      "title_1": "Restoranınızı",
-      "title_2": "dijitalleştirin",
-      "subtitle": "QR menü, gerçek zamanlı sipariş, mutfak ekranı, envanter, analitik — hepsi tek yerde. 10 dakikada kurulur, ilk günden satışları artırır.",
-      "cta_start": "Ücretsiz Başla",
-      "cta_login": "Giriş Yap",
-      "feature_1": "Sınırsız masa",
-      "feature_2": "Android APK dahil",
-      "feature_3": "Anlık bildirimler",
-      "realtime_label": "Gerçek zamanlı siparişler",
-      "realtime_value": "3-5 saniye"
+      "title": "Ne yemek istersin?",
+      "subtitle": "Yakınındaki en iyi restoranları keşfet, menülerine göz at, rezervasyon yap ya da evine teslimat sipariş et.",
+      "search_placeholder": "Yemek veya restoran ara..."
     },
     "partners": {
-      "section_label": "Partner Restoranlar",
-      "title": "Partnerlerimiz",
-      "subtitle": "Sistemimizi kullanan onaylı restoranlar. Menülerini ve konumlarını keşfedin.",
-      "view_menu": "Menüyü Aç",
-      "directions": "Yol Tarifi",
-      "no_partners": "Henüz partner restoran yok",
-      "filter_all": "Tümü",
-      "filter_featured": "Öne Çıkanlar",
-      "filter_nearby": "Yakınımda",
-      "rate_now": "Puanla",
-      "your_rating": "Puanınız",
-      "ratings_count": "{{count}} değerlendirme",
-      "translate": "Çevir",
-      "original": "Orijinal"
-    },
-    "features": {
-      "label": "Özellikler",
-      "title": "Her şey tek platformda",
-      "qr": { "title": "QR Menü", "desc": "Müşteriler QR'ı tarayıp doğrudan telefondan sipariş verir. Kâğıt menüye gerek yok." },
-      "kitchen": { "title": "Mutfak Ekranı", "desc": "Siparişler gerçek zamanlı mutfağa düşer. Her ürün kendi istasyonuna yönlendirilir." },
-      "realtime": { "title": "Gerçek Zamanlı", "desc": "WebSocket ile anlık bildirimler. Sipariş anında mutfak haberdar olur." },
-      "inventory": { "title": "Envanter", "desc": "Ham madde takibi, reçete yönetimi, stok uyarıları. Stoğunuz hiç bitmez." },
-      "staff": { "title": "Personel", "desc": "Mutfak, bar, garson — her birini ayrı yönetin. Vardiya sistemi." },
-      "analytics": { "title": "Analitik", "desc": "Satış, gelir, popüler ürünler — her şeyi görün, her şeyi bilin." },
-      "call": { "title": "Garson Çağır", "desc": "Müşteri tek tıkla garsonu çağırır. Sürekli alarm sesiyle hiç kaçırmazsınız." }
+      "title": "Yakındaki restoranlar",
+      "count_suffix": "restoran",
+      "no_partners": "Hiçbir şey bulunamadı. Başka bir kategori dene.",
+      "become_title": "Restoran sahibi misin?",
+      "become_subtitle": "Platformumuza katıl, menünü online sun ve yeni müşteriler kazan.",
+      "become_cta": "Partner Ol",
+      "view_menu": "Menüyü aç",
+      "directions": "Yol tarifi",
+      "ratings_count": "{{count}} değerlendirme"
     },
     "how": {
-      "label": "Nasıl Çalışır",
-      "title": "3 Adımda Başlayın",
-      "cta": "Ücretsiz Kayıt",
-      "step1": { "title": "Kayıt Olun", "desc": "Restoran adı ve şifre ile 30 saniyede başlayın." },
-      "step2": { "title": "Menüyü Oluşturun", "desc": "Kategoriler, fiyatlar, görseller ekleyin." },
-      "step3": { "title": "QR Kodu Paylaşın", "desc": "Masalara QR kod yerleştirin, siparişler akmaya başlasın." }
+      "title": "Nasıl çalışır?",
+      "step1_title": "Restoran seç",
+      "step1_desc": "Yukarıdaki listeden seç ya da masandaki QR'ı okut.",
+      "step2_title": "Menüye göz at",
+      "step2_desc": "Fotoğraflar, fiyatlar ve detaylar tek dokunuşta.",
+      "step3_title": "Sipariş ver",
+      "step3_desc": "Masada öde ya da evine teslimat al — seçim senin.",
+      "step4_title": "Keyfini çıkar",
+      "step4_desc": "Siparişini gerçek zamanlı takip et — hızlı ve pürüzsüz."
     },
     "faq": {
       "title": "Sıkça Sorulan Sorular",
-      "q1": { "q": "Sistemin kurulumu ne kadar sürer?", "a": "Kayıttan menüye kadar 10 dakika. QR kodlar otomatik üretilir." },
-      "q2": { "q": "Hangi ekipman gerekli?", "a": "Özel bir ekipman gerekmez. Her telefon, tablet veya bilgisayarla çalışır." },
-      "q3": { "q": "Kaç masa destekliyor?", "a": "Sınırsız masa, menü ve personel oluşturabilirsiniz." },
-      "q4": { "q": "Verilerim güvende mi?", "a": "Tüm veriler şifreli sunucuda saklanır." },
-      "q5": { "q": "Android uygulaması var mı?", "a": "Evet! Mutfak ve garson için Android APK mevcut. Arka planda da çalışır." }
-    },
-    "cta_banner": {
-      "title": "Hâlâ Kağıt Menü mü Kullanıyorsunuz?",
-      "subtitle": "QR Restoran ile menünüzü dijitalleştirin, siparişleri otomatikleştirin.",
-      "button": "Ücretsiz Başla"
+      "q1_q": "Nasıl sipariş veririm?",
+      "q1_a": "Bir restoran seç, menüden yemekleri sepete ekle, teslimat adresini yaz ve onayla. Siparişin 25-35 dakikada kapında olur.",
+      "q2_q": "Nasıl ödeme yapabilirim?",
+      "q2_a": "Şu anda nakit veya kuryeye kartla ödeme yapabilirsin. Online ödeme yakında eklenecek.",
+      "q3_q": "Masada sipariş verebilir miyim?",
+      "q3_a": "Evet. Restoranda masadaki QR kodu okut ve doğrudan telefondan sipariş ver.",
+      "q4_q": "Rezervasyon nasıl çalışır?",
+      "q4_a": "Restoran kartını aç, Rezerve Et'e bas ve tarih, saat ve misafir sayısını seç. Restoran kısa sürede seni arayıp onaylayacak.",
+      "q5_q": "Siparişimi takip edebilir miyim?",
+      "q5_a": "Evet. Profilinden tüm aktif siparişlerini ve durumlarını (kabul edildi → hazırlanıyor → yolda → teslim edildi) gerçek zamanlı görebilirsin."
     },
     "footer": {
-      "tagline": "Restoran yönetim sistemi",
-      "copyright": "© 2026 QR Restoran. Tüm hakları saklıdır."
+      "about": "Restoranlar için menü, rezervasyon ve teslimat platformu.",
+      "links": "Bağlantılar",
+      "contact": "İletişim"
+    },
+    "register": {
+      "title": "Yeni Restoran Kaydı",
+      "restaurant_name": "Restoran Adı",
+      "owner_name": "Adınız",
+      "username": "Kullanıcı adı",
+      "password": "Şifre",
+      "submit": "Kayıt Ol",
+      "have_account": "Hesabınız var mı?"
     }
   },
   "register": {

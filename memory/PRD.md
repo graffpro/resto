@@ -179,6 +179,26 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - `GET /api/tables?restaurant_id=X` now respects the param for OWNER role (was being ignored)
 - [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
 
+### 2026-02 — i18n Landing Page Sync + Automated Translation Pipeline
+- [x] **P0 Fix: Outdated SaaS text on Wolt-style Landing Page** — Replaced entire `landing.*` block in all 4 locale JSONs (`az`, `en`, `ru`, `tr`) with customer-centric keys aligned to `LandingPage.js`:
+  - `hero.title` / `hero.subtitle` / `hero.search_placeholder` (e.g. "Nə yemək istəyirsən?" / "What do you want to eat?")
+  - `partners.title` ("Yaxındakı restoranlar"), `count_suffix`, `no_partners`, `become_title`, `become_subtitle`, `become_cta`
+  - `how.step1_title / step1_desc ... step4_title / step4_desc` (flat keys to match JS usage)
+  - `faq.q1_q / q1_a ... q5_q / q5_a` (flat, customer-facing delivery/reservation/tracking FAQs)
+  - `footer.about / links / contact`
+  - `landing.register.*` (title, restaurant_name, owner_name, username, password, submit, have_account)
+  - Removed obsolete keys: `hero.badge`, `hero.title_1/title_2`, `hero.cta_start/cta_login`, `hero.feature_*`, `hero.realtime_*`, `features.*`, `cta_banner.*`, `nav.*`.
+  - All 4 files now have identical 269 string keys.
+- [x] **P1: Scalable i18n automation** — Created `/app/scripts/translate-i18n.py` using **Gemini 2.5 Flash via emergentintegrations**. Features:
+  - Source of truth is `az.json`; script walks every leaf key and fills missing keys in every other `*.json` in the locales folder.
+  - Batches 40 keys/request, preserves placeholders (`{{name}}`, `{{count}}`) with strict validation (rejects LLM outputs with placeholder mismatch).
+  - Writes output in source key order so diffs stay clean.
+  - Scales to 10-15+ languages — `LANG_NAMES` already includes AZ/EN/RU/TR/FR/DE/ES/IT/PT/AR/FA/UK/PL/NL/RO/SV/HE/KA/UZ/KK/ZH/JA/KO.
+  - CLI: `--lang <code>`, `--add-lang <code>` (creates new locale), `--force`, `--dry-run`.
+- [x] **Yarn shortcuts** — Added `yarn translate:i18n` and `yarn translate:i18n:force` in `frontend/package.json`.
+- [x] Verified end-to-end: `{"hello":"Salam","greet":"Xoş gəlmisiniz, {{name}}!"}` → `{"hello":"Hello","greet":"Welcome, {{name}}!"}` with placeholder intact. Screenshot confirms new customer-centric hero text renders.
+
+
 ## Pending / Upcoming Tasks
 - P0 (NEXT): Online Payment integration (Stripe / Pulpal) — let customers pay by phone
 - P0 (NEXT): Loyalty Points System (Sədaqət Proqramı) — CRM, phone verification, stamp card UI
