@@ -1,38 +1,49 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { Mail, Loader2, ArrowRight, X, KeyRound, Check } from 'lucide-react';
+import { Mail, Loader2, ArrowRight, X, KeyRound, Check, Briefcase, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
 /**
- * Customer auth modal with passwordless email OTP flow.
- * Step 1: collect email + name + international phone → send OTP
- * Step 2: enter 6-digit code → verify → JWT token
+ * Unified auth modal with three entry points:
+ *   • Login   — existing customer, email → OTP
+ *   • Qeydiyyat — new customer, email + name + phone → OTP
+ *   • Staff   — partner / admin / kitchen / waiter / master_waiter / bar,
+ *               username + password (classic JWT flow via AuthContext.login).
  */
 export default function CustomerAuthModal({ open, onClose, onSuccess }) {
   const { t } = useTranslation();
   const { setAuth } = useCustomerAuth();
-  const [mode, setMode] = useState('login'); // login | register
+  const { login: staffLogin } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState('login'); // login | register | staff
   const [step, setStep] = useState('contact'); // contact | otp
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
   const codeInputRef = useRef(null);
 
   useEffect(() => {
     if (!open) {
-      setMode('login'); setStep('contact'); setEmail(''); setName(''); setPhone(''); setCode(''); setResendIn(0);
+      setMode('login'); setStep('contact');
+      setEmail(''); setName(''); setPhone(''); setCode('');
+      setUsername(''); setPassword('');
+      setResendIn(0);
     }
   }, [open]);
 
@@ -84,6 +95,32 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
     } finally { setBusy(false); }
   };
 
+  const staffSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!username || !password) { toast.error('Login və şifrə tələb olunur'); return; }
+    setBusy(true);
+    try {
+      const result = await staffLogin(username.trim(), password);
+      if (!result?.success) {
+        toast.error(result?.error || 'Giriş baş tutmadı');
+        return;
+      }
+      const role = result.user?.role;
+      toast.success(`Xoş gəldin, ${result.user?.full_name || result.user?.username}!`);
+      onClose?.();
+      // Redirect by role — mirrors App.js "/" routing
+      const dest = role === 'owner' ? '/owner'
+        : role === 'admin' ? '/admin'
+        : role === 'kitchen' || role === 'bar' ? '/kitchen'
+        : role === 'master_waiter' ? '/waiter/take-order'
+        : role === 'waiter' ? '/waiter'
+        : '/admin';
+      navigate(dest);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Giriş xətası');
+    } finally { setBusy(false); }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -104,18 +141,24 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
             <X size={16} />
           </button>
           <div className="w-12 h-12 rounded-2xl bg-amber-400/20 grid place-items-center mb-3">
-            {step === 'contact' ? <Mail className="w-5 h-5 text-amber-300" /> : <KeyRound className="w-5 h-5 text-amber-300" />}
+            {step === 'contact'
+              ? (mode === 'staff' ? <Briefcase className="w-5 h-5 text-amber-300" /> : <Mail className="w-5 h-5 text-amber-300" />)
+              : <KeyRound className="w-5 h-5 text-amber-300" />}
           </div>
           <h2 className="text-xl font-black">
             {step === 'contact'
-              ? (mode === 'login' ? 'Daxil ol' : 'Qeydiyyat')
+              ? (mode === 'login' ? 'Daxil ol'
+                : mode === 'register' ? 'Qeydiyyat'
+                : 'Partnyor / İşçi girişi')
               : t('customer_auth.title_otp')}
           </h2>
           <p className="text-stone-400 text-sm mt-1">
             {step === 'contact'
               ? (mode === 'login'
                   ? 'Email ünvanınızı daxil edin, 6 rəqəmli kod göndərəcəyik.'
-                  : 'Ad, email və telefon daxil edin, hesabınızı qururuq.')
+                  : mode === 'register'
+                  ? 'Ad, email və telefon daxil edin, hesabınızı qururuq.'
+                  : 'Restoran sahibi, admin, ofitsiant və ya mətbəx işçisi üçün.')
               : t('customer_auth.subtitle_otp', { email })}
           </p>
         </div>
@@ -123,12 +166,12 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
         <div className="p-6 sm:p-7 space-y-4">
           {step === 'contact' ? (
             <>
-              {/* Login / Register tab switcher */}
-              <div className="grid grid-cols-2 gap-1 p-1 bg-stone-100 rounded-full mb-2">
+              {/* 3-tab switcher: Login (email OTP) / Register / Staff (username+password) */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-stone-100 rounded-full mb-2">
                 <button
                   type="button"
                   onClick={() => setMode('login')}
-                  className={`h-9 rounded-full text-sm font-bold transition-colors ${mode === 'login' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`h-9 rounded-full text-xs sm:text-sm font-bold transition-colors ${mode === 'login' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
                   data-testid="auth-tab-login"
                 >
                   Daxil ol
@@ -136,12 +179,61 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                 <button
                   type="button"
                   onClick={() => setMode('register')}
-                  className={`h-9 rounded-full text-sm font-bold transition-colors ${mode === 'register' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`h-9 rounded-full text-xs sm:text-sm font-bold transition-colors ${mode === 'register' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
                   data-testid="auth-tab-register"
                 >
                   Qeydiyyat
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('staff')}
+                  className={`h-9 rounded-full text-xs sm:text-sm font-bold transition-colors ${mode === 'staff' ? 'bg-[#1A251E] text-white shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  data-testid="auth-tab-staff"
+                >
+                  İşçi
+                </button>
               </div>
+
+              {mode === 'staff' ? (
+                <form onSubmit={staffSubmit} className="space-y-4" data-testid="staff-login-form">
+                  <div>
+                    <Label htmlFor="staff-username" className="flex items-center gap-1.5"><User size={13} /> Login</Label>
+                    <Input
+                      id="staff-username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="graff və ya emin"
+                      autoComplete="username"
+                      required
+                      data-testid="staff-username"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="staff-password">Şifrə</Label>
+                    <Input
+                      id="staff-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required
+                      data-testid="staff-password"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={busy}
+                    className="w-full bg-[#1A251E] hover:bg-[#0E1612] h-11 text-sm font-semibold text-white"
+                    data-testid="staff-login-submit"
+                  >
+                    {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Briefcase className="w-4 h-4 mr-2" />}
+                    Daxil ol
+                  </Button>
+                  <p className="text-[11px] text-stone-500 text-center pt-1">
+                    Partnyor / admin / ofitsiant / mətbəx üçün istifadəçi adı və şifrə.
+                  </p>
+                </form>
+              ) : (
               <form onSubmit={sendOtp} className="space-y-4">
                 {mode === 'register' && (
                   <div>
@@ -206,6 +298,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   {t('customer_auth.terms')}
                 </p>
               </form>
+              )}
             </>
           ) : (
             <form onSubmit={verifyOtp} className="space-y-4">

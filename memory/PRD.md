@@ -179,6 +179,13 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - `GET /api/tables?restaurant_id=X` now respects the param for OWNER role (was being ignored)
 - [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
 
+### 2026-02 — Unified Auth: staff/partner login from the landing modal
+- [x] **P0: Customer modal 3-tab switcher** — the landing-page "Daxil ol" modal (`CustomerAuthModal`) now has three tabs: **Daxil ol** (email OTP), **Qeydiyyat** (email+name+phone OTP) and **İşçi** (dark pill, classic username+password for partners/admin/waiter/kitchen/bar/master_waiter).
+- [x] **Staff tab** uses `AuthContext.login()` (no change to existing `/login` page — backward compatible), redirects by role: owner→/owner, admin→/admin, kitchen|bar→/kitchen, master_waiter→/waiter/take-order, waiter→/waiter.
+- [x] `AuthContext.login()` now also returns `user` and `token` in the success payload (purely additive; existing `result.success`-only consumers keep working).
+- [x] **Full regression verified (curl + screenshots)**: owner `graff` / admin `emin` / master_waiter `mofitsiant` logins still work via the classic `/login` page AND via the new modal; wrong password still 401s; public partner list still responsive.
+
+
 ### 2026-02 — Customer Login/Register split + Master Waiter role
 - [x] **P0: Customer login vs register flow** — `CustomerAuthModal` now opens on the "Daxil ol" (Login) tab by default with only an email field. User can toggle to "Qeydiyyat" (Register) which reveals name + phone. Backend `POST /api/customer/auth/send-otp` gained a `mode` field (`login | register`); when `mode=login` and email has no existing `customer_users` row, returns **404 "Bu email ilə hesab tapılmadı. Zəhmət olmasa qeydiyyatdan keçin."** Cross-link between tabs under each form.
 - [x] **P0: Master Waiter role** (`UserRole.MASTER_WAITER = "master_waiter"`) — a standalone elevated waiter role, NOT a flag on regular waiter:
