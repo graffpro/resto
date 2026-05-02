@@ -63,8 +63,15 @@ export default function AdminUsersPage() {
   };
 
   const getRoleBadge = (role) => {
-    const colors = { admin: 'bg-[#C05C3D]/10 text-[#C05C3D]', kitchen: 'bg-[#D48B30]/10 text-[#D48B30]', waiter: 'bg-[#3E6A4B]/10 text-[#3E6A4B]', bar: 'bg-[#7C3AED]/10 text-[#7C3AED]' };
-    return <Badge className={`text-[10px] rounded-full ${colors[role] || 'bg-[#8A948D]/10 text-[#8A948D]'}`}>{az[role] || role}</Badge>;
+    const colors = {
+      admin: 'bg-[#C05C3D]/10 text-[#C05C3D]',
+      kitchen: 'bg-[#D48B30]/10 text-[#D48B30]',
+      waiter: 'bg-[#3E6A4B]/10 text-[#3E6A4B]',
+      master_waiter: 'bg-emerald-600 text-white shadow-sm',
+      bar: 'bg-[#7C3AED]/10 text-[#7C3AED]',
+    };
+    const labels = { ...az, master_waiter: '🎖 Master Ofitsiant' };
+    return <Badge className={`text-[10px] rounded-full ${colors[role] || 'bg-[#8A948D]/10 text-[#8A948D]'}`}>{labels[role] || role}</Badge>;
   };
 
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-2 border-[#C05C3D] border-t-transparent" /></div>;
@@ -137,7 +144,14 @@ export default function AdminUsersPage() {
               <select className="flex h-9 w-full rounded-xl border border-[#E6E5DF] bg-white px-3 py-2 text-sm mt-1" value={formData.role} onChange={e => setFormData(p => ({...p, role: e.target.value}))}>
                 <option value="kitchen">{az.kitchen}</option>
                 <option value="waiter">{az.waiter}</option>
+                <option value="master_waiter">🎖 Master Ofitsiant</option>
+                <option value="bar">Bar</option>
               </select>
+              {formData.role === 'master_waiter' && (
+                <p className="text-[11px] text-emerald-700 mt-1 leading-tight">
+                  Master ofitsiant müştəri adına sifariş götürə bilər — masaya yaxınlaşıb tabletdən sifariş daxil edir (xüsusilə yaşlı müştərilər üçün).
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">Ləğv et</Button>

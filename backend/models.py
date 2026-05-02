@@ -10,6 +10,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     KITCHEN = "kitchen"
     WAITER = "waiter"
+    MASTER_WAITER = "master_waiter"  # Can take orders on behalf of customers + all waiter features
     BAR = "bar"
 
 class OrderStatus(str, Enum):
@@ -186,6 +187,11 @@ class Order(BaseModel):
     ready_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
     waiter_id: Optional[str] = None
+    # Order source tracking — for admin to distinguish "customer self-ordered via QR"
+    # from "master waiter took order on behalf of customer at the table"
+    source: str = "customer_qr"  # "customer_qr" | "waiter_manual"
+    taken_by_user_id: Optional[str] = None
+    taken_by_name: Optional[str] = None
 
 class OrderCreate(BaseModel):
     session_token: str

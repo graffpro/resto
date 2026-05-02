@@ -604,11 +604,16 @@ export default function ActiveTablesPage() {
                   {sessionDetails.orders.map((order) => (
                     <div key={order.id} className="border border-[#E6E5DF] rounded-xl p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-medium text-[#181C1A]">#{order.order_number}</span>
                           <Badge className={`text-[10px] rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusLabel(order.status)}
                           </Badge>
+                          {order.source === 'waiter_manual' && (
+                            <Badge className="text-[10px] rounded-full bg-emerald-600 text-white shadow-sm" data-testid={`order-master-waiter-${order.id}`}>
+                              🎖 Master: {order.taken_by_name || 'ofitsiant'}
+                            </Badge>
+                          )}
                         </div>
                         {selectedSession?.is_active && (
                           <div className="flex gap-1">
@@ -803,7 +808,14 @@ export default function ActiveTablesPage() {
                   {billSummary.orders?.map((order, idx) => (
                     <div key={order.id || idx} className="border border-[#E2E8E2] rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2 pb-2 border-b border-[#E2E8E2]">
-                        <span className="font-semibold text-[#181C1A]">#{order.order_number}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-[#181C1A]">#{order.order_number}</span>
+                          {order.source === 'waiter_manual' && (
+                            <Badge className="text-[10px] rounded-full bg-emerald-600 text-white">
+                              🎖 Master: {order.taken_by_name || 'ofitsiant'}
+                            </Badge>
+                          )}
+                        </div>
                         <span className="text-sm text-[#5C6B61]">
                           {new Date(order.ordered_at).toLocaleTimeString('az-AZ')}
                         </span>

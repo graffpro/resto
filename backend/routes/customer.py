@@ -147,6 +147,7 @@ class OTPRequest(BaseModel):
     email: EmailStr
     name: Optional[str] = None
     phone: Optional[str] = None  # E.164 format from frontend
+    mode: str = Field(default="login", pattern="^(login|register)$")
 
 
 class OTPVerify(BaseModel):
@@ -168,6 +169,17 @@ async def send_otp(req: OTPRequest):
     """
     email = req.email.lower().strip()
     now = datetime.now(timezone.utc)
+
+    # Check if customer exists (for login/register semantics)
+    existing_customer = await db.customer_users.find_one({"email": email}, {"_id": 0, "id": 1})
+    if req.mode == "login" and not existing_customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Bu email ilə hesab tapılmadı. Zəhmət olmasa qeydiyyatdan keçin.",
+        )
+    if req.mode == "register" and existing_customer:
+        # Graceful: allow re-register as login (user already has account)
+        pass
 
     # Cooldown check
     last = await db.customer_otp.find_one({"email": email}, {"_id": 0})

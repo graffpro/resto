@@ -4,6 +4,7 @@
 - Owner: `graff` / `Testforresto123`
 - Admin (Original Tenant — emin): `emin` / `1517`
 - Test Tenant Admin: `ehe1` / `ehe123`
+- **Master Waiter (2026-02)**: `mofitsiant` / `master123` — role=`master_waiter`, auto-redirects to `/waiter/take-order` after login, can take orders on behalf of customers at any table
 
 ## Customer Accounts (Email OTP — Wolt-vari)
 Customers register via `POST /api/customer/auth/send-otp` and verify via `POST /api/customer/auth/verify-otp`.

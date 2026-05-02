@@ -12,6 +12,7 @@ const OwnerDashboard = lazy(() => import('@/pages/owner/OwnerDashboard'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const KitchenDashboard = lazy(() => import('@/pages/kitchen/KitchenDashboard'));
 const WaiterDashboard = lazy(() => import('@/pages/waiter/WaiterDashboard'));
+const WaiterTakeOrderPage = lazy(() => import('@/pages/waiter/WaiterTakeOrderPage'));
 const CustomerPage = lazy(() => import('@/pages/customer/CustomerPage'));
 const PublicMenuPage = lazy(() => import('@/pages/public/PublicMenuPage'));
 
@@ -93,8 +94,17 @@ function AppRoutes() {
       <Route
         path="/waiter"
         element={
-          <ProtectedRoute allowedRoles={['waiter']}>
+          <ProtectedRoute allowedRoles={['waiter', 'master_waiter']}>
             <Suspense fallback={<PageLoader />}><WaiterDashboard /></Suspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/waiter/take-order"
+        element={
+          <ProtectedRoute allowedRoles={['master_waiter']}>
+            <Suspense fallback={<PageLoader />}><WaiterTakeOrderPage /></Suspense>
           </ProtectedRoute>
         }
       />
@@ -108,6 +118,7 @@ function AppRoutes() {
             user.role === 'kitchen' ? <Navigate to="/kitchen" replace /> :
             user.role === 'bar' ? <Navigate to="/kitchen" replace /> :
             user.role === 'waiter' ? <Navigate to="/waiter" replace /> :
+            user.role === 'master_waiter' ? <Navigate to="/waiter/take-order" replace /> :
             <Navigate to="/admin" replace />
           ) : (
             <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>

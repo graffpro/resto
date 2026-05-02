@@ -63,8 +63,8 @@ async def create_user(user: UserCreate, current_user: dict = Depends(get_current
     if current_user['role'] == UserRole.OWNER:
         pass
     elif current_user['role'] == UserRole.ADMIN:
-        if user.role not in [UserRole.KITCHEN, UserRole.WAITER, UserRole.BAR]:
-            raise HTTPException(status_code=403, detail="Admin can only create kitchen/waiter/bar users")
+        if user.role not in [UserRole.KITCHEN, UserRole.WAITER, UserRole.MASTER_WAITER, UserRole.BAR]:
+            raise HTTPException(status_code=403, detail="Admin can only create kitchen/waiter/master_waiter/bar users")
         user.restaurant_id = current_user.get('restaurant_id')
     else:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -84,7 +84,7 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     if current_user['role'] == UserRole.OWNER:
         users = await db.users.find({"role": {"$ne": "owner"}}, {"_id": 0, "password": 0}).to_list(1000)
     elif current_user['role'] == UserRole.ADMIN:
-        users = await db.users.find({"role": {"$in": ["kitchen", "waiter", "bar"]}, "restaurant_id": current_user.get('restaurant_id')}, {"_id": 0, "password": 0}).to_list(1000)
+        users = await db.users.find({"role": {"$in": ["kitchen", "waiter", "master_waiter", "bar"]}, "restaurant_id": current_user.get('restaurant_id')}, {"_id": 0, "password": 0}).to_list(1000)
     else:
         raise HTTPException(status_code=403, detail="Not authorized")
     return users

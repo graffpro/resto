@@ -30,6 +30,7 @@ from routes.services import router as services_router
 from routes.partners import router as partners_router
 from routes.translate import router as translate_router
 from routes.customer import router as customer_router
+from routes.waiter import router as waiter_router
 
 # ==================== APP SETUP ====================
 app = FastAPI()
@@ -53,6 +54,7 @@ api_router.include_router(services_router)
 api_router.include_router(partners_router)
 api_router.include_router(translate_router)
 api_router.include_router(customer_router)
+api_router.include_router(waiter_router)
 
 # ==================== APK VERSION & DOWNLOAD ====================
 CURRENT_APK_VERSION = "1.1.0"

@@ -223,6 +223,15 @@ function WaiterContent() {
           </div>
           <div className="flex gap-2 flex-wrap items-center">
             <LanguageSwitcher />
+            {user?.role === 'master_waiter' && (
+              <a
+                href="/waiter/take-order"
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs sm:text-sm px-3 h-9 font-black shadow-md"
+                data-testid="goto-take-order"
+              >
+                🎖 <span>Sifariş götür</span>
+              </a>
+            )}
             <Button onClick={fetchOrders} className="bg-[#C05C3D] hover:bg-[#A64D31] text-white rounded-md text-xs sm:text-sm px-3">
               <RefreshCw className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Yenile</span>
             </Button>
