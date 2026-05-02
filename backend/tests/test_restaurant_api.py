@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://qr-order-platform-5.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://qr-restaurant-hub-6.preview.emergentagent.com')
 API = f"{BASE_URL}/api"
 
 # Test credentials

@@ -33,5 +33,5 @@ curl -X POST $API_URL/api/customer/auth/verify-otp \
 ```
 
 ## Restaurant for Public Menu Tests
-- 9Lar Pub: `restaurant_id=e211ddf8-ed99-4af0-956d-2e521759f079` (visible partner)
+- 9Lar Pub: `restaurant_id=qr-restaurant-hub-6` (visible partner)
 - Public menu URL: `/menu/e211ddf8-ed99-4af0-956d-2e521759f079`

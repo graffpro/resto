@@ -15,7 +15,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://qr-order-platform-5.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://qr-restaurant-hub-6.preview.emergentagent.com').rstrip('/')
 
 class TestOwnerLogin:
     """Test owner login functionality"""
