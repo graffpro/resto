@@ -1,331 +1,490 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
+import { useCustomerAuth } from '@/context/CustomerAuthContext';
 import axios from 'axios';
 import {
-  QrCode, ChefHat, Users, BarChart3, Package, Bell, Wifi,
-  ArrowRight, Check, ChevronDown, Menu, X
+  Search, MapPin, ArrowRight, X, ChevronDown, ChevronRight, Star, Clock,
+  QrCode, UtensilsCrossed, ShoppingBag, Smile, Sparkles, LogIn, Flame,
+  Pizza, Beef, Fish, Coffee, Wine, IceCream, Soup, Salad,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import PartnersSection from '@/components/PartnersSection';
+import CustomerAuthModal from '@/components/CustomerAuthModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
-const FEATURE_DEFS = [
-  { icon: QrCode, key: 'qr', span: 'md:col-span-8' },
-  { icon: ChefHat, key: 'kitchen', span: 'md:col-span-4' },
-  { icon: Wifi, key: 'realtime', span: 'md:col-span-4' },
-  { icon: Package, key: 'inventory', span: 'md:col-span-4' },
-  { icon: Users, key: 'staff', span: 'md:col-span-4' },
-  { icon: BarChart3, key: 'analytics', span: 'md:col-span-6' },
-  { icon: Bell, key: 'call', span: 'md:col-span-6' },
+// Food categories — Wolt-style scrollable row. Keys map to keywords we search
+// across partner name/description/cuisine_tags (when we add that field).
+const CATEGORIES = [
+  { key: 'all',        Icon: Flame,            label: { az: 'Hamısı',   en: 'All',       ru: 'Все',       tr: 'Hepsi' } },
+  { key: 'pizza',      Icon: Pizza,            label: { az: 'Pizza',    en: 'Pizza',     ru: 'Пицца',     tr: 'Pizza' } },
+  { key: 'burger',     Icon: Beef,             label: { az: 'Burger',   en: 'Burger',    ru: 'Бургер',    tr: 'Burger' } },
+  { key: 'sushi',      Icon: Fish,             label: { az: 'Suşi',     en: 'Sushi',     ru: 'Суши',      tr: 'Sushi' } },
+  { key: 'national',   Icon: Soup,             label: { az: 'Milli',    en: 'Local',     ru: 'Местная',   tr: 'Yerel' } },
+  { key: 'cafe',       Icon: Coffee,           label: { az: 'Kafe',     en: 'Cafe',      ru: 'Кафе',      tr: 'Kafe' } },
+  { key: 'bar',        Icon: Wine,             label: { az: 'Bar',      en: 'Bar',       ru: 'Бар',       tr: 'Bar' } },
+  { key: 'salad',      Icon: Salad,            label: { az: 'Sağlam',   en: 'Healthy',   ru: 'Здоровое',  tr: 'Sağlıklı' } },
+  { key: 'dessert',    Icon: IceCream,         label: { az: 'Desert',   en: 'Dessert',   ru: 'Десерт',    tr: 'Tatlı' } },
 ];
 
-const STEP_NUMS = ['01', '02', '03'];
-const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4', 'q5'];
+// Fallback covers when partner has no cover_url
+const FALLBACK_COVERS = [
+  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+  'https://images.unsplash.com/photo-1667388969250-1c7220bf3f37?w=800',
+  'https://images.unsplash.com/photo-1610440042657-612c34d95e9f?w=800',
+  'https://images.unsplash.com/photo-1634043319926-c2565ac15c63?w=800',
+];
+
+function pickFallbackCover(partnerId = '') {
+  const hash = partnerId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  return FALLBACK_COVERS[hash % FALLBACK_COVERS.length];
+}
+
+// Best-effort category matcher using partner name/description
+function matchesCategory(partner, catKey) {
+  if (catKey === 'all') return true;
+  const text = `${partner.name || ''} ${partner.description || ''}`.toLowerCase();
+  const aliases = {
+    pizza: ['pizza', 'pizzeria'],
+    burger: ['burger', 'grill', 'steak', 'beef'],
+    sushi: ['sushi', 'japan'],
+    national: ['milli', 'kebab', 'dolma', 'plov', 'azərbaycan', 'local'],
+    cafe: ['cafe', 'kafe', 'coffee', 'qəhvə', 'kofe'],
+    bar: ['bar', 'pub', 'cocktail', 'wine', 'pivə'],
+    salad: ['salad', 'healthy', 'vegan', 'salat'],
+    dessert: ['dessert', 'sweet', 'ice cream', 'pastry', 'desert', 'tort'],
+  };
+  return (aliases[catKey] || []).some((kw) => text.includes(kw));
+}
+
+function RestaurantCard({ partner }) {
+  const cover = partner.cover_url || pickFallbackCover(partner.id);
+  return (
+    <Link
+      to={`/menu/${partner.restaurant_id}`}
+      className="group relative flex flex-col bg-white rounded-2xl overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.12)] transition-all duration-300 border border-gray-100 hover:-translate-y-1"
+      data-testid={`wolt-restaurant-card-${partner.id}`}
+    >
+      <div className="relative w-full aspect-[4/3] sm:h-48 overflow-hidden bg-gray-100">
+        <img
+          src={cover}
+          alt={partner.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        {partner.is_featured && (
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-400/95 text-amber-900 backdrop-blur-sm shadow-sm">
+            <Sparkles size={10} /> Featured
+          </span>
+        )}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+          <span className="bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg text-xs font-bold text-[#1A251E] shadow-sm inline-flex items-center gap-1">
+            <Clock size={11} /> 25-35 dəq
+          </span>
+        </div>
+        <div className="absolute -bottom-6 left-4 w-12 h-12 rounded-full border-4 border-white shadow-md bg-white overflow-hidden grid place-items-center">
+          {partner.logo_url
+            ? <img src={partner.logo_url} alt="" className="w-full h-full object-cover" />
+            : <span className="text-lg font-black text-[#1A251E]">{(partner.name || '?').charAt(0)}</span>}
+        </div>
+      </div>
+      <div className="pt-8 pb-5 px-4 flex flex-col gap-1.5">
+        <h3 className="text-lg font-bold text-[#1A251E] group-hover:text-[#C05C3D] transition-colors line-clamp-1">
+          {partner.name}
+        </h3>
+        <div className="flex items-center gap-2 text-sm text-stone-600">
+          <span className="inline-flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded-md text-xs">
+            <Star size={11} className="fill-amber-500 text-amber-500" /> {(partner.rating_avg || 0).toFixed(1)}
+          </span>
+          <span className="text-stone-400 text-xs">({partner.ratings_count || 0})</span>
+          {partner.address && !partner.address.startsWith('http') && (
+            <>
+              <span className="text-stone-300">·</span>
+              <span className="truncate text-xs text-stone-500">{partner.address}</span>
+            </>
+          )}
+        </div>
+        {partner.description && (
+          <p className="text-xs text-stone-500 line-clamp-1 mt-0.5">{partner.description}</p>
+        )}
+      </div>
+    </Link>
+  );
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { setAuth } = useAuth();
+  const { customer, logout: customerLogout, isAuthenticated: customerAuthed } = useCustomerAuth();
+
   const [showRegister, setShowRegister] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const [showCustomerAuth, setShowCustomerAuth] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const [partners, setPartners] = useState([]);
+  const [loadingPartners, setLoadingPartners] = useState(true);
+  const [search, setSearch] = useState('');
+  const [activeCat, setActiveCat] = useState('all');
+
   const [regForm, setRegForm] = useState({ restaurant_name: '', owner_name: '', username: '', password: '', phone: '' });
   const [regLoading, setRegLoading] = useState(false);
 
-  // Listen for custom event from PartnersSection "Bizimlə Partnyor Ol" CTA
+  // Fetch partners
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const res = await axios.get(`${API}/partner-restaurants`);
+        setPartners(res.data || []);
+      } catch {
+        setPartners([]);
+      } finally { setLoadingPartners(false); }
+    };
+    fetchPartners();
+  }, []);
+
+  // Listen for register-modal open event (used by other components if needed)
   useEffect(() => {
     const open = () => setShowRegister(true);
     window.addEventListener('open-restaurant-register', open);
     return () => window.removeEventListener('open-restaurant-register', open);
   }, []);
 
-  // Static text in features/steps/faqs is kept Azerbaijani for legacy users; the
-  // navigation, hero, partner section, and modals are fully translated.
+  const filteredPartners = useMemo(() => {
+    let list = partners.filter((p) => matchesCategory(p, activeCat));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((p) =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.address || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [partners, activeCat, search]);
+
+  const catLabel = (cat) => cat.label[i18n.language] || cat.label.az;
 
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!regForm.restaurant_name || !regForm.owner_name || !regForm.username || !regForm.password) {
-      toast.error('Bütün sahələri doldurun'); return;
+      toast.error(t('customer_auth.terms', 'Fill all fields')); return;
     }
     setRegLoading(true);
     try {
       const res = await axios.post(`${API}/auth/register`, regForm);
       setAuth(res.data.token, res.data.user);
-      toast.success('Qeydiyyat uğurlu! Xoş gəlmisiniz!');
+      toast.success('✓');
       navigate('/admin');
     } catch (err) {
-      toast.error(err?.response?.data?.detail || 'Qeydiyyat xətası');
+      toast.error(err?.response?.data?.detail || 'Error');
     } finally { setRegLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-[#0A0A0A]" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200" data-testid="landing-nav">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="text-xl font-black tracking-tighter">QR Restoran</a>
-          <div className="hidden md:flex items-center gap-6">
-            <a href="#partners" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.partners')}</a>
-            <a href="#features" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.features')}</a>
-            <a href="#how" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.how')}</a>
-            <a href="#faq" className="text-sm text-gray-600 hover:text-[#0A0A0A] transition-colors">{t('landing.nav.faq')}</a>
-            <button onClick={() => navigate('/login')} className="text-sm text-gray-600 hover:text-[#0A0A0A]" data-testid="nav-login-link">{t('common.login')}</button>
-            <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-5 py-2.5 text-sm font-medium hover:bg-[#C93622] transition-colors" data-testid="nav-register-btn">
-              {t('common.register')}
+    <div className="min-h-screen bg-[#FDFDFD] text-[#1A251E]">
+      {/* ========== HEADER ========== */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-xl border-b border-gray-100" data-testid="landing-header">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-20 flex items-center justify-between gap-3">
+          <Link to="/" className="flex items-center gap-2 shrink-0" data-testid="landing-logo">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C05C3D] to-[#E0402A] grid place-items-center text-white font-black">Q</div>
+            <span className="font-black text-lg tracking-tight hidden sm:inline">QR Restoran</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {/* Become a Partner — small chip (secondary CTA) */}
+            <button
+              onClick={() => setShowRegister(true)}
+              className="hidden sm:inline-flex items-center gap-1 bg-[#C05C3D]/10 text-[#C05C3D] hover:bg-[#C05C3D]/20 rounded-full px-3 md:px-4 py-1.5 text-xs md:text-sm font-semibold transition-colors"
+              data-testid="header-become-partner"
+            >
+              <Sparkles size={13} /> {t('landing.partners.become_cta', 'Partnyor ol')}
             </button>
+
+            {/* Customer Login / Account */}
+            {customerAuthed ? (
+              <button
+                onClick={customerLogout}
+                className="inline-flex items-center gap-1.5 bg-[#1A251E] text-white rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-semibold hover:bg-black transition-colors"
+                data-testid="header-customer-account"
+                title={customer?.email}
+              >
+                <Smile size={13} /> {customer?.name?.split(' ')[0] || t('customer_auth.account')}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowCustomerAuth(true)}
+                className="inline-flex items-center gap-1.5 bg-[#1A251E] text-white rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-semibold hover:bg-black transition-colors"
+                data-testid="header-customer-login"
+              >
+                <LogIn size={13} /> {t('customer_auth.login', 'Daxil ol')}
+              </button>
+            )}
+
             <LanguageSwitcher />
           </div>
-          <div className="flex items-center gap-2 md:hidden">
-            <LanguageSwitcher />
-            <button onClick={() => setMobileMenu(!mobileMenu)} className="p-2">
-              {mobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
         </div>
-        {mobileMenu && (
-          <div className="md:hidden bg-white border-t border-gray-200 px-6 py-4 space-y-3">
-            <a href="#partners" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.partners')}</a>
-            <a href="#features" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.features')}</a>
-            <a href="#how" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.how')}</a>
-            <a href="#faq" onClick={() => setMobileMenu(false)} className="block text-sm text-gray-600">{t('landing.nav.faq')}</a>
-            <button onClick={() => navigate('/login')} className="block text-sm text-gray-600 w-full text-left">{t('common.login')}</button>
-            <button onClick={() => { setShowRegister(true); setMobileMenu(false); }} className="w-full bg-[#E0402A] text-white px-5 py-2.5 text-sm font-medium">{t('common.register')}</button>
-          </div>
-        )}
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 md:pt-40 md:pb-32 px-6" data-testid="hero-section">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-4">{t('landing.hero.badge')}</p>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-[1.05] mb-6">
-              {t('landing.hero.title_1')}<br />
-              <span className="text-[#E0402A]">{t('landing.hero.title_2')}.</span>
-            </h1>
-            <p className="text-lg text-gray-600 leading-relaxed mb-8 max-w-lg">
-              {t('landing.hero.subtitle')}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-8 py-3.5 font-medium hover:bg-[#C93622] transition-colors flex items-center gap-2 text-sm" data-testid="hero-register-cta">
-                {t('landing.hero.cta_start')} <ArrowRight className="w-4 h-4" />
-              </button>
-              <button onClick={() => navigate('/login')} className="border border-[#0A0A0A] px-8 py-3.5 font-medium hover:bg-gray-50 transition-colors text-sm" data-testid="hero-login-btn">
-                {t('landing.hero.cta_login')}
-              </button>
-            </div>
-            <div className="flex items-center gap-6 mt-8 text-sm text-gray-500">
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_1')}</span>
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_2')}</span>
-              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> {t('landing.hero.feature_3')}</span>
-            </div>
-          </div>
-          <div className="relative hidden md:block">
-            <div className="aspect-[4/3] overflow-hidden border border-gray-200">
-              <img
-                src="https://images.unsplash.com/photo-1556742517-fde6c2abbe11?w=800&q=80"
-                alt="Restoran POS"
-                className="w-full h-full object-cover"
-                loading="eager"
-              />
-            </div>
-            <div className="absolute -bottom-4 -left-4 bg-white border border-gray-200 p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <Wifi className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">{t('landing.hero.realtime_label')}</p>
-                  <p className="text-sm font-bold">{t('landing.hero.realtime_value')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ========== HERO ========== */}
+      <section className="relative w-full min-h-[420px] md:min-h-[520px] bg-gradient-to-br from-[#F4F5F2] via-[#FFE8D6] to-[#FFDEC7] flex flex-col items-center justify-center pt-28 md:pt-32 pb-14 px-4 overflow-hidden" data-testid="landing-hero">
+        {/* Decorative background pattern */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none" style={{
+          backgroundImage: "radial-gradient(circle at 20% 30%, rgba(192,92,61,0.12) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(245,158,11,0.12) 0%, transparent 45%)"
+        }} />
+        <h1 className="relative z-10 text-center text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1A251E] mb-3 max-w-4xl">
+          {t('landing.hero.title', 'Nə yemək istəyirsən?')}
+        </h1>
+        <p className="relative z-10 text-center text-sm md:text-base text-stone-700 mb-8 max-w-xl">
+          {t('landing.hero.subtitle', 'Yaxınındakı ən yaxşı restoranları kəşf et, menyusuna bax, rezerv et və ya çatdırılma sifariş et.')}
+        </p>
 
-      {/* Partner Restaurants */}
-      <PartnersSection />
-
-      {/* Features */}
-      <section id="features" className="py-24 md:py-32 px-6 bg-white" data-testid="features-section">
-        <div className="max-w-7xl mx-auto">
-          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">{t('landing.features.label')}</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">{t('landing.features.title')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {FEATURE_DEFS.map((f, i) => (
-              <div key={f.key} className={`${f.span} bg-[#FAFAFA] border border-gray-200 p-8 flex flex-col justify-between group hover:border-[#0A0A0A] transition-colors duration-300`} data-testid={`feature-card-${i}`}>
-                <div>
-                  <f.icon className="w-8 h-8 text-[#E0402A] mb-4" strokeWidth={1.5} />
-                  <h3 className="text-xl font-bold mb-2">{t(`landing.features.${f.key}.title`)}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{t(`landing.features.${f.key}.desc`)}</p>
-                </div>
-              </div>
-            ))}
+        {/* Search bar — pill */}
+        <div className="relative z-10 w-full max-w-2xl bg-white rounded-full p-1.5 md:p-2 shadow-[0_12px_40px_rgba(192,92,61,0.18)] flex items-center gap-1 mx-4" data-testid="landing-search-bar">
+          <div className="hidden md:flex items-center gap-2 px-4 py-2 border-r border-gray-200 text-stone-500 shrink-0" title="Bakı (tezliklə dəyişdirilə biləcək)">
+            <MapPin size={16} className="text-[#C05C3D]" />
+            <span className="text-sm font-semibold">Bakı</span>
           </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how" className="py-24 md:py-32 px-6" data-testid="how-section">
-        <div className="max-w-7xl mx-auto">
-          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">{t('landing.how.label')}</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-16">{t('landing.how.title')}</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {STEP_NUMS.map((num, i) => (
-              <div key={i} className="relative" data-testid={`step-${i}`}>
-                <span className="text-8xl font-black text-gray-100 select-none">{num}</span>
-                <div className="-mt-10 relative z-10">
-                  <h3 className="text-xl font-bold mb-2">{t(`landing.how.step${i + 1}.title`)}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{t(`landing.how.step${i + 1}.desc`)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-16 text-center">
-            <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-10 py-4 font-medium hover:bg-[#C93622] transition-colors inline-flex items-center gap-2" data-testid="how-register-cta">
-              {t('landing.how.cta')} <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section id="faq" className="py-24 md:py-32 px-6 bg-white" data-testid="faq-section">
-        <div className="max-w-3xl mx-auto">
-          <p className="uppercase tracking-[0.2em] text-xs font-semibold text-gray-500 mb-3">FAQ</p>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-12">{t('landing.faq.title')}</h2>
-          <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
-            {FAQ_KEYS.map((k, i) => (
-              <div key={k} data-testid={`faq-accordion-item-${i}`}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full py-5 flex items-center justify-between text-left"
-                >
-                  <span className="text-sm font-semibold pr-4">{t(`landing.faq.${k}.q`)}</span>
-                  <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
-                </button>
-                {openFaq === i && (
-                  <p className="pb-5 text-sm text-gray-600 leading-relaxed">{t(`landing.faq.${k}.a`)}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Banner */}
-      <section className="py-20 px-6 bg-[#0A0A0A] text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4">{t('landing.cta_banner.title')}</h2>
-          <p className="text-gray-400 mb-8 text-sm">{t('landing.cta_banner.subtitle')}</p>
-          <button onClick={() => setShowRegister(true)} className="bg-[#E0402A] text-white px-10 py-4 font-medium hover:bg-[#C93622] transition-colors inline-flex items-center gap-2">
-            {t('landing.cta_banner.button')} <ArrowRight className="w-4 h-4" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('landing.hero.search_placeholder', 'Yemək və ya restoran axtar...')}
+            className="flex-1 px-3 md:px-4 py-2 outline-none text-sm md:text-base text-[#1A251E] placeholder:text-stone-400 bg-transparent min-w-0"
+            data-testid="landing-search-input"
+          />
+          <button
+            onClick={() => document.getElementById('restaurants-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="bg-[#C05C3D] hover:bg-[#E0402A] text-white rounded-full px-4 md:px-6 py-2.5 md:py-3 font-semibold text-sm transition-colors inline-flex items-center gap-1.5 shrink-0"
+            data-testid="landing-search-btn"
+          >
+            <Search size={16} />
+            <span className="hidden sm:inline">{t('public_menu.search', 'Axtar').replace('...', '')}</span>
           </button>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-6 bg-[#0A0A0A] text-white border-t border-gray-800" data-testid="footer">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* ========== STICKY CATEGORY PILLS ========== */}
+      <div className="sticky top-16 md:top-20 z-40 bg-white/90 backdrop-blur-md py-3 border-b border-gray-100" data-testid="landing-categories">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex overflow-x-auto gap-2 md:gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
+            {CATEGORIES.map(({ key, Icon, label }) => {
+              const active = activeCat === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveCat(key)}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-4 h-10 rounded-full border text-sm font-semibold transition-all duration-200 ${
+                    active
+                      ? 'bg-[#1A251E] border-[#1A251E] text-white shadow-md'
+                      : 'bg-white border-gray-200 text-stone-600 hover:border-[#C05C3D] hover:text-[#C05C3D] hover:-translate-y-0.5'
+                  }`}
+                  data-testid={`landing-cat-${key}`}
+                >
+                  <Icon size={14} /> {catLabel({ key, Icon, label })}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ========== RESTAURANTS GRID ========== */}
+      <section id="restaurants-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14" data-testid="landing-restaurants">
+        <div className="flex items-end justify-between mb-6 gap-4">
           <div>
-            <p className="text-2xl font-black tracking-tighter">QR Restoran</p>
-            <p className="text-xs text-gray-500 mt-1">{t('landing.footer.tagline')}</p>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+              {activeCat === 'all'
+                ? t('landing.partners.title', 'Partnyor Restoranlar')
+                : CATEGORIES.find((c) => c.key === activeCat) && catLabel(CATEGORIES.find((c) => c.key === activeCat))}
+            </h2>
+            <p className="text-sm text-stone-500 mt-1">
+              {loadingPartners ? '...' : `${filteredPartners.length} ${t('landing.partners.count_suffix', 'restoran')}`}
+            </p>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <a href="#features" className="hover:text-white transition-colors">{t('landing.nav.features')}</a>
-            <a href="#how" className="hover:text-white transition-colors">{t('landing.nav.how')}</a>
-            <a href="#faq" className="hover:text-white transition-colors">{t('landing.nav.faq')}</a>
-            <button onClick={() => navigate('/login')} className="hover:text-white transition-colors">{t('common.login')}</button>
+        </div>
+
+        {loadingPartners ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />
+            ))}
           </div>
+        ) : filteredPartners.length === 0 ? (
+          <div className="text-center py-16 text-stone-500 text-sm bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            {t('landing.partners.no_partners', 'Heç nə tapılmadı. Başqa kateqoriya seçin.')}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6" data-testid="partners-grid">
+            {filteredPartners.map((p) => <RestaurantCard key={p.id} partner={p} />)}
+          </div>
+        )}
+      </section>
+
+      {/* ========== HOW IT WORKS (compact) ========== */}
+      <section className="py-14 md:py-16 bg-[#F4F5F2]/60" data-testid="landing-how">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-center mb-10">
+            {t('landing.how.title', 'Necə işləyir?')}
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {[
+              { Icon: QrCode,          label: t('landing.how.step1_title', 'QR-i skan et'),    desc: t('landing.how.step1_desc', 'Masadakı QR kodu və ya yuxarıdan restoranı seç.') },
+              { Icon: UtensilsCrossed, label: t('landing.how.step2_title', 'Menyuya bax'),     desc: t('landing.how.step2_desc', 'Şəkillər, qiymətlər, təfərrüatlar bir toxunuşda.') },
+              { Icon: ShoppingBag,     label: t('landing.how.step3_title', 'Sifariş ver'),     desc: t('landing.how.step3_desc', 'Masada, yaxud evinə çatdırılma — seçim sənin.') },
+              { Icon: Smile,           label: t('landing.how.step4_title', 'Ləzzət al'),       desc: t('landing.how.step4_desc', 'Real-vaxtda sifarişi izlə, yığcam və sürətli.') },
+            ].map(({ Icon, label, desc }, i) => (
+              <div key={i} className="flex flex-col items-center text-center gap-3" data-testid={`landing-step-${i}`}>
+                <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-100 grid place-items-center text-[#C05C3D] rotate-3 hover:rotate-0 transition-transform">
+                  <Icon size={22} />
+                </div>
+                <h3 className="font-bold text-sm md:text-base">{label}</h3>
+                <p className="text-xs text-stone-500 max-w-[180px]">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ========== FAQ (compact accordion) ========== */}
+      <section className="py-14 md:py-20 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8" data-testid="landing-faq">
+        <h2 className="text-2xl md:text-3xl font-black tracking-tight text-center mb-8">
+          {t('landing.faq.title', 'Tez-tez verilən suallar')}
+        </h2>
+        <div className="space-y-2">
+          {['q1', 'q2', 'q3', 'q4', 'q5'].map((k, idx) => (
+            <div
+              key={k}
+              className="bg-white border border-gray-100 rounded-2xl overflow-hidden transition-all"
+              data-testid={`landing-faq-${k}`}
+            >
+              <button
+                onClick={() => setOpenFaq(openFaq === k ? null : k)}
+                className="w-full flex items-center justify-between gap-4 p-4 md:p-5 text-left hover:bg-gray-50/50"
+              >
+                <span className="font-semibold text-sm md:text-base text-[#1A251E]">
+                  {t(`landing.faq.${k}_q`, `Sual ${idx + 1}`)}
+                </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 text-stone-400 transition-transform ${openFaq === k ? 'rotate-180' : ''}`} />
+              </button>
+              {openFaq === k && (
+                <div className="px-4 md:px-5 pb-4 md:pb-5 text-sm text-stone-600 leading-relaxed">
+                  {t(`landing.faq.${k}_a`, '...')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========== PARTNER CTA (small, bottom) ========== */}
+      <section className="max-w-3xl mx-auto px-4 mb-14" data-testid="landing-partner-cta">
+        <div className="bg-gradient-to-r from-[#C05C3D]/10 to-[#F59E0B]/10 border border-[#C05C3D]/20 rounded-3xl p-8 sm:p-10 text-center">
+          <Sparkles className="w-7 h-7 text-[#C05C3D] mx-auto mb-3" />
+          <h3 className="text-xl md:text-2xl font-black mb-2">
+            {t('landing.partners.become_title', 'Restoran sahibisiniz?')}
+          </h3>
+          <p className="text-sm text-stone-600 max-w-md mx-auto mb-5">
+            {t('landing.partners.become_subtitle', 'Saytımıza qoşul, menyunu QR-siz təqdim et, yeni müştərilər qazan.')}
+          </p>
+          <button
+            onClick={() => setShowRegister(true)}
+            className="inline-flex items-center gap-2 bg-[#1A251E] text-white rounded-full px-6 py-3 font-semibold hover:bg-black transition-colors"
+            data-testid="partner-cta-submit"
+          >
+            {t('landing.partners.become_cta', 'Bizimlə Partnyor Ol')} <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+
+      {/* ========== FOOTER ========== */}
+      <footer className="bg-[#1A251E] text-[#F4F5F2] pt-14 pb-8 px-4 sm:px-6 lg:px-8" data-testid="landing-footer">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C05C3D] to-[#E0402A] grid place-items-center text-white font-black text-sm">Q</div>
+              <span className="font-black">QR Restoran</span>
+            </div>
+            <p className="text-stone-400 text-sm leading-relaxed">
+              {t('landing.footer.about', 'Restoranlar üçün QR menyu, rezerv və çatdırılma platforması.')}
+            </p>
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-white text-sm">{t('landing.footer.links', 'Linklər')}</h4>
+            <a href="#restaurants-grid" className="text-stone-400 hover:text-white transition-colors text-sm py-1 block">
+              {t('landing.partners.title', 'Partnyor Restoranlar')}
+            </a>
+            <button onClick={() => setShowRegister(true)} className="text-stone-400 hover:text-white transition-colors text-sm py-1 block">
+              {t('landing.partners.become_cta', 'Bizimlə Partnyor Ol')}
+            </button>
+            <button onClick={() => navigate('/login')} className="text-stone-400 hover:text-white transition-colors text-sm py-1 block">
+              {t('common.login', 'Giriş')}
+            </button>
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-white text-sm">{t('landing.footer.contact', 'Əlaqə')}</h4>
+            <p className="text-stone-400 text-sm py-1">Bakı, Azərbaycan</p>
+            <p className="text-stone-400 text-sm py-1">hello@resto.az</p>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto border-t border-white/10 pt-6 text-center text-xs text-stone-500">
+          © {new Date().getFullYear()} QR Restoran · All rights reserved
         </div>
       </footer>
 
-      {/* Registration Modal */}
+      {/* ========== CUSTOMER AUTH MODAL ========== */}
+      <CustomerAuthModal open={showCustomerAuth} onClose={() => setShowCustomerAuth(false)} />
+
+      {/* ========== RESTAURANT REGISTER MODAL ========== */}
       {showRegister && (
-        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowRegister(false)}>
-          <div className="w-full max-w-md bg-white border border-gray-200 p-8" onClick={e => e.stopPropagation()} data-testid="registration-modal">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-black tracking-tighter">Pulsuz Qeydiyyat</h2>
-              <button onClick={() => setShowRegister(false)} className="p-1"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowRegister(false)} data-testid="register-modal">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="relative bg-gradient-to-br from-[#C05C3D] to-[#E0402A] text-white p-6">
+              <button onClick={() => setShowRegister(false)} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center" data-testid="register-close">
+                <X size={16} />
+              </button>
+              <Sparkles className="w-7 h-7 mb-2" />
+              <h2 className="text-xl font-black">{t('landing.register.title', 'Yeni Restoran Qeydiyyatı')}</h2>
+              <p className="text-white/80 text-sm mt-1">{t('landing.partners.become_subtitle', 'Bizimlə qoşul və müştəri qazan')}</p>
             </div>
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form onSubmit={handleRegister} className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Restoran Adı</label>
-                <input
-                  type="text"
-                  value={regForm.restaurant_name}
-                  onChange={e => setRegForm(p => ({ ...p, restaurant_name: e.target.value }))}
-                  className="w-full mt-1 px-4 py-3 border border-gray-300 text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none"
-                  placeholder="Məs: Mövlana Restaurant"
-                  data-testid="register-restaurant-name"
-                />
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('landing.register.restaurant_name', 'Restoran Adı')}</label>
+                <input type="text" value={regForm.restaurant_name} onChange={(e) => setRegForm({ ...regForm, restaurant_name: e.target.value })} className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none" placeholder="Mövlana Restaurant" required data-testid="register-restaurant-name" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Adınız</label>
-                <input
-                  type="text"
-                  value={regForm.owner_name}
-                  onChange={e => setRegForm(p => ({ ...p, owner_name: e.target.value }))}
-                  className="w-full mt-1 px-4 py-3 border border-gray-300 text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none"
-                  placeholder="Ad Soyad"
-                  data-testid="register-owner-name"
-                />
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('landing.register.owner_name', 'Adınız')}</label>
+                <input type="text" value={regForm.owner_name} onChange={(e) => setRegForm({ ...regForm, owner_name: e.target.value })} className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none" required data-testid="register-owner-name" />
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">İstifadəçi Adı</label>
-                <input
-                  type="text"
-                  value={regForm.username}
-                  onChange={e => setRegForm(p => ({ ...p, username: e.target.value }))}
-                  className="w-full mt-1 px-4 py-3 border border-gray-300 text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none"
-                  placeholder="Giriş üçün istifadəçi adı"
-                  data-testid="register-username"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Şifrə</label>
-                <input
-                  type="password"
-                  value={regForm.password}
-                  onChange={e => setRegForm(p => ({ ...p, password: e.target.value }))}
-                  className="w-full mt-1 px-4 py-3 border border-gray-300 text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none"
-                  placeholder="Minimum 6 simvol"
-                  data-testid="register-password"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('landing.register.phone', 'Telefon (istəyə bağlı)')}</label>
-                <div className="phone-input-wrapper mt-1" style={{ height: 48 }}>
-                  <PhoneInput
-                    international
-                    defaultCountry="AZ"
-                    value={regForm.phone}
-                    onChange={(v) => setRegForm(p => ({ ...p, phone: v || '' }))}
-                    placeholder="+994 50 123 45 67"
-                    data-testid="register-phone"
-                  />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('landing.register.username', 'İstifadəçi')}</label>
+                  <input type="text" value={regForm.username} onChange={(e) => setRegForm({ ...regForm, username: e.target.value })} className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none" required data-testid="register-username" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('landing.register.password', 'Şifrə')}</label>
+                  <input type="password" value={regForm.password} onChange={(e) => setRegForm({ ...regForm, password: e.target.value })} className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:border-[#E0402A] focus:ring-1 focus:ring-[#E0402A] outline-none" required data-testid="register-password" />
                 </div>
               </div>
-              <button
-                type="submit"
-                disabled={regLoading}
-                className="w-full bg-[#E0402A] text-white py-3.5 font-medium hover:bg-[#C93622] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                data-testid="registration-form-submit"
-              >
-                {regLoading ? 'Gözləyin...' : 'Qeydiyyatdan Keç'}
-                {!regLoading && <ArrowRight className="w-4 h-4" />}
+              <div>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{t('customer_auth.phone_optional', 'Telefon')}</label>
+                <div className="phone-input-wrapper mt-1">
+                  <PhoneInput international defaultCountry="AZ" value={regForm.phone} onChange={(v) => setRegForm({ ...regForm, phone: v || '' })} placeholder="+994 50 123 45 67" data-testid="register-phone" />
+                </div>
+              </div>
+              <button type="submit" disabled={regLoading} className="w-full bg-[#E0402A] hover:bg-[#C93622] text-white py-3.5 rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2" data-testid="registration-form-submit">
+                {regLoading ? '...' : <>{t('landing.register.submit', 'Qeydiyyatdan Keç')} <ArrowRight size={16} /></>}
               </button>
+              <p className="text-xs text-stone-400 text-center pt-2">
+                {t('landing.register.have_account', 'Hesabınız var?')}{' '}
+                <button type="button" onClick={() => { setShowRegister(false); navigate('/login'); }} className="text-[#E0402A] font-semibold hover:underline">
+                  {t('common.login', 'Giriş')}
+                </button>
+              </p>
             </form>
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Hesabınız var? <button onClick={() => { setShowRegister(false); navigate('/login'); }} className="text-[#E0402A] font-medium">Daxil olun</button>
-            </p>
           </div>
         </div>
       )}

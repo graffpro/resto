@@ -108,6 +108,20 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
 
 - [x] **Owner panel internal dialogs translated** — New/Edit Restaurant forms (name/address/phone/whatsapp/email/description/tax/service), Admins list & create/edit forms (full_name/username/password/PIN/period/expires_at/cancel/save). New i18n namespace `dialogs.*` added across all 4 locales.
 
+- [x] **Wolt-Style Customer Landing Redesign (2026-02)** — Landing səhifəsi tamamilə yenidən quruldu:
+  - **Compact sticky header**: Logo + "Partnyor ol" kiçik chip (ikinci dərəcəli CTA) + Customer Login pill + dil seçici
+  - **Hero**: Gradient (#F4F5F2 → #FFE8D6 → #FFDEC7) fon, radial dekorativ pattern, böyük "Nə yemək istəyirsən?" başlığı, pill şəklində search bar (Bakı lokasiya chip + input + Search düyməsi)
+  - **Sticky category pills** (9 kateqoriya): Hamısı / Pizza / Burger / Suşi / Milli / Kafe / Bar / Sağlam / Desert — lucide ikonlar, yatay scroll (mobile), hover-də qalxma
+  - **Wolt-style restaurant cards** (grid 1/2/3 kolon): cover image (4:3 aspect), FEATURED rozeti, "25-35 dəq" çatdırılma estimate, logo overlay -bottom-6 circular, ad + rating chip (amber bg) + review count + ünvan + təsvir
+  - Partner kartı tamamı Link `/menu/:restaurant_id`-ə — aşağı xətirlənmə əvəzinə birbaşa public menyu
+  - Kategoriya filter "best-effort text-match" (name+description keywords: pizza, burger, sushi, cafe və s.)
+  - Axtarış input real-time filtrləyir
+  - **Compact "How it works"** 4 ikon row: Scan QR → Browse → Order → Enjoy (böyük section əvəzinə)
+  - **FAQ accordion** (5 sual)
+  - **Kiçik "Restoran sahibisiniz?" CTA card** footer-dən əvvəl (gradient amber/orange, ikinci dərəcəli)
+  - **Dark footer** (#1A251E) 3 kolon: haqqında, linklər, əlaqə
+  - **Restaurant register modal** saxlanıldı (rebrand + beynəlxalq telefon input)
+  - `/api/partners/public` → düzgün endpoint `/api/partner-restaurants`
 - [x] **Sound Effect + WebSocket Push + i18n + Phone Input (2026-02)**:
   - **Web Audio bell** (`/app/frontend/src/utils/sound.js`) — iki tonlu "ding-ding" zəng (E6 + G6 + A5 afterglow), heç bir external fayl tələb etmir
   - **Real-time WebSocket broadcast**: `POST /api/public/delivery-orders` yaradılan kimi `{type: "new_delivery_order"}` mesajı `admin` və `waiter` rollarına push olunur
