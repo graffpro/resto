@@ -204,23 +204,23 @@ export default function LandingPage() {
               <Sparkles size={13} /> {t('landing.partners.become_cta', 'Partnyor ol')}
             </button>
 
-            {/* Customer Login / Account */}
+            {/* Customer Login / Account — BIG yellow CTA */}
             {customerAuthed ? (
               <button
                 onClick={customerLogout}
-                className="inline-flex items-center gap-1.5 bg-[#1A251E] text-white rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-semibold hover:bg-black transition-colors"
+                className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-stone-900 rounded-full px-4 md:px-5 h-10 md:h-11 text-sm md:text-base font-black shadow-lg shadow-amber-500/30 transition-all hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5"
                 data-testid="header-customer-account"
                 title={customer?.email}
               >
-                <Smile size={13} /> {customer?.name?.split(' ')[0] || t('customer_auth.account')}
+                <Smile size={16} /> {customer?.name?.split(' ')[0] || t('customer_auth.account')}
               </button>
             ) : (
               <button
                 onClick={() => setShowCustomerAuth(true)}
-                className="inline-flex items-center gap-1.5 bg-[#1A251E] text-white rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-semibold hover:bg-black transition-colors"
+                className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-stone-900 rounded-full px-4 md:px-6 h-10 md:h-11 text-sm md:text-base font-black shadow-lg shadow-amber-500/30 transition-all hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5"
                 data-testid="header-customer-login"
               >
-                <LogIn size={13} /> {t('customer_auth.login', 'Daxil ol')}
+                <LogIn size={16} strokeWidth={2.5} /> {t('customer_auth.login', 'Daxil ol')}
               </button>
             )}
 

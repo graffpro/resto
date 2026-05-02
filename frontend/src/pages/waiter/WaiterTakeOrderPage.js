@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
+import useAutoTranslatePage from '@/hooks/useAutoTranslatePage';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
@@ -31,7 +32,7 @@ export default function WaiterTakeOrderPage() {
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('all');
   const [submitting, setSubmitting] = useState(false);
-
+  const autoRef = useAutoTranslatePage();
   const token = localStorage.getItem('token');
   const authHeader = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -115,7 +116,7 @@ export default function WaiterTakeOrderPage() {
   );
 
   return (
-    <div className="min-h-screen bg-stone-100 pb-28" data-testid="waiter-take-order-page">
+    <div className="min-h-screen bg-stone-100 pb-28" data-testid="waiter-take-order-page" ref={autoRef}>
       {/* Header */}
       <header className="sticky top-0 z-30 bg-gradient-to-r from-emerald-700 to-emerald-600 text-white shadow-lg">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">

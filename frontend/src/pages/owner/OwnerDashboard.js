@@ -6,6 +6,7 @@ import TileHome from '@/components/layouts/TileHome';
 import RestaurantsPage from './RestaurantsPage';
 import SettingsPage from './SettingsPage';
 import PartnersPage from './PartnersPage';
+import useAutoTranslatePage from '@/hooks/useAutoTranslatePage';
 
 function OwnerHome() {
   const { t } = useTranslation();
@@ -54,8 +55,9 @@ function SubPageWrap({ children }) {
 }
 
 export default function OwnerDashboard() {
+  const autoRef = useAutoTranslatePage();
   return (
-    <div className="min-h-screen bg-[#F4F5F2]">
+    <div className="min-h-screen bg-[#F4F5F2]" ref={autoRef}>
       <DashboardTopBar homePath="/owner" roleLabel="Owner" />
       <Routes>
         <Route path="/" element={<OwnerHome />} />

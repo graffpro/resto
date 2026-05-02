@@ -179,6 +179,17 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - `GET /api/tables?restaurant_id=X` now respects the param for OWNER role (was being ignored)
 - [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
 
+### 2026-02 — Big Yellow CTA + Universal Auto-Translate for Admin Panels
+- [x] **P0: Landing header "Daxil ol" is now a bold amber CTA pill** (amber-400, h-11, bold shadow + hover lift). Much more visible on both desktop and mobile. Replaces the cramped dark button.
+- [x] **P0: Universal automatic DOM translation** — solved the "admin panel is not translated" problem in a scalable, future-proof way that requires zero manual refactoring:
+  - **Backend**: new `POST /api/translate/batch` — accepts up to 100 Azerbaijani UI strings + target_lang, returns translations in one Gemini 2.5 Flash call. Every single string is also stored in `translation_cache` so repeat visits cost **zero LLM calls** (verified: 1st call `translated_count=3`, 2nd call `cached_count=3` `translated_count=0`).
+  - **Frontend hook `useAutoTranslatePage()`** (`/app/frontend/src/hooks/useAutoTranslatePage.js`): walks the component DOM, collects every text node that contains letters, batches them, calls the backend, replaces text in place. Uses `MutationObserver` so dynamically rendered content is also translated. Skips inputs/textareas/`data-no-auto-translate` elements. Cache persists in localStorage per language.
+  - **Plugged into**: `AdminDashboard`, `OwnerDashboard`, `KitchenDashboard`, `WaiterDashboard`, `WaiterTakeOrderPage` — i.e., every staff-facing dashboard.
+  - **i18n language normalization**: the hook strips the region suffix (`en-US` → `en`) before hitting the backend.
+  - **Verified**: switching i18n to English instantly translates the Admin tile grid (`"Admin Paneli" → "Admin Panel"`, `"BU GÜNKÜ GƏLIR" → "TODAY'S REVENUE"`, `"Çatdırılma" → "Delivery"`, `"Menyu" → "Menu"`, `"İstifadəçilər" → "Users"`, etc.). The hook scales to any new admin page/component added in the future with ZERO extra code.
+  - **Future language expansion** is free: to add Turkish or Russian coverage, no code change needed — the hook auto-invokes the backend for any target_lang among the four supported (az/tr/ru/en), and `translate-i18n.py` / `translate/batch` already support adding more languages.
+
+
 ### 2026-02 — Unified Auth: staff/partner login from the landing modal
 - [x] **P0: Customer modal 3-tab switcher** — the landing-page "Daxil ol" modal (`CustomerAuthModal`) now has three tabs: **Daxil ol** (email OTP), **Qeydiyyat** (email+name+phone OTP) and **İşçi** (dark pill, classic username+password for partners/admin/waiter/kitchen/bar/master_waiter).
 - [x] **Staff tab** uses `AuthContext.login()` (no change to existing `/login` page — backward compatible), redirects by role: owner→/owner, admin→/admin, kitchen|bar→/kitchen, master_waiter→/waiter/take-order, waiter→/waiter.

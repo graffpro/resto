@@ -9,6 +9,7 @@ import {
 import DashboardTopBar from '@/components/layouts/DashboardTopBar';
 import TileHome from '@/components/layouts/TileHome';
 import LiveStatsHero from '@/components/layouts/LiveStatsHero';
+import useAutoTranslatePage from '@/hooks/useAutoTranslatePage';
 import AdminPinGuard from '@/components/AdminPinGuard';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
@@ -117,10 +118,11 @@ function NewOrderListener() {
 }
 
 export default function AdminDashboard() {
+  const autoRef = useAutoTranslatePage();
   return (
     <VoiceCallProvider myRole="admin">
       <WebSocketProvider role="admin">
-        <div className="min-h-screen bg-[#F4F5F2]">
+        <div className="min-h-screen bg-[#F4F5F2]" ref={autoRef}>
           <VoiceCallOverlay />
           <NewOrderListener />
           <DashboardTopBar

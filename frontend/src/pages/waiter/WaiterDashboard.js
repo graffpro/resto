@@ -12,6 +12,7 @@ import az from '@/translations/az';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { initAudio, startContinuousAlarm } from '@/utils/notifications';
 import { sendLocalNotification, vibrateDevice, isNativeApp } from '@/utils/capacitor';
+import useAutoTranslatePage from '@/hooks/useAutoTranslatePage';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
@@ -27,7 +28,7 @@ function WaiterContent() {
   const alarmRef = useRef(null);
   const [alarmActive, setAlarmActive] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-
+  const autoRef = useAutoTranslatePage();
   const [timedAlerts, setTimedAlerts] = useState([]);
 
   const handleUserInteraction = useCallback(() => {
@@ -185,7 +186,7 @@ function WaiterContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7] p-3 sm:p-6" onClick={handleUserInteraction}>
+    <div className="min-h-screen bg-[#F9F9F7] p-3 sm:p-6" onClick={handleUserInteraction} ref={autoRef}>
       <div className="max-w-7xl mx-auto">
         {/* Alarm Banner */}
         {alarmActive && (
