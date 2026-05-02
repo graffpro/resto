@@ -467,27 +467,64 @@ async def delete_order(order_id: str, current_user: dict = Depends(get_current_u
 # Update order items
 class OrderUpdate(BaseModel):
     items: List[dict]
-    total_amount: float
+    total_amount: float  # deprecated — kept for backwards compat, server recomputes
 
 @router.put("/orders/{order_id}")
 async def update_order(order_id: str, order_update: OrderUpdate, current_user: dict = Depends(get_current_user)):
     if current_user['role'] not in [UserRole.ADMIN, UserRole.OWNER]:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
     q = {"id": order_id, **tenant_query(current_user)}
     order = await db.orders.find_one(q, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
+
+    # Server-side recompute: prevents stale `discounted_price` on edited items.
+    # We trust only the client-sent (menu_item_id, quantity, notes) fields;
+    # price, discount_percentage, name, target_station are always re-resolved
+    # from the menu_items collection.
+    q_tenant = tenant_query(current_user)
+    fixed_items = []
+    subtotal = 0.0
+    for raw in order_update.items:
+        mid = raw.get("menu_item_id")
+        qty = int(raw.get("quantity") or 0)
+        if not mid or qty < 1:
+            continue
+        mi = await db.menu_items.find_one({"id": mid, **q_tenant}, {"_id": 0})
+        if not mi:
+            # fall back to whatever the client sent so we don't lose the line
+            fixed_items.append(raw)
+            subtotal += float(raw.get("discounted_price") or raw.get("price", 0) * qty or 0)
+            continue
+        price = float(mi.get("price", 0))
+        discount = float(mi.get("discount_percentage", 0) or 0)
+        line_total = price * qty
+        discounted = round(line_total * (1 - discount / 100), 2) if discount else round(line_total, 2)
+        fixed_items.append({
+            "menu_item_id": mid,
+            "name": mi.get("name", raw.get("name", "")),
+            "price": price,
+            "quantity": qty,
+            "discount_percentage": discount,
+            "discounted_price": discounted,
+            "target_station": mi.get("target_station", raw.get("target_station", "kitchen")),
+            "notes": raw.get("notes") or None,
+        })
+        subtotal += discounted
+
+    new_total = round(subtotal, 2)
+
     await db.orders.update_one(
         q,
         {"$set": {
-            "items": order_update.items,
-            "total_amount": order_update.total_amount
+            "items": fixed_items,
+            "subtotal": new_total,
+            "total_amount": new_total,
         }}
     )
-    
-    return {"message": "Order updated"}
+
+    return {"message": "Order updated", "total_amount": new_total, "items": fixed_items}
 
 
 @router.get("/orders/waiter")

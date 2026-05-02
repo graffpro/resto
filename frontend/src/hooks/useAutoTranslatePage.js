@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { DASHBOARD_COMMON_STRINGS } from './dashboardStrings';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 const CACHE_KEY_PREFIX = 'auto_tr_v1_';
@@ -79,6 +80,34 @@ export default function useAutoTranslatePage() {
     if (!root) return undefined;
 
     let cache = getCache(lang);
+
+    // ── PRE-WARM ── on first visit for this language, send our curated list
+    // of common dashboard strings in ONE batch request so the first render
+    // already has them in cache and the MutationObserver can translate in-place
+    // without the user noticing any AZ flash.
+    const prewarmKey = `${CACHE_KEY_PREFIX}${lang}_prewarmed`;
+    if (!localStorage.getItem(prewarmKey)) {
+      const missing = DASHBOARD_COMMON_STRINGS.filter((s) => !cache[s]);
+      if (missing.length > 0) {
+        axios.post(`${API}/translate/batch`, {
+          texts: missing,
+          target_lang: lang,
+          source_lang: 'az',
+        }, { timeout: 20000 })
+          .then((res) => {
+            const translations = res?.data?.translations || {};
+            cache = { ...cache, ...translations };
+            saveCache(lang, cache);
+            localStorage.setItem(prewarmKey, '1');
+            // Trigger another DOM pass so any already-rendered AZ text gets swapped
+            applyCachedAndCollect();
+          })
+          .catch(() => { /* silent */ });
+      } else {
+        localStorage.setItem(prewarmKey, '1');
+      }
+    }
+
     const pendingOriginals = new Map(); // original -> [textNode, ...]
     let flushTimer = null;
 
