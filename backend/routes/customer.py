@@ -346,13 +346,17 @@ class PublicDeliveryRequest(BaseModel):
     customer_name: str = Field(min_length=2, max_length=120)
     customer_phone: str = Field(min_length=4, max_length=32)
     customer_email: Optional[EmailStr] = None
-    delivery_address: str = Field(min_length=4, max_length=500)
+    delivery_address: str = Field(default="", max_length=500)
     address_lat: Optional[float] = None
     address_lng: Optional[float] = None
     address_notes: Optional[str] = ""
     items: List[DeliveryItem] = Field(min_length=1)
     payment_method: str = Field(default="cash")  # cash | card_on_delivery (online payment integrated later)
     notes: Optional[str] = ""
+    # "delivery"    – courier to customer address (classic Wolt-style)
+    # "dine_in_online" – customer orders online, will come pick up / eat at restaurant
+    order_type: str = Field(default="delivery", pattern="^(delivery|dine_in_online)$")
+    pickup_time: Optional[str] = None  # HH:MM (only used for dine_in_online)
 
 
 @router.post("/public/delivery-orders")
@@ -367,6 +371,14 @@ async def create_delivery_order(
     if not partner:
         raise HTTPException(status_code=404, detail="Restoran çatdırılma üçün açıq deyil")
 
+    # For online dine-in, the customer MUST be authenticated — prevents spam
+    if req.order_type == "dine_in_online" and not current:
+        raise HTTPException(status_code=401, detail="Onlayn sifariş üçün daxil olun")
+
+    # For delivery, address is required
+    if req.order_type == "delivery" and (not req.delivery_address or len(req.delivery_address.strip()) < 4):
+        raise HTTPException(status_code=400, detail="Çatdırılma ünvanı tələb olunur")
+
     subtotal = sum(it.price * it.quantity for it in req.items)
 
     doc = {
@@ -376,10 +388,12 @@ async def create_delivery_order(
         "customer_name": req.customer_name,
         "customer_phone": req.customer_phone,
         "customer_email": req.customer_email,
-        "delivery_address": req.delivery_address,
+        "delivery_address": req.delivery_address if req.order_type == "delivery" else "",
         "address_lat": req.address_lat,
         "address_lng": req.address_lng,
         "address_notes": req.address_notes or "",
+        "order_type": req.order_type,
+        "pickup_time": req.pickup_time or None,
         "items": [it.model_dump() for it in req.items],
         "subtotal": round(subtotal, 2),
         "delivery_fee": 0.0,  # restaurants can configure later
@@ -403,6 +417,7 @@ async def create_delivery_order(
                 "total": doc["total"],
                 "items_count": len(doc["items"]),
                 "delivery_address": doc["delivery_address"],
+                "order_type": doc["order_type"],
             },
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }, "admin")

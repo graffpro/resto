@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
-import { Truck, MapPin, User, CreditCard, Loader2, X, Check, Plus, Minus, Trash2 } from 'lucide-react';
+import { Truck, MapPin, User, CreditCard, Loader2, X, Check, Plus, Minus, Trash2, UtensilsCrossed, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,22 +14,25 @@ import { useCustomerAuth } from '@/context/CustomerAuthContext';
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}/api`;
 
 /**
- * Two-step delivery checkout modal:
+ * Two-step delivery / online-order checkout modal:
  *   1. Cart review (qty +/-, remove)
- *   2. Delivery address + customer info + payment method
+ *   2. Customer info + address (delivery only) + payment method
  * On submit → POST /api/public/delivery-orders → tracking confirmation screen.
  *
  * Props:
  *   open, onClose, restaurantId, restaurantName,
  *   cart: [{ menu_item_id, name, price, quantity }],
- *   setCart: (next) => void
+ *   setCart: (next) => void,
+ *   orderType?: 'delivery' | 'dine_in_online'  (default 'delivery')
  */
-export default function DeliveryCheckoutModal({ open, onClose, restaurantId, restaurantName, cart, setCart }) {
+export default function DeliveryCheckoutModal({ open, onClose, restaurantId, restaurantName, cart, setCart, orderType = 'delivery' }) {
   const { t } = useTranslation();
   const { customer, token } = useCustomerAuth();
   const [step, setStep] = useState('cart'); // cart | details | done
   const [busy, setBusy] = useState(false);
   const [order, setOrder] = useState(null);
+
+  const isDineIn = orderType === 'dine_in_online';
 
   const [form, setForm] = useState({
     customer_name: '',
@@ -39,6 +42,7 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
     address_notes: '',
     payment_method: 'cash',
     notes: '',
+    pickup_time: '',
   });
 
   useEffect(() => {
@@ -73,7 +77,10 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
   const submit = async (e) => {
     e.preventDefault();
     if (cart.length === 0) { toast.error(t('delivery.empty')); return; }
-    if (!form.customer_name || !form.customer_phone || !form.delivery_address) {
+    if (!form.customer_name || !form.customer_phone) {
+      toast.error(t('delivery.fill_required')); return;
+    }
+    if (!isDineIn && !form.delivery_address) {
       toast.error(t('delivery.fill_required')); return;
     }
     setBusy(true);
@@ -84,6 +91,7 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
         {
           restaurant_id: restaurantId,
           ...form,
+          order_type: orderType,
           items: cart.map((it) => ({
             menu_item_id: it.menu_item_id,
             name: it.name,
@@ -112,17 +120,20 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
         className="w-full sm:max-w-md bg-white text-stone-900 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6">
+        <div className={`relative ${isDineIn ? 'bg-gradient-to-br from-amber-600 to-orange-700' : 'bg-gradient-to-br from-emerald-600 to-teal-700'} text-white p-6`}>
           <button type="button" onClick={onClose} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 grid place-items-center" data-testid="delivery-close">
             <X size={16} />
           </button>
-          <Truck className="w-7 h-7 mb-2" />
+          {isDineIn ? <UtensilsCrossed className="w-7 h-7 mb-2" /> : <Truck className="w-7 h-7 mb-2" />}
           <h2 className="text-xl font-black">
             {step === 'cart' && t('delivery.title_cart')}
-            {step === 'details' && t('delivery.title_details')}
+            {step === 'details' && (isDineIn ? 'Onlayn sifariş — məlumatlar' : t('delivery.title_details'))}
             {step === 'done' && t('delivery.title_done')}
           </h2>
-          <p className="text-white/80 text-sm mt-1">{restaurantName}</p>
+          <p className="text-white/80 text-sm mt-1">
+            {restaurantName}
+            {isDineIn && <span className="ml-2 text-[11px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">Restoranda yeyəcəm</span>}
+          </p>
         </div>
 
         {step === 'cart' && (
@@ -201,24 +212,49 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
               <Label>{t('delivery.email_label')}</Label>
               <Input type="email" value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} data-testid="delivery-email" />
             </div>
-            <div>
-              <Label className="flex items-center gap-1.5"><MapPin size={13} /> {t('delivery.address_label')} *</Label>
-              <Textarea
-                rows={2}
-                value={form.delivery_address}
-                onChange={(e) => setForm({ ...form, delivery_address: e.target.value })}
-                placeholder={t('delivery.address_placeholder')}
-                required
-                data-testid="delivery-address"
-              />
-              <Input
-                className="mt-2"
-                value={form.address_notes}
-                onChange={(e) => setForm({ ...form, address_notes: e.target.value })}
-                placeholder={t('delivery.address_notes_placeholder')}
-                data-testid="delivery-address-notes"
-              />
-            </div>
+            {isDineIn ? (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 grid place-items-center shrink-0">
+                    <UtensilsCrossed className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm text-amber-900">Restoranda yeyəcəksiniz</p>
+                    <p className="text-xs text-amber-800/80 mt-0.5">Administrator sifarişinizi alıb hazırlayacaq. Sifarişi restoranda götürməyə vaxtı seçin.</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label className="flex items-center gap-1.5"><Clock size={13} /> Gəlmə vaxtı (istəyə bağlı)</Label>
+                  <Input
+                    type="time"
+                    value={form.pickup_time}
+                    onChange={(e) => setForm({ ...form, pickup_time: e.target.value })}
+                    data-testid="delivery-pickup-time"
+                    className="mt-1"
+                  />
+                  <p className="text-[11px] text-stone-500 mt-1">Boş buraxsanız, restoran sizinlə əlaqə saxlayacaq.</p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label className="flex items-center gap-1.5"><MapPin size={13} /> {t('delivery.address_label')} *</Label>
+                <Textarea
+                  rows={2}
+                  value={form.delivery_address}
+                  onChange={(e) => setForm({ ...form, delivery_address: e.target.value })}
+                  placeholder={t('delivery.address_placeholder')}
+                  required={!isDineIn}
+                  data-testid="delivery-address"
+                />
+                <Input
+                  className="mt-2"
+                  value={form.address_notes}
+                  onChange={(e) => setForm({ ...form, address_notes: e.target.value })}
+                  placeholder={t('delivery.address_notes_placeholder')}
+                  data-testid="delivery-address-notes"
+                />
+              </div>
+            )}
 
             <div>
               <Label className="flex items-center gap-1.5"><CreditCard size={13} /> {t('delivery.payment_label')}</Label>
@@ -268,11 +304,15 @@ export default function DeliveryCheckoutModal({ open, onClose, restaurantId, res
             <h3 className="text-lg font-black">#{order.id.slice(0, 8)}</h3>
             <div className="text-sm text-stone-600 space-y-1 bg-stone-50 rounded-xl p-4 text-left">
               <p><strong>{t('delivery.success_total')}:</strong> {order.total} ₼</p>
-              <p><strong>{t('delivery.success_address')}:</strong> {order.delivery_address}</p>
+              {isDineIn ? (
+                <p><strong>Gəlmə vaxtı:</strong> {order.pickup_time || 'Restoran sizinlə əlaqə saxlayacaq'}</p>
+              ) : (
+                <p><strong>{t('delivery.success_address')}:</strong> {order.delivery_address}</p>
+              )}
               <p><strong>{t('delivery.success_status')}:</strong> <span className="text-amber-600 font-semibold">{t('reservation.status_pending')}</span></p>
             </div>
             <p className="text-xs text-stone-500">{t('delivery.success_hint')}</p>
-            <Button onClick={onClose} className="w-full bg-[#E0402A] hover:bg-[#C93622]">{t('delivery.close')}</Button>
+            <Button onClick={onClose} className="w-full bg-[#E0402A] hover:bg-[#C93622] text-white">{t('delivery.close')}</Button>
           </div>
         )}
       </div>

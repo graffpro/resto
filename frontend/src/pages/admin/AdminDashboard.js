@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import DashboardTopBar from '@/components/layouts/DashboardTopBar';
 import TileHome from '@/components/layouts/TileHome';
+import LiveStatsHero from '@/components/layouts/LiveStatsHero';
 import AdminPinGuard from '@/components/AdminPinGuard';
 import { VoiceCallProvider } from '@/context/VoiceCallContext';
 import { WebSocketProvider, useWebSocket } from '@/context/WebSocketContext';
@@ -81,12 +82,15 @@ function AdminHome() {
   ];
 
   return (
-    <div className="px-3 sm:px-5 py-6 max-w-screen-2xl mx-auto">
-      <TileHome
-        tiles={tiles}
-        title={t('admin.title', 'Admin Panel')}
-        subtitle={t('admin.subtitle', 'Restoran əməliyyatlarını idarə et')}
-      />
+    <div className="px-3 sm:px-5 py-6 max-w-screen-2xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900">
+          {t('admin.title', 'Admin Panel')}
+        </h1>
+        <p className="text-sm text-stone-500 mt-1">{t('admin.subtitle', 'Restoran əməliyyatlarını idarə et')}</p>
+      </div>
+      <LiveStatsHero stats={stats || {}} />
+      <TileHome tiles={tiles} />
     </div>
   );
 }
@@ -102,8 +106,9 @@ function NewOrderListener() {
     if (lastMessage.type === 'new_delivery_order') {
       const d = lastMessage.data || {};
       playOrderBell();
+      const isDineIn = d.order_type === 'dine_in_online';
       toast.success(
-        `🛵 Yeni çatdırılma · ${d.customer_name || ''} · ${d.total || ''} ₼`,
+        `${isDineIn ? '🍽 Onlayn sayt sifarişi' : '🛵 Yeni çatdırılma'} · ${d.customer_name || ''} · ${d.total || ''} ₼`,
         { duration: 6000 },
       );
     }

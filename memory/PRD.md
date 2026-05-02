@@ -179,6 +179,21 @@ Multi-Restaurant (Multi-Tenant) QR-Code Architecture Management System. Features
   - `GET /api/tables?restaurant_id=X` now respects the param for OWNER role (was being ignored)
 - [x] **P0 Fix (2026-02): Production Docker build crash** — Added `RUN pip install --no-cache-dir emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` to `/app/deploy/Dockerfile` (after standard `pip install -r requirements.txt`). Resolves `ModuleNotFoundError: No module named 'emergentintegrations'` on user's Contabo VPS. Verified: local backend RUNNING, `POST /api/translate` returns translated text successfully via Gemini 2.5 Flash. `docker-compose.yml` already forwards `EMERGENT_LLM_KEY` env var.
 
+### 2026-02 — UX Fixes + Online Order Channel + Live Stats Hero
+- [x] **P0: Public menu modals had white-on-white text** (CustomerAuth, Reservation, Delivery). Root cause: modals inherited `text-white` from parent `bg-stone-950 text-white` on PublicMenuPage. Added explicit `text-stone-900` on modal content root → everything readable.
+- [x] **P0: Cart qty inline on menu items** (`PublicMenuPage` / `MenuItemCard`). When an item is in cart, the `+` button morphs into a green pill `− qty +` with big tappable buttons (36×36). `decFromCart()` removes at qty=0. Cart state persists per-restaurant in localStorage.
+- [x] **P0: Delivery cart modal UI overhaul** — bigger +/- buttons (40×40 red pill), price line per item (`15.99 ₼ × 3 = 47.97 ₼`), trash can remove, readable subtotal.
+- [x] **P0: Resend email delivery** — user verified domain `resto.az`. Backend now uses `SENDER_EMAIL=no-reply@resto.az`, verified with real send (Gmail delivery confirmed with `resend_id`). Additionally, `_send_otp_email()` now PROPAGATES Resend errors to HTTP 502 with a bilingual actionable message (instead of silently succeeding on failure) so misconfigs can't hide again.
+- [x] **P1: Live Stats Hero** (`LiveStatsHero.js`) — 4 huge vibrant gradient cards above the Metro tiles on `/admin`:
+  - Today's revenue (emerald), Active orders (red/orange + pulsing LIVE badge), Pending delivery (blue + LIVE badge), Today's reservations (purple).
+  - Count-up animation on value change (`useCountUp`), pulseGlow keyframe on the icon when value > 0.
+  - Fed by existing `/api/admin/dashboard-stats` polled every 15s.
+- [x] **P0: Online-order channel (`order_type: "dine_in_online"`)** — dedicated flow for customers ordering via website to eat at restaurant (not delivery):
+  - **Backend (`routes/customer.py`)**: `PublicDeliveryRequest` gained `order_type ∈ {delivery, dine_in_online}` + optional `pickup_time`. Server validates: `dine_in_online` requires logged-in customer (401 otherwise); `delivery` requires address (400 otherwise). `delivery_orders` documents now carry `order_type` + `pickup_time`.
+  - **Frontend**: `DeliveryCheckoutModal` accepts `orderType` prop; dine-in variant swaps header icon + color (amber), replaces address textarea with a friendly "Restoranda yeyəcəksiniz" block + optional pickup-time picker. `PublicMenuPage` "Restoranda yeyəcəm" chip now opens this modal (requires login + non-empty cart; no more broken `/table/:id` redirect).
+  - **Admin `DeliveryOrdersPage`**: each order row now shows a coloured badge — `🍽 ONLAYN SAYT` (amber) vs `🛵 ÇATDIRILMA` (green). The address line is replaced by pickup time for dine-in orders. New-order toast also distinguishes the two channels.
+
+
 ### 2026-02 — i18n Landing Page Sync + Automated Translation Pipeline
 - [x] **P0 Fix: Outdated SaaS text on Wolt-style Landing Page** — Replaced entire `landing.*` block in all 4 locale JSONs (`az`, `en`, `ru`, `tr`) with customer-centric keys aligned to `LandingPage.js`:
   - `hero.title` / `hero.subtitle` / `hero.search_placeholder` (e.g. "Nə yemək istəyirsən?" / "What do you want to eat?")

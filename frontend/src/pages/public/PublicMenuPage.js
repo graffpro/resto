@@ -49,6 +49,7 @@ export default function PublicMenuPage() {
   const [showAuth, setShowAuth] = useState(false);
   const [showReserve, setShowReserve] = useState(false);
   const [showDelivery, setShowDelivery] = useState(false);
+  const [showOnlineOrder, setShowOnlineOrder] = useState(false);
 
   // Persist cart per restaurant in localStorage
   useEffect(() => {
@@ -268,13 +269,25 @@ export default function PublicMenuPage() {
               <Truck size={13} /> {t('public_menu.delivery')} {cartCount > 0 && `(${cartCount})`}
             </button>
             {partner?.menu_table_id && (
-              <Link
-                to={`/table/${partner.menu_table_id}`}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    toast.info('Onlayn sifariş üçün daxil olun');
+                    setShowAuth(true);
+                    return;
+                  }
+                  if (cart.length === 0) {
+                    toast.info('Menyudan yemək seçib səbətə əlavə edin');
+                    return;
+                  }
+                  setShowOnlineOrder(true);
+                }}
                 className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-[#E0402A] hover:bg-[#C93622] text-xs font-semibold"
                 data-testid="public-menu-order"
               >
-                <Info size={13} /> {t('public_menu.order_in_restaurant')}
-              </Link>
+                <Info size={13} /> Restoranda yeyəcəm {cartCount > 0 && `(${cartCount})`}
+              </button>
             )}
           </div>
         </div>
@@ -421,6 +434,16 @@ export default function PublicMenuPage() {
         restaurantName={partner?.name || restaurant?.name}
         cart={cart}
         setCart={setCart}
+        orderType="delivery"
+      />
+      <DeliveryCheckoutModal
+        open={showOnlineOrder}
+        onClose={() => setShowOnlineOrder(false)}
+        restaurantId={restaurantId}
+        restaurantName={partner?.name || restaurant?.name}
+        cart={cart}
+        setCart={setCart}
+        orderType="dine_in_online"
       />
     </div>
   );

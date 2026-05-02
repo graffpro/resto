@@ -191,6 +191,15 @@ export default function DeliveryOrdersPage() {
                       >
                         {meta.label}
                       </span>
+                      {order.order_type === 'dine_in_online' ? (
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300" data-testid={`order-type-dine-${order.id}`}>
+                          🍽 ONLAYN SAYT
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300" data-testid={`order-type-delivery-${order.id}`}>
+                          🛵 ÇATDIRILMA
+                        </span>
+                      )}
                       <span className="text-[11px] text-stone-500">{relativeTime(order.created_at, t)}</span>
                     </div>
                     <p className="text-sm text-stone-700 mt-0.5 flex items-center gap-1.5">
@@ -199,9 +208,15 @@ export default function DeliveryOrdersPage() {
                         · {order.customer_phone}
                       </a>
                     </p>
-                    <p className="text-xs text-stone-500 mt-0.5 truncate">
-                      <MapPin size={11} className="inline mr-1" /> {order.delivery_address}
-                    </p>
+                    {order.order_type === 'dine_in_online' ? (
+                      <p className="text-xs text-stone-500 mt-0.5 truncate">
+                        <Clock size={11} className="inline mr-1" /> Gəlmə: {order.pickup_time || 'dəqiqləşəcək'}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-stone-500 mt-0.5 truncate">
+                        <MapPin size={11} className="inline mr-1" /> {order.delivery_address}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-lg font-black text-[#E0402A]">{order.total} ₼</p>

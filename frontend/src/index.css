@@ -84,3 +84,14 @@ code {
         border-bottom-color: inherit;
     }
 }
+/* LiveStatsHero — subtle pulse glow on active stat icons */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    transform: scale(1.08);
+  }
+}
