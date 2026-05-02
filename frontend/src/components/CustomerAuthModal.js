@@ -149,7 +149,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
             {step === 'contact'
               ? (mode === 'login' ? 'Daxil ol'
                 : mode === 'register' ? 'Qeydiyyat'
-                : 'Partnyor / İşçi girişi')
+                : 'Personal girişi')
               : t('customer_auth.title_otp')}
           </h2>
           <p className="text-stone-400 text-sm mt-1">
@@ -158,7 +158,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   ? 'Email ünvanınızı daxil edin, 6 rəqəmli kod göndərəcəyik.'
                   : mode === 'register'
                   ? 'Ad, email və telefon daxil edin, hesabınızı qururuq.'
-                  : 'Restoran sahibi, admin, ofitsiant və ya mətbəx işçisi üçün.')
+                  : 'Restoran sahibi, administrator və ya personal üçün.')
               : t('customer_auth.subtitle_otp', { email })}
           </p>
         </div>
@@ -190,19 +190,19 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                   className={`h-9 rounded-full text-xs sm:text-sm font-bold transition-colors ${mode === 'staff' ? 'bg-[#1A251E] text-white shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
                   data-testid="auth-tab-staff"
                 >
-                  İşçi
+                  Personal
                 </button>
               </div>
 
               {mode === 'staff' ? (
                 <form onSubmit={staffSubmit} className="space-y-4" data-testid="staff-login-form">
                   <div>
-                    <Label htmlFor="staff-username" className="flex items-center gap-1.5"><User size={13} /> Login</Label>
+                    <Label htmlFor="staff-username" className="flex items-center gap-1.5"><User size={13} /> İstifadəçi adı</Label>
                     <Input
                       id="staff-username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="graff və ya emin"
+                      placeholder="İstifadəçi adınız"
                       autoComplete="username"
                       required
                       data-testid="staff-username"
@@ -230,7 +230,7 @@ export default function CustomerAuthModal({ open, onClose, onSuccess }) {
                     Daxil ol
                   </Button>
                   <p className="text-[11px] text-stone-500 text-center pt-1">
-                    Partnyor / admin / ofitsiant / mətbəx üçün istifadəçi adı və şifrə.
+                    Restoran sahibi, administrator, ofitsiant və mətbəx personalı üçün.
                   </p>
                 </form>
               ) : (
