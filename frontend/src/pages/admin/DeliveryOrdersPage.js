@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
   Truck, Clock, ChefHat, Package, CheckCircle2, XCircle, Phone, MapPin,
@@ -13,31 +14,38 @@ const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` }
 
 const STATUS_FLOW = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered'];
 
-const STATUS_META = {
-  pending:          { label: 'Yeni', color: '#F59E0B', bg: 'bg-amber-50',    text: 'text-amber-800',    Icon: Clock },
-  confirmed:        { label: 'Təsdiqləndi', color: '#0EA5E9', bg: 'bg-sky-50', text: 'text-sky-800', Icon: CheckCircle2 },
-  preparing:        { label: 'Hazırlanır', color: '#EC4899', bg: 'bg-pink-50', text: 'text-pink-800', Icon: ChefHat },
-  out_for_delivery: { label: 'Yolda', color: '#8B5CF6', bg: 'bg-violet-50', text: 'text-violet-800', Icon: Truck },
-  delivered:        { label: 'Çatdırıldı', color: '#10B981', bg: 'bg-emerald-50', text: 'text-emerald-800', Icon: Package },
-  cancelled:        { label: 'Ləğv edildi', color: '#6B7280', bg: 'bg-stone-100',  text: 'text-stone-700',  Icon: XCircle },
-};
+function getStatusMeta(t) {
+  return {
+    pending:          { label: t('delivery_orders.status_pending'),          color: '#F59E0B', bg: 'bg-amber-50',    text: 'text-amber-800',    Icon: Clock },
+    confirmed:        { label: t('delivery_orders.status_confirmed'),        color: '#0EA5E9', bg: 'bg-sky-50',      text: 'text-sky-800',      Icon: CheckCircle2 },
+    preparing:        { label: t('delivery_orders.status_preparing'),        color: '#EC4899', bg: 'bg-pink-50',     text: 'text-pink-800',     Icon: ChefHat },
+    out_for_delivery: { label: t('delivery_orders.status_out_for_delivery'), color: '#8B5CF6', bg: 'bg-violet-50',   text: 'text-violet-800',   Icon: Truck },
+    delivered:        { label: t('delivery_orders.status_delivered'),        color: '#10B981', bg: 'bg-emerald-50',  text: 'text-emerald-800',  Icon: Package },
+    cancelled:        { label: t('delivery_orders.status_cancelled'),        color: '#6B7280', bg: 'bg-stone-100',   text: 'text-stone-700',    Icon: XCircle },
+  };
+}
 
-const PAYMENT_LABEL = {
-  cash: 'Nağd',
-  card_on_delivery: 'Kuryerə kart',
-  online: 'Onlayn',
-};
+function getPaymentLabel(t) {
+  return {
+    cash: t('delivery.payment_cash'),
+    card_on_delivery: t('delivery.payment_card_on_delivery'),
+    online: 'Online',
+  };
+}
 
-function relativeTime(iso) {
+function relativeTime(iso, t) {
   if (!iso) return '';
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return `${Math.floor(diff)}s əvvəl`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}dəq əvvəl`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}saat əvvəl`;
+  if (diff < 60) return t('delivery_orders.ago_seconds', { n: Math.floor(diff) });
+  if (diff < 3600) return t('delivery_orders.ago_minutes', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('delivery_orders.ago_hours', { n: Math.floor(diff / 3600) });
   return new Date(iso).toLocaleDateString();
 }
 
 export default function DeliveryOrdersPage() {
+  const { t } = useTranslation();
+  const STATUS_META = useMemo(() => getStatusMeta(t), [t]);
+  const PAYMENT_LABEL = useMemo(() => getPaymentLabel(t), [t]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('active'); // active | all | delivered | cancelled
@@ -87,7 +95,7 @@ export default function DeliveryOrdersPage() {
       toast.success(`Status: ${STATUS_META[newStatus]?.label || newStatus}`);
       fetchOrders();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || 'Status yenilənmədi');
+      toast.error(e?.response?.data?.detail || 'Error');
     }
   };
 
@@ -105,22 +113,22 @@ export default function DeliveryOrdersPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <Truck className="w-6 h-6 text-emerald-600" /> Çatdırılma Sifarişləri
+            <Truck className="w-6 h-6 text-emerald-600" /> {t('delivery_orders.title')}
           </h1>
-          <p className="text-sm text-stone-600">Public menyudan gələn sifarişlər (auto-refresh 20s)</p>
+          <p className="text-sm text-stone-600">{t('delivery_orders.subtitle')}</p>
         </div>
         <Button onClick={fetchOrders} variant="outline" size="sm">
-          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Yenilə
+          <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> {t('delivery_orders.refresh')}
         </Button>
       </div>
 
       {/* FILTERS */}
       <div className="flex items-center gap-2 flex-wrap">
         {[
-          { key: 'active', label: `Aktiv (${counts.active})`, accent: 'amber' },
-          { key: 'delivered', label: `Çatdırıldı (${counts.delivered})`, accent: 'emerald' },
-          { key: 'cancelled', label: `Ləğv (${counts.cancelled})`, accent: 'stone' },
-          { key: 'all', label: `Hamısı (${counts.all})`, accent: 'sky' },
+          { key: 'active', label: `${t('delivery_orders.filter_active')} (${counts.active})` },
+          { key: 'delivered', label: `${t('delivery_orders.filter_delivered')} (${counts.delivered})` },
+          { key: 'cancelled', label: `${t('delivery_orders.filter_cancelled')} (${counts.cancelled})` },
+          { key: 'all', label: `${t('delivery_orders.filter_all')} (${counts.all})` },
         ].map((f) => (
           <button
             key={f.key}
@@ -140,7 +148,7 @@ export default function DeliveryOrdersPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ad, telefon, ünvan..."
+            placeholder={t('delivery_orders.search_placeholder')}
             className="pl-8 h-9 text-sm"
             data-testid="delivery-search"
           />
@@ -149,10 +157,10 @@ export default function DeliveryOrdersPage() {
 
       {/* LIST */}
       {loading && orders.length === 0 ? (
-        <div className="text-center py-12 text-stone-500 text-sm">Yüklənir...</div>
+        <div className="text-center py-12 text-stone-500 text-sm">...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-stone-500 text-sm rounded-2xl bg-white border-2 border-dashed border-stone-200">
-          Hələ sifariş yoxdur.
+          {t('delivery_orders.no_orders')}
         </div>
       ) : (
         <div className="space-y-3" data-testid="delivery-orders-list">
@@ -183,7 +191,7 @@ export default function DeliveryOrdersPage() {
                       >
                         {meta.label}
                       </span>
-                      <span className="text-[11px] text-stone-500">{relativeTime(order.created_at)}</span>
+                      <span className="text-[11px] text-stone-500">{relativeTime(order.created_at, t)}</span>
                     </div>
                     <p className="text-sm text-stone-700 mt-0.5 flex items-center gap-1.5">
                       <User size={12} /> {order.customer_name}
@@ -212,7 +220,7 @@ export default function DeliveryOrdersPage() {
                     data-testid={`delivery-toggle-${order.id}`}
                   >
                     {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    {isOpen ? 'Gizlət' : 'Detallar'}
+                    {isOpen ? t('delivery_orders.hide') : t('delivery_orders.details')}
                   </button>
 
                   <div className="ml-auto flex flex-wrap gap-1.5">
@@ -232,12 +240,12 @@ export default function DeliveryOrdersPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          if (window.confirm('Sifariş ləğv edilsin?')) updateStatus(order.id, 'cancelled');
+                          if (window.confirm(t('delivery_orders.cancel_confirm'))) updateStatus(order.id, 'cancelled');
                         }}
                         className="h-8 px-3 text-xs text-red-600 hover:bg-red-50 border-red-200"
                         data-testid={`delivery-cancel-${order.id}`}
                       >
-                        Ləğv
+                        {t('delivery_orders.cancel')}
                       </Button>
                     )}
                     <a
@@ -252,7 +260,7 @@ export default function DeliveryOrdersPage() {
                       href={`tel:${order.customer_phone}`}
                       className="h-8 px-3 inline-flex items-center gap-1 text-xs font-semibold rounded-md bg-stone-100 text-stone-700 hover:bg-stone-200"
                     >
-                      <Phone size={12} /> Zəng
+                      <Phone size={12} /> {t('reservation.phone_label')}
                     </a>
                   </div>
                 </div>
@@ -261,7 +269,7 @@ export default function DeliveryOrdersPage() {
                 {isOpen && (
                   <div className="border-t border-stone-100 bg-stone-50 p-4 space-y-3 text-sm">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1">Yeməklər</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1">{t('delivery_orders.items_label')}</p>
                       <ul className="space-y-1">
                         {order.items?.map((it, idx) => (
                           <li key={idx} className="flex justify-between">
@@ -271,24 +279,24 @@ export default function DeliveryOrdersPage() {
                         ))}
                       </ul>
                       <div className="border-t border-stone-200 mt-2 pt-2 flex justify-between font-bold">
-                        <span>Cəmi</span><span className="text-[#E0402A]">{order.total} ₼</span>
+                        <span>{t('delivery_orders.total')}</span><span className="text-[#E0402A]">{order.total} ₼</span>
                       </div>
                     </div>
                     {order.address_notes && (
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-0.5">Ünvan qeydi</p>
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-0.5">{t('delivery_orders.address_notes_label')}</p>
                         <p className="text-stone-700">{order.address_notes}</p>
                       </div>
                     )}
                     {order.notes && (
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-0.5">Müştəri qeydi</p>
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-0.5">{t('delivery_orders.customer_notes_label')}</p>
                         <p className="text-stone-700">{order.notes}</p>
                       </div>
                     )}
                     {order.customer_email && (
                       <div className="text-stone-600">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">Email: </span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">{t('delivery_orders.email_label')}: </span>
                         {order.customer_email}
                       </div>
                     )}
